@@ -1,0 +1,730 @@
+interface VehicleImage {
+  _id: string;
+  url: string;
+  caption?: string;
+  isPrimary: boolean;
+}
+
+interface VehicleDocument {
+  rc: {
+    number: string;
+    expiryDate: string;
+    image?: string;
+    isVerified: boolean;
+  };
+  insurance?: {
+    number: string;
+    expiryDate: string;
+    image?: string;
+    isVerified: boolean;
+  };
+  fitness?: {
+    number: string;
+    expiryDate: string;
+    image?: string;
+    isVerified: boolean;
+  };
+  permit?: {
+    number: string;
+    expiryDate: string;
+    image?: string;
+    isVerified: boolean;
+  };
+  puc?: {
+    number: string;
+    expiryDate: string;
+    image?: string;
+    isVerified: boolean;
+  };
+}
+
+interface VehiclePricingReference {
+  category: 'auto' | 'car' | 'bus';
+  vehicleType: string;
+  vehicleModel: string;
+}
+
+interface VehicleSchedule {
+  workingDays: string[];
+  workingHours: {
+    start: string;
+    end: string;
+  };
+}
+
+interface VehicleOperatingArea {
+  cities: string[];
+  states: string[];
+}
+
+interface VehicleMaintenance {
+  lastService?: string;
+  nextService?: string;
+  serviceHistory: Array<{
+    date: string;
+    description: string;
+    cost: number;
+    serviceCenter: string;
+    odometer: number;
+  }>;
+  isUnderMaintenance: boolean;
+  maintenanceReason?: string;
+}
+
+interface VehicleRatings {
+  average: number;
+  count: number;
+  breakdown: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
+interface VehicleStatistics {
+  totalTrips: number;
+  totalDistance: number;
+  totalEarnings: number;
+  averageRating: number;
+}
+
+export interface Vehicle {
+  _id: string;
+  driver: string;
+  type: 'bus' | 'car' | 'auto';
+  brand: string;
+  color?: string;
+  engineCapacity?: string;
+  mileage?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  fuelType: 'petrol' | 'diesel' | 'cng' | 'electric' | 'hybrid';
+  seatingCapacity: number;
+  isAc: boolean;
+  isSleeper: boolean;
+  amenities: string[];
+  images: VehicleImage[];
+  documents: VehicleDocument;
+  registrationNumber: string;
+  isAvailable: boolean;
+  isActive: boolean;
+  isVerified: boolean;
+  isApproved: boolean;
+  currentLocation?: {
+    type: 'Point';
+    coordinates: [number, number];
+    address?: string;
+    lastUpdated?: string;
+  };
+  vehicleLocation?: {
+    type: 'Point';
+    coordinates: [number, number];
+    address: string;
+    city?: string;
+    state?: string;
+    lastUpdated?: string;
+  };
+  pricingReference: VehiclePricingReference;
+  // Actual pricing data - populated automatically from pricingReference
+  pricing?: {
+    // Auto pricing (for auto category)
+    autoPrice: {
+      oneWay: number;
+      return: number;
+    };
+    // Distance-based pricing (for car and bus categories)
+    distancePricing: {
+      oneWay: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+      return: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+    };
+    lastUpdated: string;
+  };
+  // Computed pricing field - will be populated with actual pricing data
+  computedPricing?: {
+    // Auto pricing (for auto category)
+    autoPrice: {
+      oneWay: number;
+      return: number;
+    };
+    // Distance-based pricing (for car and bus categories)
+    distancePricing: {
+      oneWay: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+      return: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+    };
+    category: string;
+    vehicleType: string;
+    vehicleModel: string;
+  };
+  schedule: VehicleSchedule;
+  operatingArea: VehicleOperatingArea;
+  maintenance: VehicleMaintenance;
+  ratings: VehicleRatings;
+  statistics: VehicleStatistics;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Updated interface without removed fields
+export interface CreateVehicleData {
+  type: 'bus' | 'car' | 'auto';
+  brand: string;
+  color?: string;
+  engineCapacity?: string;
+  mileage?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  fuelType: 'petrol' | 'diesel' | 'cng' | 'electric' | 'hybrid';
+  seatingCapacity: number;
+  isAc?: boolean;
+  isSleeper?: boolean;
+  amenities?: string[];
+  registrationNumber: string;
+  insuranceNumber?: string;
+  insuranceExpiryDate?: string;
+  fitnessNumber?: string;
+  fitnessExpiryDate?: string;
+  permitNumber?: string;
+  permitExpiryDate?: string;
+  pucNumber?: string;
+  pucExpiryDate?: string;
+  vehicleLocation?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    city?: string;
+    state?: string;
+  };
+  pricingReference?: {
+    category: 'auto' | 'car' | 'bus';
+    vehicleType: string;
+    vehicleModel: string;
+  };
+  workingDays?: string[];
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
+  operatingCities?: string[];
+  operatingStates?: string[];
+}
+
+export interface UpdateVehicleData extends Partial<CreateVehicleData> {}
+
+export interface VehicleFilters {
+  page?: number;
+  limit?: number;
+  status?: 'all' | 'active' | 'inactive' | 'maintenance';
+  type?: 'all' | 'bus' | 'car' | 'auto';
+}
+
+export interface VehicleResponse {
+  success: boolean;
+  message?: string;
+  data: Vehicle | Vehicle[] | { docs: Vehicle[]; totalDocs: number; limit: number; page: number; totalPages: number };
+}
+
+class VehicleApiService {
+  private baseURL: string;
+  private getAuthHeaders: () => HeadersInit;
+
+  constructor(baseURL: string, getAuthHeaders: () => HeadersInit) {
+    this.baseURL = baseURL;
+    this.getAuthHeaders = getAuthHeaders;
+  }
+
+  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<VehicleResponse> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...this.getAuthHeaders(),
+      ...options.headers,
+    };
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({} as any));
+      // Surface backend validation details if present
+      const details = (errorData?.error?.details || errorData?.details) as Array<{ field: string; message: string }>|undefined;
+      const detailMsg = details && details.length
+        ? ` | ${details.map(d => `${d.field}: ${d.message}`).join('; ')}`
+        : '';
+      const msg = (errorData?.error?.message || errorData?.message || `HTTP error! status: ${response.status}`) + detailMsg;
+      throw new Error(msg);
+    }
+
+    return response.json();
+  }
+
+  // Create a new vehicle
+  async createVehicle(vehicleData: CreateVehicleData): Promise<VehicleResponse> {
+    return this.makeRequest('/driver/vehicles', {
+      method: 'POST',
+      body: JSON.stringify(vehicleData),
+    });
+  }
+
+  // Get driver's vehicles
+  async getDriverVehicles(filters: VehicleFilters = {}): Promise<VehicleResponse> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+
+    return this.makeRequest(`/driver/vehicles?${params.toString()}`);
+  }
+
+  // Get vehicle by ID
+  async getVehicleById(vehicleId: string): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}`);
+  }
+
+  // Populate computed pricing for vehicles
+  async populateVehiclePricing(vehicles: any[]): Promise<any[]> {
+    // Fetch latest pricing data for each vehicle to ensure we have real-time pricing
+    const vehiclesWithPricing = await Promise.all(
+      vehicles.map(async (vehicle) => {
+        try {
+          if (vehicle.pricingReference) {
+            // Fetch latest pricing data for both one-way and return trips
+            const [oneWayResponse, returnResponse] = await Promise.all([
+              this.makeRequest(
+                `/vehicle-pricing/calculate?category=${vehicle.pricingReference.category}&vehicleType=${vehicle.pricingReference.vehicleType}&vehicleModel=${vehicle.pricingReference.vehicleModel}&tripType=one-way`
+              ),
+              this.makeRequest(
+                `/vehicle-pricing/calculate?category=${vehicle.pricingReference.category}&vehicleType=${vehicle.pricingReference.vehicleType}&vehicleModel=${vehicle.pricingReference.vehicleModel}&tripType=return`
+              )
+            ]);
+            
+            if (oneWayResponse.success && oneWayResponse.data && returnResponse.success && returnResponse.data) {
+              const oneWayPricing = oneWayResponse.data as any;
+              const returnPricing = returnResponse.data as any;
+              
+              // Update the vehicle's pricing with the latest data
+              if (oneWayPricing.category === 'auto') {
+                vehicle.pricing = {
+                  autoPrice: {
+                    oneWay: oneWayPricing.autoPrice,
+                    return: returnPricing.autoPrice
+                  },
+                  distancePricing: {
+                    oneWay: { '50km': 0, '100km': 0, '150km': 0, '200km': 0, '250km': 0, '300km': 0 },
+                    return: { '50km': 0, '100km': 0, '150km': 0, '200km': 0, '250km': 0, '300km': 0 }
+                  },
+                  lastUpdated: new Date().toISOString()
+                };
+              } else {
+                vehicle.pricing = {
+                  autoPrice: {
+                    oneWay: 0,
+                    return: 0
+                  },
+                  distancePricing: {
+                    oneWay: oneWayPricing.distancePricing,
+                    return: returnPricing.distancePricing
+                  },
+                  lastUpdated: new Date().toISOString()
+                };
+              }
+              
+              console.log(`✅ Updated real-time pricing for vehicle ${vehicle._id}:`, vehicle.pricing);
+            } else {
+              console.warn(`⚠️ Could not fetch pricing for vehicle ${vehicle._id}, using existing pricing`);
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error updating pricing for vehicle ${vehicle._id}:`, error);
+        }
+        
+        return vehicle;
+      })
+    );
+    
+    return vehiclesWithPricing;
+  }
+
+  // Update vehicle
+  async updateVehicle(vehicleId: string, updateData: UpdateVehicleData): Promise<VehicleResponse> {
+    return this.makeRequest(`/driver/vehicles/${vehicleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  // Delete vehicle
+  async deleteVehicle(vehicleId: string): Promise<VehicleResponse> {
+    return this.makeRequest(`/driver/vehicles/${vehicleId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Upload vehicle images
+  async uploadVehicleImages(vehicleId: string, images: File[]): Promise<VehicleResponse> {
+    const formData = new FormData();
+    images.forEach((image, index) => {
+      formData.append('images', image);
+    });
+
+    const headers = this.getAuthHeaders();
+    delete headers['Content-Type']; // Let browser set content-type for FormData
+
+    const response = await fetch(`${this.baseURL}/driver/vehicles/${vehicleId}/images`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Remove vehicle image
+  async removeVehicleImage(vehicleId: string, imageId: string): Promise<VehicleResponse> {
+    return this.makeRequest(`/driver/vehicles/${vehicleId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Search vehicles (public)
+  async searchVehicles(searchParams: {
+    pickup?: string;
+    destination?: string;
+    date?: string;
+    passengers?: number;
+    vehicleType?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<VehicleResponse> {
+    const params = new URLSearchParams();
+    Object.entries(searchParams).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+
+    return this.makeRequest(`/vehicles/search?${params.toString()}`);
+  }
+
+  // Get vehicle types (public)
+  async getVehicleTypes(): Promise<VehicleResponse> {
+    return this.makeRequest('/vehicles/types');
+  }
+
+  // Get vehicles by location (public)
+  async getVehiclesByLocation(params: {
+    latitude: number;
+    longitude: number;
+    vehicleType?: string;
+    passengers?: number;
+    date?: string;
+    returnDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<VehicleResponse> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('latitude', params.latitude.toString());
+    queryParams.append('longitude', params.longitude.toString());
+    
+    if (params.vehicleType) {
+      queryParams.append('vehicleType', params.vehicleType);
+    }
+    if (params.passengers) {
+      queryParams.append('passengers', params.passengers.toString());
+    }
+    if (params.date) {
+      queryParams.append('date', params.date);
+    }
+    if (params.returnDate) {
+      queryParams.append('returnDate', params.returnDate);
+    }
+    if (params.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+
+    const response = await this.makeRequest(`/vehicles/location-filter?${queryParams.toString()}`);
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get auto vehicles (public)
+  async getVehicleAuto(): Promise<VehicleResponse> {
+    const response = await this.makeRequest('/vehicles/auto');
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get auto vehicles with date filtering (public)
+  async getVehicleAutoWithDate(date: string, returnDate?: string): Promise<VehicleResponse> {
+    const queryParams = new URLSearchParams({ date });
+    if (returnDate) {
+      queryParams.append('returnDate', returnDate);
+    }
+    const response = await this.makeRequest(`/vehicles/auto?${queryParams.toString()}`);
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get car vehicles (public)
+  async getVehicleCar(): Promise<VehicleResponse> {
+    const response = await this.makeRequest('/vehicles/car');
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get car vehicles with date filtering (public)
+  async getVehicleCarWithDate(date: string, returnDate?: string): Promise<VehicleResponse> {
+    const queryParams = new URLSearchParams({ date });
+    if (returnDate) {
+      queryParams.append('returnDate', returnDate);
+    }
+    const response = await this.makeRequest(`/vehicles/car?${queryParams.toString()}`);
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get bus vehicles (public)
+  async getVehicleBus(): Promise<VehicleResponse> {
+    const response = await this.makeRequest('/vehicles/bus');
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get bus vehicles with date filtering (public)
+  async getVehicleBusWithDate(date: string, returnDate?: string): Promise<VehicleResponse> {
+    const queryParams = new URLSearchParams({ date });
+    if (returnDate) {
+      queryParams.append('returnDate', returnDate);
+    }
+    const response = await this.makeRequest(`/vehicles/bus?${queryParams.toString()}`);
+    
+    // Always refresh pricing data to ensure real-time updates
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = await this.populateVehiclePricing(response.data);
+    }
+    
+    return response;
+  }
+
+  // Get nearby vehicles (public)
+  async getNearbyVehicles(params: {
+    latitude: number;
+    longitude: number;
+    radius?: number;
+    vehicleType?: string;
+    passengers?: number;
+  }): Promise<VehicleResponse> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    return this.makeRequest(`/vehicles/nearby?${queryParams.toString()}`);
+  }
+
+  // Estimate fare (public)
+  async estimateFare(estimateData: {
+    vehicleId: string;
+    pickup: { latitude: number; longitude: number; address: string };
+    destination: { latitude: number; longitude: number; address: string };
+    passengers?: number;
+    date?: string;
+    time?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest('/vehicles/estimate-fare', {
+      method: 'POST',
+      body: JSON.stringify(estimateData),
+    });
+  }
+
+  // Get vehicle reviews (public)
+  async getVehicleReviews(vehicleId: string, page: number = 1, limit: number = 10): Promise<VehicleResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+
+    return this.makeRequest(`/vehicles/${vehicleId}/reviews?${params.toString()}`);
+  }
+
+  // Update vehicle location (driver only)
+  async updateVehicleLocation(vehicleId: string, locationData: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/location`, {
+      method: 'PUT',
+      body: JSON.stringify(locationData),
+    });
+  }
+
+  // Update vehicle base location (driver only)
+  async updateVehicleBaseLocation(vehicleId: string, locationData: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    city?: string;
+    state?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/base-location`, {
+      method: 'PUT',
+      body: JSON.stringify(locationData),
+    });
+  }
+
+  // Update vehicle availability (driver only)
+  async updateVehicleAvailability(vehicleId: string, availabilityData: {
+    isAvailable: boolean;
+    reason?: string;
+    maintenanceReason?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/availability`, {
+      method: 'PUT',
+      body: JSON.stringify(availabilityData),
+    });
+  }
+
+  // Get vehicle status overview (driver only)
+  async getVehicleStatus(vehicleId: string): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/status`);
+  }
+
+  // Complete trip (driver only)
+  async completeTrip(bookingId: string, tripData: {
+    actualDistance?: number;
+    actualDuration?: number;
+    actualFare?: number;
+    driverNotes?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/driver/bookings/${bookingId}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify(tripData),
+    });
+  }
+
+  // Cancel trip (driver only)
+  async cancelTrip(bookingId: string, cancellationData: {
+    reason?: string;
+    notes?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/driver/bookings/${bookingId}/cancel`, {
+      method: 'PUT',
+      body: JSON.stringify(cancellationData),
+    });
+  }
+
+  // Get active trips (driver only)
+  async getActiveTrips(): Promise<VehicleResponse> {
+    return this.makeRequest('/driver/trips/active');
+  }
+
+  // Get trip history (driver only)
+  async getTripHistory(filters: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<VehicleResponse> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+
+    return this.makeRequest(`/driver/trips/history?${params.toString()}`);
+  }
+
+  // Get vehicle maintenance (driver only)
+  async getVehicleMaintenance(vehicleId: string): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/maintenance`);
+  }
+
+  // Add maintenance record (driver only)
+  async addMaintenanceRecord(vehicleId: string, maintenanceData: {
+    type: 'service' | 'repair' | 'inspection' | 'cleaning' | 'other';
+    description: string;
+    cost: number;
+    date: string;
+    nextServiceDate?: string;
+    serviceCenter?: string;
+  }): Promise<VehicleResponse> {
+    return this.makeRequest(`/vehicles/${vehicleId}/maintenance`, {
+      method: 'POST',
+      body: JSON.stringify(maintenanceData),
+    });
+  }
+}
+
+export default VehicleApiService;

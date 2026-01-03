@@ -1,0 +1,1472 @@
+const Driver = require('../models/Driver');
+const Vehicle = require('../models/Vehicle');
+const Booking = require('../models/Booking');
+const { sendEmail } = require('../utils/notifications');
+const asyncHandler = require('../middleware/asyncHandler');
+
+// @desc    Get driver profile
+// @route   GET /api/driver/profile
+// @access  Private (Driver)
+const getDriverProfile = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id)
+    .select('-password');
+
+  res.json({
+    success: true,
+    data: driver
+  });
+});
+
+// @desc    Update driver profile
+// @route   PUT /api/driver/profile
+// @access  Private (Driver)
+const updateDriverProfile = asyncHandler(async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    phone,
+    email,
+    dateOfBirth,
+    address,
+    emergencyContact
+  } = req.body;
+
+  const driver = await Driver.findByIdAndUpdate(
+    req.driver.id,
+    {
+      firstName,
+      lastName,
+      phone,
+      email,
+      dateOfBirth,
+      address,
+      emergencyContact
+    },
+    { new: true, runValidators: true }
+  ).select('-password');
+
+  res.json({
+    success: true,
+    data: driver
+  });
+});
+
+// @desc    Update driver location
+// @route   PUT /api/driver/location
+// @access  Private (Driver)
+const updateLocation = asyncHandler(async (req, res) => {
+  const { latitude, longitude, address } = req.body;
+
+  const driver = await Driver.findByIdAndUpdate(
+    req.driver.id,
+    {
+      'location.coordinates': [longitude, latitude],
+      'location.address': address,
+      'location.lastUpdated': new Date()
+    },
+    { new: true }
+  ).select('-password');
+
+  // Note: Vehicle location is stored in driver.vehicleDetails, not as a separate reference
+  // Vehicle location updates would need to be handled differently if needed
+
+  res.json({
+    success: true,
+    data: driver.location
+  });
+});
+
+// @desc    Toggle driver online/offline status
+// @route   PUT /api/driver/status
+// @access  Private (Driver)
+const toggleStatus = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id);
+  
+  driver.availability.isOnline = !driver.availability.isOnline;
+  driver.lastStatusChange = new Date();
+  
+  // Update vehicle availability in driver details
+  if (driver.vehicleDetails) {
+    driver.vehicleDetails.isAvailable = driver.availability.isOnline;
+  }
+
+  await driver.save();
+
+  res.json({
+    success: true,
+    data: {
+      isOnline: driver.availability.isOnline,
+      lastStatusChange: driver.availability.lastStatusChange
+    }
+  });
+});
+
+// @desc    Get driver earnings
+// @route   GET /api/driver/earnings
+// @access  Private (Driver)
+const getEarnings = asyncHandler(async (req, res) => {
+  const { period = 'month', startDate, endDate } = req.query;
+  
+  console.log('=== DRIVER EARNINGS API CALLED ===');
+  console.log('Driver ID:', req.driver.id);
+  console.log('Period:', period);
+  console.log('Date filters:', { startDate, endDate });
+  
+  let dateFilter = {};
+  
+  if (startDate && endDate) {
+    dateFilter = {
+      createdAt: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      }
+    };
+  } else {
+    const now = new Date();
+    if (period === 'week') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFilter = { createdAt: { $gte: weekAgo } };
+    } else if (period === 'month') {
+      const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateFilter = { createdAt: { $gte: monthAgo } };
+    } else if (period === 'year') {
+      const yearAgo = new Date(now.getFullYear(), 0, 1);
+      dateFilter = { createdAt: { $gte: yearAgo } };
+    }
+  }
+
+  console.log('Final date filter:', dateFilter);
+
+  try {
+    // First, let's check if there are any bookings for this driver at all
+    const allDriverBookings = await Booking.find({ driver: req.driver.id }).select('_id createdAt status payment.status pricing.totalAmount');
+    console.log('All driver bookings found:', allDriverBookings.length);
+    
+    if (allDriverBookings.length > 0) {
+      console.log('Sample driver booking:', {
+        id: allDriverBookings[0]._id,
+        createdAt: allDriverBookings[0].createdAt,
+        status: allDriverBookings[0].status,
+        paymentStatus: allDriverBookings[0].payment?.status,
+        totalAmount: allDriverBookings[0].pricing?.totalAmount
+      });
+    }
+
+    // Get all paid bookings (including Razorpay paid requests)
+    const bookings = await Booking.find({
+      driver: req.driver.id,
+      'payment.status': 'completed', // Payment is completed
+      ...dateFilter
+    }).select('pricing.totalAmount createdAt payment status');
+    
+    console.log('Earnings - Paid bookings found:', bookings.length);
+    if (bookings.length > 0) {
+      console.log('Sample paid booking for earnings:', {
+        amount: bookings[0].pricing?.totalAmount,
+        date: bookings[0].createdAt,
+        paymentStatus: bookings[0].payment.status,
+        bookingStatus: bookings[0].status
+      });
+    }
+
+    const totalEarnings = bookings.reduce((sum, booking) => sum + (booking.pricing?.totalAmount || 0), 0);
+    console.log('Total earnings calculated:', totalEarnings);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        totalBookings: bookings.length,
+        totalEarnings,
+        netEarnings: totalEarnings, // For backward compatibility
+        bookings: bookings.map(booking => ({
+          amount: booking.pricing?.totalAmount || 0,
+          netAmount: booking.pricing?.totalAmount || 0,
+          date: booking.createdAt,
+          paymentStatus: booking.payment.status,
+          bookingStatus: booking.status
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in getEarnings:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Internal server error',
+        details: error.message
+      }
+    });
+  }
+});
+
+// @desc    Get driver today's earnings
+// @route   GET /api/driver/earnings/today
+// @access  Private (Driver)
+const getTodayEarnings = asyncHandler(async (req, res) => {
+  console.log('=== DRIVER TODAY EARNINGS API CALLED ===');
+  console.log('Driver ID:', req.driver.id);
+  console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
+  
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  
+  console.log('Date range:', { startOfDay, endOfDay });
+
+  try {
+    // First, let's check if there are any bookings for this driver at all
+    const allDriverBookings = await Booking.find({ driver: req.driver.id }).select('_id createdAt status payment.status pricing.totalAmount');
+    console.log('All driver bookings found:', allDriverBookings.length);
+    
+    if (allDriverBookings.length > 0) {
+      console.log('Sample driver booking:', {
+        id: allDriverBookings[0]._id,
+        createdAt: allDriverBookings[0].createdAt,
+        status: allDriverBookings[0].status,
+        paymentStatus: allDriverBookings[0].payment?.status,
+        totalAmount: allDriverBookings[0].pricing?.totalAmount
+      });
+    }
+
+    // Get all paid bookings for today (including Razorpay paid requests)
+    const paidBookings = await Booking.find({
+      driver: req.driver.id,
+      'payment.status': 'completed', // Payment is completed
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).select('pricing.totalAmount createdAt payment status');
+    
+    console.log('Paid bookings found for today:', paidBookings.length);
+    if (paidBookings.length > 0) {
+      console.log('Sample paid booking data:', {
+        amount: paidBookings[0].pricing?.totalAmount,
+        date: paidBookings[0].createdAt,
+        paymentStatus: paidBookings[0].payment.status,
+        bookingStatus: paidBookings[0].status
+      });
+    }
+
+    // Calculate earnings from paid bookings (pricing.totalAmount is the driver's earnings)
+    const totalEarnings = paidBookings.reduce((sum, booking) => sum + (booking.pricing?.totalAmount || 0), 0);
+    
+    console.log('Earnings calculation:', { totalEarnings });
+    console.log('=== DRIVER TODAY EARNINGS API COMPLETED ===');
+
+    res.json({
+      success: true,
+      data: {
+        date: today.toISOString().split('T')[0],
+        totalBookings: paidBookings.length,
+        totalEarnings,
+        netEarnings: totalEarnings, // For backward compatibility
+        paidBookings: paidBookings.map(booking => ({
+          amount: booking.pricing?.totalAmount || 0,
+          netAmount: booking.pricing?.totalAmount || 0,
+          date: booking.createdAt,
+          paymentStatus: booking.payment.status,
+          bookingStatus: booking.status
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in getTodayEarnings:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Internal server error',
+        details: error.message
+      }
+    });
+  }
+});
+
+// @desc    Get driver bookings
+// @route   GET /api/driver/bookings
+// @access  Private (Driver)
+const getDriverBookings = asyncHandler(async (req, res) => {
+  const { status, page = 1, limit = 10 } = req.query;
+  
+  const query = { driver: req.driver.id };
+  if (status) query.status = status;
+
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+  const [bookings, total] = await Promise.all([
+    Booking.find(query)
+      .populate([
+        { path: 'user', select: 'firstName lastName phone' },
+        { path: 'vehicle', select: 'type brand model color' }
+      ])
+      .select('bookingNumber user vehicle tripDetails pricing status createdAt payment')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Booking.countDocuments(query)
+  ]);
+
+  console.log('Debug - Driver fetching bookings:', {
+    driverId: req.driver.id,
+    driverName: req.driver.firstName,
+    query: query,
+    totalBookings: total,
+    returnedBookings: bookings.length
+  });
+
+  res.json({
+    success: true,
+    data: {
+      docs: bookings,
+      totalDocs: total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      hasNextPage: skip + bookings.length < total,
+      hasPrevPage: parseInt(page) > 1
+    }
+  });
+});
+
+// @desc    Update booking status
+// @route   PUT /api/driver/bookings/:id/status
+// @access  Private (Driver)
+const updateBookingStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, reason, notes, actualDistance, actualDuration, actualFare, driverNotes } = req.body;
+
+  console.log('Debug - Driver updating booking status:', {
+    bookingId: id,
+    newStatus: status,
+    driverId: req.driver.id,
+    driverName: req.driver.firstName
+  });
+
+  const booking = await Booking.findOne({
+    _id: id,
+    driver: req.driver.id
+  });
+
+  console.log('Debug - Booking found:', {
+    found: !!booking,
+    bookingId: id,
+    bookingDriver: booking?.driver,
+    currentStatus: booking?.status
+  });
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: 'Booking not found'
+    });
+  }
+
+  // Validate status transition
+  const validTransitions = {
+    'accepted': ['pending'],
+    'started': ['accepted'],
+    'completed': ['started'],
+    'cancelled': ['pending', 'accepted']
+  };
+
+  console.log('Debug - Status transition validation:', {
+    currentStatus: booking.status,
+    newStatus: status,
+    validTransitions: validTransitions[status],
+    isValidTransition: validTransitions[status]?.includes(booking.status)
+  });
+
+  if (!validTransitions[status] || !validTransitions[status].includes(booking.status)) {
+    return res.status(400).json({
+      success: false,
+      message: `Cannot change status from ${booking.status} to ${status}`
+    });
+  }
+
+  // Set tracking information for the pre-save middleware
+  booking._updatedByModel = 'Driver';
+  booking._updatedBy = req.driver.id;
+  if (reason) booking._statusReason = reason;
+  if (notes) booking._statusNotes = notes;
+
+  // Update booking status
+  booking.status = status;
+  
+  // Handle trip-specific data
+  if (status === 'started') {
+    // Initialize trip object if it doesn't exist
+    if (!booking.trip) booking.trip = {};
+    booking.trip.startTime = new Date();
+  } else if (status === 'completed') {
+    // Initialize trip object if it doesn't exist
+    if (!booking.trip) booking.trip = {};
+    booking.trip.endTime = new Date();
+    booking.trip.actualDistance = actualDistance || booking.tripDetails.distance;
+    booking.trip.actualDuration = actualDuration || booking.tripDetails.duration;
+    booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
+    if (driverNotes) booking.trip.driverNotes = driverNotes;
+  }
+
+  await booking.save();
+
+  // Vehicle status will be automatically updated by the pre-save middleware
+  
+  // Update vehicle statistics if trip is completed
+  if (status === 'completed') {
+    try {
+      const Vehicle = require('../models/Vehicle');
+      const vehicle = await Vehicle.findById(booking.vehicle);
+      if (vehicle) {
+        const actualDistance = booking.trip?.actualDistance || booking.tripDetails?.distance || 0;
+        const actualFare = booking.trip?.actualFare || booking.pricing?.totalAmount || 0;
+        await vehicle.updateStatistics(actualDistance, actualFare);
+        console.log(`📊 Updated vehicle ${vehicle._id} statistics: +1 trip, +${actualDistance}km, +₹${actualFare}`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating vehicle statistics:', error);
+      // Don't fail the status update if statistics update fails
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `Booking ${status} successfully`,
+    data: booking
+  });
+});
+
+// @desc    Complete trip
+// @route   PUT /api/driver/bookings/:id/complete
+// @access  Private (Driver)
+const completeTrip = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { actualDistance, actualDuration, actualFare, driverNotes } = req.body;
+
+  console.log('Debug - Driver completing trip:', {
+    bookingId: id,
+    driverId: req.driver.id,
+    driverName: req.driver.firstName
+  });
+
+  const booking = await Booking.findOne({
+    _id: id,
+    driver: req.driver.id,
+    status: 'started' // Only started trips can be completed
+  });
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: 'Active trip not found or trip is not in started status'
+    });
+  }
+
+  // Set tracking information for the pre-save middleware
+  booking._updatedByModel = 'Driver';
+  booking._updatedBy = req.driver.id;
+  if (driverNotes) booking._statusNotes = driverNotes;
+
+  // Update booking status to completed
+  booking.status = 'completed';
+  
+  // Update trip details
+  if (!booking.trip) booking.trip = {};
+  booking.trip.endTime = new Date();
+  booking.trip.actualDistance = actualDistance || booking.tripDetails.distance;
+  booking.trip.actualDuration = actualDuration || booking.tripDetails.duration;
+  booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
+  if (driverNotes) booking.trip.driverNotes = driverNotes;
+
+  await booking.save();
+
+  // Vehicle status will be automatically updated by the pre-save middleware
+  
+  // Update vehicle statistics
+  try {
+    const Vehicle = require('../models/Vehicle');
+    const vehicle = await Vehicle.findById(booking.vehicle);
+    if (vehicle) {
+      const actualDistance = booking.trip.actualDistance || booking.tripDetails.distance || 0;
+      const actualFare = booking.trip.actualFare || booking.pricing.totalAmount || 0;
+      await vehicle.updateStatistics(actualDistance, actualFare);
+      console.log(`📊 Updated vehicle ${vehicle._id} statistics: +1 trip, +${actualDistance}km, +₹${actualFare}`);
+    }
+  } catch (error) {
+    console.error('❌ Error updating vehicle statistics:', error);
+    // Don't fail the trip completion if statistics update fails
+  }
+
+  res.json({
+    success: true,
+    message: 'Trip completed successfully',
+    data: booking
+  });
+});
+
+// @desc    Cancel trip (driver)
+// @route   PUT /api/driver/bookings/:id/cancel
+// @access  Private (Driver)
+const cancelTrip = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason, notes } = req.body;
+
+  console.log('Debug - Driver cancelling trip:', {
+    bookingId: id,
+    driverId: req.driver.id,
+    driverName: req.driver.firstName,
+    reason: reason
+  });
+
+  const booking = await Booking.findOne({
+    _id: id,
+    driver: req.driver.id,
+    status: { $in: ['pending', 'accepted'] } // Only pending or accepted trips can be cancelled by driver
+  });
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: 'Trip not found or cannot be cancelled in current status'
+    });
+  }
+
+  // Set tracking information for the pre-save middleware
+  booking._updatedByModel = 'Driver';
+  booking._updatedBy = req.driver.id;
+  if (reason) booking._statusReason = reason;
+  if (notes) booking._statusNotes = notes;
+
+  // Update booking status to cancelled
+  booking.status = 'cancelled';
+  
+  // Add cancellation details with proper refund information
+  booking.cancellation = {
+    cancelledBy: req.driver.id,
+    cancelledByModel: 'Driver',
+    cancelledAt: new Date(),
+    reason: reason || 'Cancelled by driver',
+    refundAmount: booking.pricing ? booking.pricing.totalAmount : 0,
+    refundStatus: 'pending',
+    refundMethod: null,
+    refundInitiatedAt: null,
+    refundCompletedAt: null,
+    refundNotes: notes || ''
+  };
+
+  // Add to status history
+  if (!booking.statusHistory) {
+    booking.statusHistory = [];
+  }
+  
+  booking.statusHistory.push({
+    status: 'cancelled',
+    timestamp: new Date(),
+    updatedBy: req.driver.id,
+    updatedByModel: 'Driver',
+    reason: reason || 'Cancelled by driver'
+  });
+
+  await booking.save();
+
+  // Vehicle status will be automatically updated by the pre-save middleware
+
+  res.json({
+    success: true,
+    message: 'Trip cancelled successfully',
+    data: booking
+  });
+});
+
+// @desc    Get driver's active trips
+// @route   GET /api/driver/trips/active
+// @access  Private (Driver)
+const getActiveTrips = asyncHandler(async (req, res) => {
+  const activeTrips = await Booking.find({
+    driver: req.driver.id,
+    status: { $in: ['accepted', 'started'] }
+  })
+    .populate([
+      { path: 'user', select: 'firstName lastName phone email' },
+      { path: 'vehicle', select: 'type brand model color registrationNumber' }
+    ])
+    .sort({ createdAt: -1 });
+
+  res.json({
+    success: true,
+    count: activeTrips.length,
+    data: activeTrips
+  });
+});
+
+// @desc    Get driver's trip history
+// @route   GET /api/driver/trips/history
+// @access  Private (Driver)
+const getTripHistory = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, status } = req.query;
+
+  const query = { driver: req.driver.id };
+  if (status) query.status = status;
+
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+  const [trips, total] = await Promise.all([
+    Booking.find(query)
+      .populate([
+        { path: 'user', select: 'firstName lastName phone email' },
+        { path: 'vehicle', select: 'type brand model color registrationNumber' }
+      ])
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Booking.countDocuments(query)
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      docs: trips,
+      totalDocs: total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      hasNextPage: skip + trips.length < total,
+      hasPrevPage: parseInt(page) > 1
+    }
+  });
+});
+
+// @desc    Get driver vehicle
+// @route   GET /api/driver/vehicle
+// @access  Private (Driver)
+const getDriverVehicle = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id);
+  
+  if (!driver.vehicleDetails) {
+    return res.status(404).json({
+      success: false,
+      message: 'No vehicle details found'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: driver.vehicleDetails
+  });
+});
+
+// @desc    Get driver vehicles (multiple vehicles)
+// @route   GET /api/driver/vehicles
+// @access  Private (Driver)
+const getDriverVehicles = asyncHandler(async (req, res) => {
+  console.log('=== DRIVER VEHICLES API CALLED ===');
+  console.log('Driver ID:', req.driver.id);
+  console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
+  
+  const { page = 1, limit = 10, status, type } = req.query;
+  console.log('Query parameters:', { page, limit, status, type });
+
+  const query = { driver: req.driver.id };
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  if (type && type !== 'all') {
+    query.type = type;
+  }
+  
+  console.log('Final query:', query);
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { createdAt: -1 },
+    populate: {
+      path: 'driver',
+      select: 'firstName lastName phone rating'
+    }
+  };
+
+  console.log('Query options:', options);
+
+  const vehicles = await Vehicle.paginate(query, options);
+  console.log('Vehicles found:', vehicles.docs?.length || 0);
+  console.log('Total vehicles:', vehicles.totalDocs || 0);
+  
+  if (vehicles.docs && vehicles.docs.length > 0) {
+    console.log('Sample vehicle data:', {
+      id: vehicles.docs[0]._id,
+      type: vehicles.docs[0].type,
+      brand: vehicles.docs[0].brand,
+      model: vehicles.docs[0].model,
+      isActive: vehicles.docs[0].isActive,
+      isAvailable: vehicles.docs[0].isAvailable,
+      approvalStatus: vehicles.docs[0].approvalStatus,
+      isVerified: vehicles.docs[0].isVerified
+    });
+  }
+  
+  console.log('=== DRIVER VEHICLES API COMPLETED ===');
+
+  res.json({
+    success: true,
+    data: vehicles
+  });
+});
+
+// @desc    Create new vehicle
+// @route   POST /api/driver/vehicles
+// @access  Private (Driver)
+const createVehicle = asyncHandler(async (req, res) => {
+  const {
+    type,
+    brand,
+    model,
+    year,
+    color,
+    fuelType,
+    transmission = 'manual',
+    seatingCapacity,
+    engineCapacity,
+    mileage,
+    isAc = false,
+    isSleeper = false,
+    amenities = [],
+    registrationNumber,
+    chassisNumber,
+    engineNumber,
+    rcNumber,
+    rcExpiryDate,
+    insuranceNumber,
+    insuranceExpiryDate,
+    fitnessNumber,
+    fitnessExpiryDate,
+    permitNumber,
+    permitExpiryDate,
+    pucNumber,
+    pucExpiryDate,
+    pricingReference,
+    workingDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+    workingHoursStart = '06:00',
+    workingHoursEnd = '22:00',
+    operatingCities = [],
+    operatingStates = [],
+    vehicleLocation
+  } = req.body;
+
+  // Check if driver already has a vehicle with this registration number
+  const existingVehicle = await Vehicle.findOne({
+    registrationNumber: registrationNumber.toUpperCase(),
+    driver: req.driver.id
+  });
+
+  if (existingVehicle) {
+    return res.status(400).json({
+      success: false,
+      message: 'A vehicle with this registration number already exists in your fleet'
+    });
+  }
+
+  // Validate pricingReference
+  if (!pricingReference || !pricingReference.category || !pricingReference.vehicleType || !pricingReference.vehicleModel) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vehicle pricing reference is required (category, vehicleType, and vehicleModel)'
+    });
+  }
+
+  // Validate vehicle location
+  if (!vehicleLocation || !vehicleLocation.latitude || !vehicleLocation.longitude || !vehicleLocation.address) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vehicle location is required (latitude, longitude, and address)'
+    });
+  }
+
+  // Validate coordinates
+  if (isNaN(vehicleLocation.latitude) || isNaN(vehicleLocation.longitude)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid coordinates provided. Latitude and longitude must be valid numbers.'
+    });
+  }
+
+  if (vehicleLocation.latitude < -90 || vehicleLocation.latitude > 90) {
+    return res.status(400).json({
+      success: false,
+      message: 'Latitude must be between -90 and 90 degrees.'
+    });
+  }
+
+  if (vehicleLocation.longitude < -180 || vehicleLocation.longitude > 180) {
+    return res.status(400).json({
+      success: false,
+      message: 'Longitude must be between -180 and 180 degrees.'
+    });
+  }
+
+  // Verify that the pricing exists in VehiclePricing model for both trip types
+  const VehiclePricing = require('../models/VehiclePricing');
+  
+  // Fetch one-way pricing
+  const oneWayPricing = await VehiclePricing.getPricing(
+    pricingReference.category,
+    pricingReference.vehicleType,
+    pricingReference.vehicleModel,
+    'one-way'
+  );
+
+  // Fetch return pricing
+  const returnPricing = await VehiclePricing.getPricing(
+    pricingReference.category,
+    pricingReference.vehicleType,
+    pricingReference.vehicleModel,
+    'return'
+  );
+
+  if (!oneWayPricing || !returnPricing) {
+    return res.status(400).json({
+      success: false,
+      message: 'Pricing not found for one-way or return trips. Please contact admin to set up complete pricing.'
+    });
+  }
+
+  // Auto-populate pricing data based on the pricing reference
+  let autoPrice = {
+    oneWay: 0,
+    return: 0
+  };
+  let distancePricing = {
+    oneWay: {
+      '50km': 0,
+      '100km': 0,
+      '150km': 0,
+      '200km': 0,
+      '250km': 0,
+      '300km': 0
+    },
+    return: {
+      '50km': 0,
+      '100km': 0,
+      '150km': 0,
+      '200km': 0,
+      '250km': 0,
+      '300km': 0
+    }
+  };
+
+  if (pricingReference.category === 'auto') {
+    autoPrice.oneWay = oneWayPricing.autoPrice;
+    autoPrice.return = returnPricing.autoPrice;
+  } else {
+    distancePricing.oneWay = oneWayPricing.distancePricing;
+    distancePricing.return = returnPricing.distancePricing;
+  }
+
+  // Create vehicle object
+  const vehicleData = {
+    driver: req.driver.id,
+    type,
+    brand,
+    model,
+    year: parseInt(year),
+    color,
+    fuelType,
+    transmission,
+    seatingCapacity: parseInt(seatingCapacity),
+    engineCapacity: engineCapacity ? parseInt(engineCapacity) : undefined,
+    mileage: mileage ? parseInt(mileage) : undefined,
+    isAc,
+    isSleeper,
+    amenities,
+    registrationNumber: registrationNumber.toUpperCase(),
+    chassisNumber: chassisNumber ? chassisNumber.toUpperCase() : undefined,
+    engineNumber: engineNumber ? engineNumber.toUpperCase() : undefined,
+    vehicleLocation: {
+      type: 'Point',
+      coordinates: [vehicleLocation.longitude, vehicleLocation.latitude], // MongoDB format: [lng, lat]
+      address: vehicleLocation.address,
+      city: vehicleLocation.city || '',
+      state: vehicleLocation.state || '',
+      lastUpdated: new Date()
+    },
+    pricingReference,
+    pricing: {
+      autoPrice,
+      distancePricing,
+      lastUpdated: new Date()
+    },
+    workingDays,
+    workingHoursStart,
+    workingHoursEnd,
+    operatingCities,
+    operatingStates,
+    // Auto-approve vehicles for testing
+    approvalStatus: 'approved',
+    isApproved: true,
+    approvedAt: new Date(),
+    adminNotes: 'Auto-approved for testing'
+  };
+
+  // Add documents if provided
+  if (rcNumber && rcExpiryDate) {
+    vehicleData.documents = {
+      rc: {
+        number: rcNumber,
+        expiryDate: new Date(rcExpiryDate),
+        isVerified: false
+      }
+    };
+  }
+
+  if (insuranceNumber && insuranceExpiryDate) {
+    if (!vehicleData.documents) vehicleData.documents = {};
+    vehicleData.documents.insurance = {
+      number: insuranceNumber,
+      expiryDate: new Date(insuranceExpiryDate),
+      isVerified: false
+    };
+  }
+
+  if (fitnessNumber && fitnessExpiryDate) {
+    if (!vehicleData.documents) vehicleData.documents = {};
+    vehicleData.documents.fitness = {
+      number: fitnessNumber,
+      expiryDate: new Date(fitnessExpiryDate),
+      isVerified: false
+    };
+  }
+
+  if (permitNumber && permitExpiryDate) {
+    if (!vehicleData.documents) vehicleData.documents = {};
+    vehicleData.documents.permit = {
+      number: permitNumber,
+      expiryDate: new Date(permitExpiryDate),
+      isVerified: false
+    };
+  }
+
+  if (pucNumber && pucExpiryDate) {
+    if (!vehicleData.documents) vehicleData.documents = {};
+    vehicleData.documents.puc = {
+      number: pucNumber,
+      expiryDate: new Date(pucExpiryDate),
+      isVerified: false
+    };
+  }
+
+
+
+  const vehicle = await Vehicle.create(vehicleData);
+
+
+
+  // Populate driver information
+  await vehicle.populate({
+    path: 'driver',
+    select: 'firstName lastName phone rating'
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Vehicle created successfully',
+    data: vehicle
+  });
+});
+
+// @desc    Update vehicle details
+// @route   PUT /api/driver/vehicle
+// @access  Private (Driver)
+const updateVehicle = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id);
+  
+  if (!driver.vehicleDetails) {
+    return res.status(404).json({
+      success: false,
+      message: 'No vehicle details found'
+    });
+  }
+
+  // Update vehicle details in driver document
+  const updatedDriver = await Driver.findByIdAndUpdate(
+    req.driver.id,
+    { vehicleDetails: { ...driver.vehicleDetails, ...req.body } },
+    { new: true, runValidators: true }
+  );
+
+  res.json({
+    success: true,
+    data: updatedDriver.vehicleDetails
+  });
+});
+
+// @desc    Update specific vehicle by ID
+// @route   PUT /api/driver/vehicles/:id
+// @access  Private (Driver)
+const updateVehicleById = asyncHandler(async (req, res) => {
+  const vehicle = await Vehicle.findById(req.params.id);
+
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: 'Vehicle not found'
+    });
+  }
+
+  // Check if the current user is the driver of this vehicle
+  if (vehicle.driver.toString() !== req.driver.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to update this vehicle'
+    });
+  }
+
+  // If pricingReference is being updated, validate it
+  if (req.body.pricingReference) {
+    const { pricingReference } = req.body;
+    
+    if (!pricingReference.category || !pricingReference.vehicleType || !pricingReference.vehicleModel) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vehicle pricing reference is required (category, vehicleType, and vehicleModel)'
+      });
+    }
+
+    // Verify that the pricing exists in VehiclePricing model
+    const VehiclePricing = require('../models/VehiclePricing');
+    const existingPricing = await VehiclePricing.getPricing(
+      pricingReference.category,
+      pricingReference.vehicleType,
+      pricingReference.vehicleModel,
+      'one-way' // Default to one-way trip
+    );
+
+    if (!existingPricing) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pricing found for the specified vehicle configuration. Please contact admin to set up pricing.'
+      });
+    }
+  }
+
+  // Handle vehicleLocation update - convert frontend format to MongoDB format
+  if (req.body.vehicleLocation) {
+    const { vehicleLocation } = req.body;
+    
+    // Validate vehicleLocation data
+    if (!vehicleLocation.latitude || !vehicleLocation.longitude || !vehicleLocation.address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vehicle location must include latitude, longitude, and address'
+      });
+    }
+
+    // Validate coordinate ranges
+    if (isNaN(vehicleLocation.latitude) || isNaN(vehicleLocation.longitude)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid coordinates provided. Latitude and longitude must be valid numbers.'
+      });
+    }
+
+    if (vehicleLocation.latitude < -90 || vehicleLocation.latitude > 90) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude must be between -90 and 90 degrees.'
+      });
+    }
+
+    if (vehicleLocation.longitude < -180 || vehicleLocation.longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: 'Longitude must be between -180 and 180 degrees.'
+      });
+    }
+
+    // Convert frontend format to MongoDB format
+    req.body.vehicleLocation = {
+      type: 'Point',
+      coordinates: [vehicleLocation.longitude, vehicleLocation.latitude], // MongoDB format: [lng, lat]
+      address: vehicleLocation.address,
+      city: vehicleLocation.city || '',
+      state: vehicleLocation.state || '',
+      lastUpdated: new Date()
+    };
+  }
+
+  // Update vehicle fields
+  const updatedVehicle = await Vehicle.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      new: true,
+      runValidators: true
+    }
+  ).populate({
+    path: 'driver',
+    select: 'firstName lastName phone rating'
+  });
+
+  // If pricingReference was updated, ensure pricing is refreshed
+  if (req.body.pricingReference) {
+    try {
+      await updatedVehicle.populatePricingFromReference();
+      console.log(`✅ Pricing updated for vehicle ${updatedVehicle._id}`);
+    } catch (pricingError) {
+      console.warn(`⚠️ Warning: Could not update pricing for vehicle ${updatedVehicle._id}:`, pricingError.message);
+    }
+  }
+
+  res.json({
+    success: true,
+    message: 'Vehicle updated successfully',
+    data: updatedVehicle
+  });
+});
+
+// @desc    Delete vehicle
+// @route   DELETE /api/driver/vehicles/:id
+// @access  Private (Driver)
+const deleteVehicle = asyncHandler(async (req, res) => {
+  const vehicle = await Vehicle.findById(req.params.id);
+
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: 'Vehicle not found'
+    });
+  }
+
+  // Check if the current user is the driver of this vehicle
+  if (vehicle.driver.toString() !== req.driver.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to delete this vehicle'
+    });
+  }
+
+  // Check if vehicle has active bookings
+  const activeBookings = await Booking.findOne({
+    vehicle: req.params.id,
+    status: { $in: ['confirmed', 'in-progress', 'completed'] }
+  });
+
+  if (activeBookings) {
+    return res.status(400).json({
+      success: false,
+      message: 'Cannot delete vehicle with active bookings'
+    });
+  }
+
+  await Vehicle.findByIdAndDelete(req.params.id);
+
+  res.json({
+    success: true,
+    message: 'Vehicle deleted successfully'
+  });
+});
+
+// @desc    Get driver documents
+// @route   GET /api/driver/documents
+// @access  Private (Driver)
+const getDocuments = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id).select('documents');
+  
+  res.json({
+    success: true,
+    data: driver.documents
+  });
+});
+
+// @desc    Update driver documents
+// @route   PUT /api/driver/documents
+// @access  Private (Driver)
+const updateDocuments = asyncHandler(async (req, res) => {
+  const { documents } = req.body;
+
+  const driver = await Driver.findByIdAndUpdate(
+    req.driver.id,
+    { documents },
+    { new: true, runValidators: true }
+  ).select('documents');
+
+  res.json({
+    success: true,
+    data: driver.documents
+  });
+});
+
+// @desc    Get driver statistics
+// @route   GET /api/driver/stats
+// @access  Private (Driver)
+const getDriverStats = asyncHandler(async (req, res) => {
+  console.log('=== DRIVER STATS API CALLED ===');
+  console.log('Driver ID:', req.driver.id);
+  console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
+  
+  const driver = await Driver.findById(req.driver.id);
+  console.log('Driver found:', !!driver);
+  
+  const totalBookings = await Booking.countDocuments({ driver: req.driver.id });
+  console.log('Total bookings count:', totalBookings);
+  
+  const completedBookings = await Booking.countDocuments({ 
+    driver: req.driver.id, 
+    status: 'completed' 
+  });
+  console.log('Completed bookings count:', completedBookings);
+  
+  const cancelledBookings = await Booking.countDocuments({ 
+    driver: req.driver.id, 
+    status: 'cancelled' 
+  });
+  console.log('Cancelled bookings count:', cancelledBookings);
+  
+  const totalEarnings = await Booking.aggregate([
+    { $match: { driver: req.driver.id, status: 'completed' } },
+    { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+  ]);
+  console.log('Total earnings aggregation result:', totalEarnings);
+
+  const averageRating = await Booking.aggregate([
+    { $match: { driver: req.driver.id, 'ratings.driver': { $exists: true } } },
+    { $group: { _id: null, avgRating: { $avg: '$ratings.driver' } } }
+  ]);
+  console.log('Average rating aggregation result:', averageRating);
+
+  const stats = {
+    totalBookings,
+    completedBookings,
+    cancelledBookings,
+    completionRate: totalBookings > 0 ? (completedBookings / totalBookings * 100).toFixed(2) : 0,
+    totalEarnings: totalEarnings[0]?.total || 0,
+    averageRating: averageRating[0]?.avgRating?.toFixed(1) || 0,
+    isOnline: driver.isOnline,
+    lastOnline: driver.lastStatusChange
+  };
+  
+  console.log('Final stats object:', stats);
+  console.log('=== DRIVER STATS API COMPLETED ===');
+
+  res.json({
+    success: true,
+    data: stats
+  });
+});
+
+// @desc    Request withdrawal
+// @route   POST /api/driver/withdraw
+// @access  Private (Driver)
+const requestWithdrawal = asyncHandler(async (req, res) => {
+  const { amount, bankDetails } = req.body;
+
+  const driver = await Driver.findById(req.driver.id);
+  
+  if (amount > driver.wallet.balance) {
+    return res.status(400).json({
+      success: false,
+      message: 'Insufficient balance'
+    });
+  }
+
+  if (amount < 100) {
+    return res.status(400).json({
+      success: false,
+      message: 'Minimum withdrawal amount is ₹100'
+    });
+  }
+
+  // Create withdrawal request
+  driver.wallet.withdrawals.push({
+    amount,
+    bankDetails,
+    status: 'pending',
+    requestedAt: new Date()
+  });
+
+  driver.wallet.balance -= amount;
+  await driver.save();
+
+  // Send email notification
+  await sendEmail(
+    driver.email,
+    'Withdrawal Request Submitted',
+    `Your withdrawal request for ₹${amount} has been submitted and is under review.`
+  );
+
+  res.json({
+    success: true,
+    message: 'Withdrawal request submitted successfully',
+    data: {
+      amount,
+      balance: driver.wallet.balance,
+      withdrawalId: driver.wallet.withdrawals[driver.wallet.withdrawals.length - 1]._id
+    }
+  });
+});
+
+// @desc    Accept driver agreement
+// @route   POST /api/driver/accept-agreement
+// @access  Private (Driver)
+const acceptDriverAgreement = asyncHandler(async (req, res) => {
+  const { agreements, ipAddress } = req.body;
+
+  // Validate that all required agreements are accepted
+  const requiredAgreements = [
+    'rcValid',
+    'insuranceValid', 
+    'roadTaxValid',
+    'drivingLicenseValid',
+    'legalResponsibility',
+    'platformLiability',
+    'serviceResponsibility'
+  ];
+
+  const missingAgreements = requiredAgreements.filter(agreement => !agreements[agreement]);
+  
+  if (missingAgreements.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'All agreement conditions must be accepted',
+        statusCode: 400
+      }
+    });
+  }
+
+  // Update driver agreement status
+  const driver = await Driver.findByIdAndUpdate(
+    req.driver.id,
+    {
+      'agreement.isAccepted': true,
+      'agreement.acceptedAt': new Date(),
+      'agreement.ipAddress': ipAddress || req.ip || 'unknown'
+    },
+    { new: true, runValidators: true }
+  ).select('-password');
+
+  if (!driver) {
+    return res.status(404).json({
+      success: false,
+      error: {
+        message: 'Driver not found',
+        statusCode: 404
+      }
+    });
+  }
+
+  // Log the agreement acceptance
+  console.log(`Driver ${driver.firstName} ${driver.lastName} (${driver._id}) accepted the agreement at ${new Date().toISOString()}`);
+
+  res.json({
+    success: true,
+    message: 'Agreement accepted successfully',
+    data: {
+      agreement: driver.agreement,
+      driver: {
+        id: driver._id,
+        firstName: driver.firstName,
+        lastName: driver.lastName,
+        email: driver.email
+      }
+    }
+  });
+});
+
+// @desc    Upload driver document
+// @route   POST /api/driver/upload-document
+// @access  Private (Driver)
+const uploadDocument = asyncHandler(async (req, res) => {
+  console.log('Upload document request received:', {
+    body: req.body,
+    file: req.file ? { originalname: req.file.originalname, size: req.file.size } : null,
+    driverId: req.driver?.id
+  });
+
+  const { documentType } = req.body;
+  const driverId = req.driver.id;
+
+  // Validate documentType
+  if (!documentType || !['vehicleRC', 'insurance'].includes(documentType)) {
+    console.log('Invalid document type:', documentType);
+    return res.status(400).json({
+      success: false,
+      message: 'Document type must be vehicleRC or insurance'
+    });
+  }
+
+  if (!req.file) {
+    console.log('No file uploaded');
+    return res.status(400).json({
+      success: false,
+      message: 'No document file uploaded'
+    });
+  }
+
+  const driver = await Driver.findById(driverId);
+  if (!driver) {
+    return res.status(404).json({
+      success: false,
+      message: 'Driver not found'
+    });
+  }
+
+  // Initialize documents object if it doesn't exist
+  if (!driver.documents) {
+    driver.documents = {};
+  }
+
+  // Update the specific document
+  if (documentType === 'vehicleRC') {
+    if (!driver.documents.vehicleRC) {
+      driver.documents.vehicleRC = {};
+    }
+    driver.documents.vehicleRC.image = req.file.path;
+    driver.documents.vehicleRC.isVerified = false; // New uploads need verification
+  } else if (documentType === 'insurance') {
+    if (!driver.documents.insurance) {
+      driver.documents.insurance = {};
+    }
+    driver.documents.insurance.image = req.file.path;
+    driver.documents.insurance.isVerified = false; // New uploads need verification
+  }
+
+  await driver.save();
+
+  res.json({
+    success: true,
+    message: `${documentType} document uploaded successfully`,
+    data: {
+      documentUrl: req.file.path,
+      documentType: documentType,
+      isVerified: false
+    }
+  });
+});
+
+module.exports = {
+  getDriverProfile,
+  updateDriverProfile,
+  updateLocation,
+  toggleStatus,
+  getEarnings,
+  getTodayEarnings,
+  getDriverBookings,
+  updateBookingStatus,
+  getDriverVehicle,
+  updateVehicle,
+  getDriverVehicles,
+  createVehicle,
+  updateVehicleById,
+  deleteVehicle,
+  getDocuments,
+  updateDocuments,
+  getDriverStats,
+  requestWithdrawal,
+  completeTrip,
+  cancelTrip,
+  getActiveTrips,
+  getTripHistory,
+  acceptDriverAgreement,
+  uploadDocument
+};

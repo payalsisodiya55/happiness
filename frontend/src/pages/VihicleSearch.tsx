@@ -332,17 +332,23 @@ const CarCard = ({ car, isMobile, searchParams }: { car: any; isMobile: boolean;
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full">
+    <div 
+      onClick={handleDetailsClick}
+      className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full cursor-pointer group"
+    >
       {/* Image Section */}
       <div className="relative overflow-hidden h-48">
         <img 
           src={car.image} 
           alt={`${car.brand} ${car.model}`}
-          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <button
-          onClick={() => setIsFavorite(!isFavorite)}
-          className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-all duration-200"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFavorite(!isFavorite);
+          }}
+          className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-all duration-200 z-10"
         >
           <Heart 
             className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} 
@@ -397,7 +403,6 @@ const CarCard = ({ car, isMobile, searchParams }: { car: any; isMobile: boolean;
             </div>
           </div>
           <button 
-            onClick={handleDetailsClick}
             className="w-full bg-gradient-to-r from-[#212c40] to-[#2d3a52] hover:from-[#1a2333] hover:to-[#212c40] text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 text-sm"
           >
             Details

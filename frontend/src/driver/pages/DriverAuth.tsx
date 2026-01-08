@@ -605,7 +605,7 @@ const DriverAuth = () => {
             <HelpCircle className="w-5 h-5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Help</span>
           </Link>
-          <Link to="/driver/auth" className="flex flex-col items-center space-y-1">
+          <Link to="/driver-auth" className="flex flex-col items-center space-y-1">
             <User className="w-5 h-5 text-primary" />
             <span className="text-xs text-primary font-medium">Account</span>
           </Link>

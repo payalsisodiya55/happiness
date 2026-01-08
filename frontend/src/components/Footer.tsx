@@ -38,22 +38,22 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/about-us" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> About
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/b2b-partner" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> Blog/B2B Partner
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/contact-us" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> Contact Us
                 </Link>
               </li>
               <li>
-                <Link to="/career" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/career" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> Career
                 </Link>
               </li>
@@ -75,7 +75,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/sla-agreement" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/sla-agreement" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> SLA Agreement for Vendor / Driver
                 </Link>
               </li>
@@ -85,7 +85,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/archives" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                <Link to="/archives" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
                   <span className="text-xs">›</span> Archives Stories
                 </Link>
               </li>

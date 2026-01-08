@@ -14,6 +14,12 @@ import TermsConditions from "./pages/TermsConditions";
 import VihicleSearch from "./pages/VihicleSearch";
 import CancellationPolicy from "./pages/CancellationPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import AboutUs from "./pages/AboutUs";
+import B2BPartner from "./pages/B2BPartner";
+import ContactUs from "./pages/ContactUs";
+import Career from "./pages/Career";
+import SLAPage from "./pages/SLAPage";
+import ArchiveStories from "./pages/ArchiveStories";
 import CarDetails from "./pages/CarDetails";
 import BookingSummary from "./pages/BookingSummary";
 import PersonalInfo from "./pages/profile/PersonalInfo";
@@ -99,6 +105,12 @@ const App = () => (
                 <Route path="/terms-conditions" element={<TermsConditions />} />
                 <Route path="/cancellation-policy" element={<CancellationPolicy />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
+                <Route path="/about-us" element={<AboutUs />} />
+                <Route path="/b2b-partner" element={<B2BPartner />} />
+                <Route path="/contact-us" element={<ContactUs />} />
+                <Route path="/career" element={<Career />} />
+                <Route path="/sla-agreement" element={<SLAPage />} />
+                <Route path="/archives" element={<ArchiveStories />} />
                 <Route path="/profile" element={<ProtectedUserRoute><Profile /></ProtectedUserRoute>} />
                 <Route path="/vihicle-search" element={<MobileAuthWrapper><VihicleSearch /></MobileAuthWrapper>} />
                 <Route path="/car-details/:id" element={<MobileAuthWrapper><CarDetails /></MobileAuthWrapper>} />

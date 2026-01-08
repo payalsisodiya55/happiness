@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { ArrowLeft, CheckCircle, XCircle, Clock, MapPin, User, Car, Calendar, Clock as ClockIcon, CreditCard, Phone } from "lucide-react";
+import { CheckCircle, XCircle, Clock, MapPin, User, Car, Calendar, Clock as ClockIcon, CreditCard, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -378,19 +378,10 @@ const DriverRequests = () => {
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       
       {/* Header - Fixed/Sticky */}
-      <div className="bg-[#29354c] text-white pt-4 pb-8 shadow-md relative z-30 rounded-b-[2rem] flex-shrink-0">
+      <div className="bg-[#29354c] text-white pt-8 pb-14 shadow-md relative z-30 rounded-b-[2.5rem] flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/driver')}
-              className="hover:bg-white/10 text-white self-start sm:self-auto -ml-2"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Dashboard</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
+
             <div className="flex-1">
               <h1 className="text-xl font-bold text-white tracking-wide">Booking Requests</h1>
               <p className="text-xs text-gray-300 font-light">Manage your incoming rides</p>

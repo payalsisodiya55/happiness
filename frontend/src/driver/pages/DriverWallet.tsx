@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { ArrowLeft, Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, ChevronRight } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,14 +68,7 @@ const DriverWallet = () => {
             <div className="flex flex-col space-y-4">
               {/* Top Bar */}
               <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/driver')}
-                  className="hover:bg-white/10 text-white p-0 h-auto self-start mr-3"
-                >
-                  <ArrowLeft className="w-6 h-6" />
-                </Button>
+
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-white tracking-wide">My Wallet</h1>
                   <p className="text-sm text-gray-300 font-light">Manage earnings & payouts</p>

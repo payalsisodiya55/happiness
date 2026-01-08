@@ -336,7 +336,7 @@ export const DriverAuthProvider: React.FC<DriverAuthProviderProps> = ({ children
       localStorage.removeItem('driverPhone');
       
       // Redirect to driver auth page
-      window.location.href = '/driver/auth';
+      window.location.href = '/driver-auth';
     } catch (error) {
       console.error('Driver logout error:', error);
       // Force clear state even if there's an error
@@ -345,7 +345,7 @@ export const DriverAuthProvider: React.FC<DriverAuthProviderProps> = ({ children
       apiService.removeAuthToken('driver');
       localStorage.removeItem('isDriverLoggedIn');
       localStorage.removeItem('driverPhone');
-      window.location.href = '/driver/auth';
+      window.location.href = '/driver-auth';
     }
   };
 

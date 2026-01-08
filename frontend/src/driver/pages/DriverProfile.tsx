@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DriverTopNavigation from "@/driver/components/DriverTopNavigation";
-import DriverFooter from "@/driver/components/DriverFooter";
-import { Home, MessageSquare, Car, User, LogOut, Edit, Save, X, Camera, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye } from "lucide-react";
+import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
+
+import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import apiService from "@/services/api";
 const DriverProfile = () => {
   const navigate = useNavigate();
   const { driver, isLoggedIn, logout, refreshDriverData, updateDriverData } = useDriverAuth();
-  const [activeTab, setActiveTab] = useState("profile");
+
   const [isEditing, setIsEditing] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showEarningsDialog, setShowEarningsDialog] = useState(false);
@@ -88,39 +88,7 @@ const DriverProfile = () => {
     navigate('/driver-auth');
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    switch (tab) {
-      case "home":
-        navigate('/driver');
-        break;
-      case "requests":
-        navigate('/driver/requests');
-        break;
-      case "myvehicle":
-        navigate('/driver/myvehicle');
-        break;
-      default:
-        navigate('/driver/profile');
-    }
-  };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    // This function is no longer needed as we're using the edit dialog
-  };
 
   const handleUpdateProfile = async (data: any) => {
     setIsLoading(true);
@@ -163,13 +131,7 @@ const DriverProfile = () => {
     }
   };
 
-  const handleDownloadEarnings = () => {
-    // Download earnings report logic here
-    toast({
-      title: "Download Started",
-      description: "Earnings report download has started.",
-    });
-  };
+
 
   const handleToggleNotifications = (checked: boolean) => {
     setNotifications(checked);
@@ -293,79 +255,82 @@ const DriverProfile = () => {
   const currentAddress = formatAddress(driver.address);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DriverTopNavigation />
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* DriverTopNavigation removed for cleaner look, as requested in other pages */}
       
-      {/* Driver Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 md:py-6 shadow-lg">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
+      {/* Sticky Header Group: Header + Profile Card */}
+      <div className="sticky top-0 z-40">
+        {/* Driver Header */}
+        <div className="bg-[#29354c] text-white pt-6 pb-24 shadow-md relative overflow-hidden rounded-b-[2rem]">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">My Profile</h1>
+                  <p className="text-gray-300 text-sm">Manage your account settings</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold">Driver Module</h1>
-                <p className="text-blue-100 text-sm md:text-base">Profile & Settings</p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to logout? You will need to login again to access the driver portal.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
+              <div className="flex space-x-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:text-white transition-all duration-300">
+                      <LogOut className="w-4 h-4 mr-2" />
                       Logout
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to logout? You will need to login again to access the driver portal.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
+                        Logout
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Profile Header Card - Sticky & Overlapping */}
+        <div className="container mx-auto px-4 -mt-20 relative z-50">
+          <Card className="mb-0 border-none shadow-lg rounded-xl overflow-hidden bg-white">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-4">
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">{driverName}</h2>
+                  <p className="text-gray-600 text-sm md:text-base">Professional Driver</p>
+                </div>
+                <Button 
+                  className="w-full md:w-auto bg-[#f48432] hover:bg-[#e07528] text-white transition-all duration-300"
+                  onClick={() => setShowEditDialog(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-4 md:py-6 pb-20">
-        {/* Profile Header */}
-        <Card className="mb-4 md:mb-6">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-4">
-              <div className="flex-1 text-center md:text-left">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">{driverName}</h2>
-                <p className="text-gray-600 text-sm md:text-base">Professional Driver</p>
-
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full md:w-auto"
-                onClick={() => setShowEditDialog(true)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Main Content Body - Scrollable */}
+      <div className="container mx-auto px-4 mt-6 pb-20 relative z-30">
 
         {/* Contact Information */}
         <Card className="mb-4 md:mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-lg md:text-xl">
-              <User className="w-5 h-5 text-blue-600" />
+            <CardTitle className="flex items-center space-x-2 text-lg md:text-xl text-[#29354c]">
+              <User className="w-5 h-5 text-[#f48432]" />
               <span>Contact Information</span>
             </CardTitle>
           </CardHeader>
@@ -418,8 +383,8 @@ const DriverProfile = () => {
                            <Button
                              size="sm"
                              variant="outline"
-                             onClick={() => handleViewDocument('RC Document', driver.documents.vehicleRC.image)}
-                             className="text-blue-600 hover:text-blue-700"
+                             onClick={() => handleViewDocument('RC Document', driver.documents?.vehicleRC?.image || '')}
+                             className="text-[#29354c] hover:text-[#1e2a3b]"
                            >
                              <Eye className="w-4 h-4 mr-1" />
                              View
@@ -427,12 +392,12 @@ const DriverProfile = () => {
                            <Button
                              size="sm"
                              variant="outline"
-                             onClick={() => handleUpdateDocument('vehicleRC')}
-                             className="text-orange-600 hover:text-orange-700"
-                           >
-                             <Upload className="w-4 h-4 mr-1" />
-                             Update
-                           </Button>
+                              onClick={() => handleUpdateDocument('vehicleRC')}
+                              className="text-[#f48432] hover:text-[#e07528]"
+                            >
+                              <Upload className="w-4 h-4 mr-1" />
+                              Update
+                            </Button>
                          </>
                        ) : (
                          <Button
@@ -474,7 +439,7 @@ const DriverProfile = () => {
                            <Button
                              size="sm"
                              variant="outline"
-                             onClick={() => handleViewDocument('Insurance Document', driver.documents.insurance.image)}
+                             onClick={() => handleViewDocument('Insurance Document', driver.documents?.insurance?.image || '')}
                              className="text-blue-600 hover:text-blue-700"
                            >
                              <Eye className="w-4 h-4 mr-1" />
@@ -519,7 +484,7 @@ const DriverProfile = () => {
         {/* Earnings Overview */}
         <Card className="mb-4 md:mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-lg md:text-xl">
+            <CardTitle className="flex items-center space-x-2 text-lg md:text-xl text-[#29354c]">
               <CreditCard className="w-5 h-5 text-green-600" />
               <span>Earnings Overview</span>
             </CardTitle>
@@ -545,7 +510,7 @@ const DriverProfile = () => {
                 <div className="text-xs md:text-sm text-gray-600">Total Rides</div>
               </div>
               <div className="text-center p-3 md:p-4 bg-orange-50 rounded-lg">
-                <div className="text-lg md:text-2xl font-bold text-orange-600">
+                <div className="text-lg md:text-2xl font-bold text-[#f48432]">
                   {driver.earnings?.commission || 15}%
                 </div>
                 <div className="text-xs md:text-sm text-gray-600">Commission Rate</div>
@@ -607,6 +572,7 @@ const DriverProfile = () => {
               <Switch 
                 checked={notifications} 
                 onCheckedChange={handleToggleNotifications}
+                className="data-[state=checked]:bg-[#f48432]"
               />
             </div>
             <Separator />
@@ -621,6 +587,7 @@ const DriverProfile = () => {
               <Switch 
                 checked={locationSharing} 
                 onCheckedChange={handleToggleLocationSharing}
+                className="data-[state=checked]:bg-[#f48432]"
               />
             </div>
           </CardContent>
@@ -707,54 +674,7 @@ const DriverProfile = () => {
        </Dialog>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur-md z-50 shadow-lg">
-        <div className="flex justify-around py-3">
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
-              activeTab === "home" 
-                ? "text-blue-600 bg-blue-50" 
-                : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-            }`}
-            onClick={() => handleTabChange("home")}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-xs font-medium">Home</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
-              activeTab === "requests" 
-                ? "text-blue-600 bg-blue-50" 
-                : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-            }`}
-            onClick={() => handleTabChange("requests")}
-          >
-            <MessageSquare className="w-5 h-5" />
-            <span className="text-xs font-medium">Requests</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
-              activeTab === "myvehicle" 
-                ? "text-blue-600 bg-blue-50" 
-                : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-            }`}
-            onClick={() => handleTabChange("myvehicle")}
-          >
-            <Car className="w-5 h-5" />
-            <span className="text-xs font-medium">MyVehicle</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
-              activeTab === "profile" 
-                ? "text-blue-600 bg-blue-50" 
-                : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-            }`}
-            onClick={() => handleTabChange("profile")}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-xs font-medium">Profile</span>
-          </button>
-        </div>
-      </div>
+      <DriverBottomNavigation />
     </div>
   );
 };

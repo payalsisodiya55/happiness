@@ -1,28 +1,38 @@
 import TopNavigation from '../components/TopNavigation';
 import HeroSection from '../components/HeroSection';
-import OffersSection from '../components/OffersSection';
+
 import WhyChooseUs from '../components/WhyChooseUs';
-import BookingBenefits from '../components/BookingBenefits';
-import HowToBook from '../components/HowToBook';
-import PartnersSection from '../components/PartnersSection';
+import FeaturesSection from '../components/FeaturesSection';
+import OurServices from '../components/OurServices';
+
 import RoutesTable from '../components/RoutesTable';
 import AppDownloadSection from '../components/AppDownloadSection';
 import Footer from '../components/Footer';
 import UserBottomNavigation from '../components/UserBottomNavigation';
+import MobileHome from '../components/MobileHome';
 
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <TopNavigation />
-      <HeroSection />
-      <OffersSection />
-      <WhyChooseUs />
-      <BookingBenefits />
-      <HowToBook />
-      <PartnersSection />
-      <div className="pb-24 md:pb-0">
-        <Footer />
+      {/* DESKTOP VIEW */}
+      <div className="hidden md:block">
+        <TopNavigation />
+        <HeroSection />
+
+        <WhyChooseUs />
+        <FeaturesSection />
+        <OurServices />
+
+        <div className="pb-24 md:pb-0">
+          <Footer />
+        </div>
       </div>
+
+      {/* MOBILE VIEW */}
+      <div className="block md:hidden">
+        <MobileHome />
+      </div>
+
       <UserBottomNavigation />
     </div>
   );

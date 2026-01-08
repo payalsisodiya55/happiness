@@ -103,7 +103,7 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
           className={cn(
             "w-full justify-start h-12 px-4",
             isItemActive 
-              ? "bg-blue-100 text-blue-700 hover:bg-blue-200" 
+              ? "bg-[#29354C] text-white hover:bg-[#29354C]/90" 
               : "hover:bg-gray-100"
           )}
         >
@@ -125,7 +125,7 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-center flex-1">
             <span className="text-black">Admin</span>
-            <span className="text-blue-600"> Panel</span>
+            <span className="text-[#29354C]"> Panel</span>
           </h2>
           <Button
             variant="ghost"

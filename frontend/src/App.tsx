@@ -9,11 +9,17 @@ import Auth from "./pages/Auth";
 import Bookings from "./pages/Bookings";
 import Help from "./pages/Help";
 import Profile from "./pages/Profile";
-import VihicleSearch from "./pages/VihicleSearch";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
+import VihicleSearch from "./pages/VihicleSearch";
 import CancellationPolicy from "./pages/CancellationPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import CarDetails from "./pages/CarDetails";
+import BookingSummary from "./pages/BookingSummary";
+import PersonalInfo from "./pages/profile/PersonalInfo";
+import Notifications from "./pages/profile/Notifications";
+import PrivacySecurity from "./pages/profile/PrivacySecurity";
+import Settings from "./pages/profile/Settings";
 
 import NotFound from "./pages/NotFound";
 import DriverAuth from "./driver/pages/DriverAuth";
@@ -21,6 +27,7 @@ import DriverHome from "./driver/pages/DriverHome";
 import DriverRequests from "./driver/pages/DriverRequests";
 import DriverMyVehicle from "./driver/pages/DriverMyVehicle";
 import DriverProfile from "./driver/pages/DriverProfile";
+import DriverWallet from "./driver/pages/DriverWallet";
 import AdminAuth from "./admin/pages/AdminAuth";
 import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminUserManagement from "./admin/pages/AdminUserManagement";
@@ -94,6 +101,14 @@ const App = () => (
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/profile" element={<ProtectedUserRoute><Profile /></ProtectedUserRoute>} />
                 <Route path="/vihicle-search" element={<MobileAuthWrapper><VihicleSearch /></MobileAuthWrapper>} />
+                <Route path="/car-details/:id" element={<MobileAuthWrapper><CarDetails /></MobileAuthWrapper>} />
+                <Route path="/booking-summary" element={<MobileAuthWrapper><BookingSummary /></MobileAuthWrapper>} />
+                
+                {/* Profile Sub-pages */}
+                <Route path="/profile/personal-info" element={<ProtectedUserRoute><PersonalInfo /></ProtectedUserRoute>} />
+                <Route path="/profile/notifications" element={<ProtectedUserRoute><Notifications /></ProtectedUserRoute>} />
+                <Route path="/profile/privacy" element={<ProtectedUserRoute><PrivacySecurity /></ProtectedUserRoute>} />
+                <Route path="/profile/settings" element={<ProtectedUserRoute><Settings /></ProtectedUserRoute>} />
 
                 {/* Driver Module Routes */}
                 <Route path="/driver-auth" element={<DriverAuth />} />
@@ -101,6 +116,7 @@ const App = () => (
                 <Route path="/driver/requests" element={<ProtectedDriverRoute><DriverRequests /></ProtectedDriverRoute>} />
                 <Route path="/driver/myvehicle" element={<ProtectedDriverRoute><DriverMyVehicle /></ProtectedDriverRoute>} />
                 <Route path="/driver/profile" element={<ProtectedDriverRoute><DriverProfile /></ProtectedDriverRoute>} />
+                <Route path="/driver/wallet" element={<ProtectedDriverRoute><DriverWallet /></ProtectedDriverRoute>} />
 
                 {/* Admin Module Routes */}
                 <Route path="/admin-auth" element={<AdminAuth />} />

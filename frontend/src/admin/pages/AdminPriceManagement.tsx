@@ -20,9 +20,7 @@ import {
   Eye,
   BarChart3,
   CheckCircle,
-  Car,
-  Bus,
-  Bike
+  Car
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -46,7 +44,7 @@ interface DistanceBasedPricing {
 
 interface VehiclePricing {
   _id?: string;
-  category: 'auto' | 'car' | 'bus';
+  category: 'car';
   vehicleType: string;
   vehicleModel: string;
   tripType: 'one-way' | 'return';
@@ -60,7 +58,7 @@ interface VehiclePricing {
 }
 
 interface PricingFormData {
-  category: 'auto' | 'car' | 'bus';
+  category: 'car';
   vehicleType: string;
   vehicleModel: string;
   tripType: 'one-way' | 'return';
@@ -73,10 +71,6 @@ interface PricingFormData {
 
 // Vehicle configurations with proper typing for all vehicle types
 interface VehicleConfigs {
-  auto: {
-    types: string[];
-    fuelTypes: string[];
-  };
   car: {
     types: string[];
     models: {
@@ -85,16 +79,7 @@ interface VehicleConfigs {
       SUV: string[];
     };
   };
-  bus: {
-    types: string[];
-    models: {
-      'Mini Bus': string[];
-      'Luxury Bus': string[];
-      'Traveller': string[];
-    };
-  };
 }
-
 const AdminPriceManagement = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -110,7 +95,7 @@ const AdminPriceManagement = () => {
   // State management
   const [pricingData, setPricingData] = useState<VehiclePricing[]>([]);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'auto' | 'car' | 'bus' | 'all'>('all');
+
   const [selectedTripType, setSelectedTripType] = useState<'one-way' | 'return' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -120,18 +105,18 @@ const AdminPriceManagement = () => {
   const [selectedPricing, setSelectedPricing] = useState<VehiclePricing | null>(null);
   const [showPricingDetails, setShowPricingDetails] = useState(false);
   const [formData, setFormData] = useState<PricingFormData>({
-    category: 'auto',
-    vehicleType: 'Auto',
-    vehicleModel: 'CNG',
+    category: 'car',
+    vehicleType: 'Sedan',
+    vehicleModel: 'Honda Amaze',
     tripType: 'one-way',
     autoPrice: 0,
     distancePricing: {
-      '50km': 0,
-      '100km': 0,
-      '150km': 0,
-      '200km': 0,
-      '250km': 0,
-      '300km': 0
+      '50km': 12,
+      '100km': 10,
+      '150km': 8,
+      '200km': 7,
+      '250km': 6,
+      '300km': 6
     },
     notes: '',
     isActive: true,
@@ -140,24 +125,12 @@ const AdminPriceManagement = () => {
 
   // Vehicle configurations - Updated to include all vehicle models from driver form
   const vehicleConfigs: VehicleConfigs = {
-    auto: {
-      types: ['Auto'],
-      fuelTypes: ['CNG', 'Petrol', 'Electric', 'Diesel']
-    },
     car: {
       types: ['Sedan', 'Hatchback', 'SUV'],
       models: {
         'Sedan': ['Honda Amaze', 'Swift Dzire', 'Honda City', 'Suzuki Ciaz', 'Hyundai Aura', 'Verna', 'Tata Tigor', 'Skoda Slavia'],
         'Hatchback': ['Baleno', 'Hundai i20', 'Renault Kwid Toyota Glanza', 'Alto K10', 'Calerio Maruti', 'Ignis Maruti', 'Swift Vxi,Lxi,Vdi', 'WagonR', 'Polo', 'Tata Altroz', 'Tata Tiago'],
         'SUV': ['Hundai Extor', 'Grand Vitara Brezza Suzuki', 'Suzuki Vitara Brezza', 'XUV 3x0', 'XUV 700', 'Tata Punch', 'Kia Seltos', 'Tata Harrier', 'Tata Nexon', 'Innova Crysta', 'Scorpio N', 'Scorpio', 'XUV500', 'Nexon EV', 'Hundai Creta', 'Hundai Venue', 'Bolereo Plus', 'Bolereo', 'Bolereo Neo', 'Fronx Maruti Suzuki', 'Ertiga Maruti Suzuki', 'XI Maruti Suzuki', 'Fortuner']
-      }
-    },
-    bus: {
-      types: ['Mini Bus', 'Luxury Bus', 'Traveller'],
-      models: {
-        'Mini Bus': ['32-Seater', '40-Seater', '52-Seater'],
-        'Luxury Bus': ['45-Seater'],
-        'Traveller': ['13-Seater', '17-Seater', '26-Seater']
       }
     }
   };
@@ -177,7 +150,10 @@ const AdminPriceManagement = () => {
       }
 
       const result = await getAllVehiclePricing(token, { all: true } as { all: boolean });
-      setPricingData(Array.isArray(result.data) ? result.data : []);
+      // Filter strictly for cars and cast to satisfy local type definition
+      const allData = Array.isArray(result.data) ? result.data : [];
+      const carData = allData.filter((item: any) => item.category === 'car') as VehiclePricing[];
+      setPricingData(carData);
     } catch (error) {
       toast({
         title: "Error",
@@ -196,72 +172,19 @@ const AdminPriceManagement = () => {
     }
   }, [isAuthenticated]);
 
-  // Update distance pricing when category changes
-  useEffect(() => {
-    if (formData.category === 'auto') {
-      // For auto, set all distance pricing to 0
-      setFormData(prev => ({
-        ...prev,
-        distancePricing: {
-          '50km': 0,
-          '100km': 0,
-          '150km': 0,
-          '200km': 0,
-          '250km': 0,
-          '300km': 0
-        }
-      }));
-    }
-  }, [formData.category]);
+
 
   // Handle form input changes
   const handleFormChange = (field: keyof PricingFormData, value: any) => {
     console.log('🔄 Form field changed:', { field, value, type: typeof value });
     
-    if (field === 'category') {
-      // Reset vehicle type and model when category changes
-      const newFormData = { ...formData, [field]: value };
-      
-      if (value === 'auto') {
-        newFormData.vehicleType = 'Auto';
-        newFormData.vehicleModel = 'CNG';
-      } else if (value === 'car') {
-        newFormData.vehicleType = 'Sedan';
-        newFormData.vehicleModel = 'Honda Amaze';
-        // Set default distance pricing for car
-        newFormData.distancePricing = {
-          '50km': 12,
-          '100km': 10,
-          '150km': 8,
-          '200km': 7,
-          '250km': 6,
-          '300km': 6
-        };
-      } else if (value === 'bus') {
-        newFormData.vehicleType = 'Mini Bus';
-        newFormData.vehicleModel = '32-Seater';
-        // Set default distance pricing for bus
-        newFormData.distancePricing = {
-          '50km': 15,
-          '100km': 12,
-          '150km': 10,
-          '200km': 8,
-          '250km': 7,
-          '300km': 6
-        };
-      }
-      
-      setFormData(newFormData);
-    } else if (field === 'vehicleType') {
+    if (field === 'vehicleType') {
       // Reset vehicle model when vehicle type changes
       const newFormData = { ...formData, [field]: value };
       
       if (formData.category === 'car') {
         const carModels = (vehicleConfigs.car.models as any)[value];
         newFormData.vehicleModel = carModels && carModels.length > 0 ? carModels[0] : '';
-      } else if (formData.category === 'bus') {
-        const busModels = (vehicleConfigs.bus.models as any)[value];
-        newFormData.vehicleModel = busModels && busModels.length > 0 ? busModels[0] : '';
       }
       
       setFormData(newFormData);
@@ -284,18 +207,18 @@ const AdminPriceManagement = () => {
   // Reset form
   const resetForm = () => {
     setFormData({
-      category: 'auto',
-      vehicleType: 'Auto',
-      vehicleModel: 'CNG',
+      category: 'car',
+      vehicleType: 'Sedan',
+      vehicleModel: 'Honda Amaze',
       tripType: 'one-way',
       autoPrice: 0,
       distancePricing: {
-        '50km': 0,
-        '100km': 0,
-        '150km': 0,
-        '200km': 0,
-        '250km': 0,
-        '300km': 0
+        '50km': 12,
+        '100km': 10,
+        '150km': 8,
+        '200km': 7,
+        '250km': 6,
+        '300km': 6
       },
       notes: '',
       isActive: true,
@@ -320,38 +243,16 @@ const AdminPriceManagement = () => {
         return;
       }
 
-      // For auto, validate auto price
-      if (formData.category === 'auto') {
-        console.log('🔍 Validating auto pricing:', {
-          autoPrice: formData.autoPrice,
-          type: typeof formData.autoPrice,
-          isValid: formData.autoPrice > 0
+      // Validate distance pricing
+      const hasValidDistancePricing = Object.values(formData.distancePricing).some(price => price > 0);
+      if (!hasValidDistancePricing) {
+        toast({
+          title: "Error",
+          description: `Distance pricing is required. Please enter at least one distance price greater than 0.`,
+          variant: "destructive"
         });
-        
-        if (!formData.autoPrice || formData.autoPrice <= 0) {
-          toast({
-            title: "Error",
-            description: "Auto price must be greater than 0",
-            variant: "destructive"
-          });
-          return;
-        }
-        console.log('✅ Auto price validation passed');
+        return;
       }
-
-      // For car and bus, validate distance pricing
-      if (formData.category !== 'auto') {
-        const hasValidDistancePricing = Object.values(formData.distancePricing).some(price => price > 0);
-        if (!hasValidDistancePricing) {
-          toast({
-            title: "Error",
-            description: `Distance pricing is required for ${formData.category} categories. Please enter at least one distance price greater than 0.`,
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
       const result = await createVehiclePricing(token, formData);
       
       toast({
@@ -395,40 +296,18 @@ const AdminPriceManagement = () => {
         return;
       }
 
-      // For auto, validate auto price
-      if (formData.category === 'auto') {
-        console.log('🔍 Validating auto pricing update:', {
-          autoPrice: formData.autoPrice,
-          type: typeof formData.autoPrice,
-          isValid: formData.autoPrice > 0
+      // Validate distance pricing
+      console.log('🔍 Validating distance pricing update:', formData.distancePricing);
+      const hasValidDistancePricing = Object.values(formData.distancePricing).some(price => price > 0);
+      if (!hasValidDistancePricing) {
+        toast({
+          title: "Error",
+          description: "Distance pricing is required",
+          variant: "destructive"
         });
-        
-        if (!formData.autoPrice || formData.autoPrice <= 0) {
-          toast({
-            title: "Error",
-            description: "Auto price must be greater than 0",
-            variant: "destructive"
-          });
-          return;
-        }
-        console.log('✅ Auto price validation passed');
+        return;
       }
-
-      // For car and bus, validate distance pricing
-      if (formData.category !== 'auto') {
-        console.log('🔍 Validating distance pricing update:', formData.distancePricing);
-        const hasValidDistancePricing = Object.values(formData.distancePricing).some(price => price > 0);
-        if (!hasValidDistancePricing) {
-          toast({
-            title: "Error",
-            description: "Distance pricing is required for car and bus categories",
-            variant: "destructive"
-          });
-          return;
-        }
-        console.log('✅ Distance pricing validation passed');
-      }
-
+      console.log('✅ Distance pricing validation passed');
       console.log('✅ All validations passed, calling update API...');
       const result = await updateVehiclePricing(token, editingPricingId, formData);
       console.log('✅ Pricing updated successfully:', result);
@@ -521,23 +400,21 @@ const AdminPriceManagement = () => {
         pricing.category.toLowerCase().includes(searchLower)
       );
     }
-    if (selectedCategory && selectedCategory !== 'all' && pricing.category !== selectedCategory) return false;
+
     if (selectedTripType && selectedTripType !== 'all' && pricing.tripType !== selectedTripType) return false;
     return true;
   });
 
 
   // Get pricing count by category for tabs
-  const getPricingCountByCategory = (category: 'auto' | 'car' | 'bus') => {
+  const getPricingCountByCategory = (category: 'car') => {
     return pricingData.filter(p => p.category === category).length;
   };
 
   // Get category icon
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'auto': return <Bike className="w-4 h-4" />;
       case 'car': return <Car className="w-4 h-4" />;
-      case 'bus': return <Bus className="w-4 h-4" />;
       default: return <Car className="w-4 h-4" />;
     }
   };
@@ -553,9 +430,6 @@ const AdminPriceManagement = () => {
 
   // Calculate total pricing
   const getTotalPricing = (pricing: VehiclePricing) => {
-    if (pricing.category === 'auto') {
-      return pricing.autoPrice; // Use autoPrice for auto
-    }
     const total = Object.values(pricing.distancePricing).reduce((sum, price) => sum + price, 0);
     return total * 100; // Multiply by 100km for estimation
   };
@@ -565,7 +439,7 @@ const AdminPriceManagement = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#29354C] mx-auto mb-4"></div>
           <p className="text-gray-600">Validating admin access...</p>
         </div>
       </div>
@@ -599,7 +473,7 @@ const AdminPriceManagement = () => {
           {/* Header */}
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Vehicle Pricing Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">Manage vehicle pricing for all categories, types, and fuel types</p>
+            <p className="text-sm sm:text-base text-gray-600">Manage vehicle pricing for car categories, types, and models</p>
           </div>
 
           {/* Stats Cards - Mobile Optimized */}
@@ -607,8 +481,8 @@ const AdminPriceManagement = () => {
             <Card className="shadow-sm">
               <CardContent className="p-3 sm:p-4 md:p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                    <Car className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
+                  <div className="p-2 bg-[#29354C]/10 rounded-lg flex-shrink-0">
+                    <Car className="w-4 h-4 sm:w-6 sm:h-6 text-[#29354C]" />
                   </div>
                   <div className="ml-2 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Rules</p>
@@ -634,37 +508,6 @@ const AdminPriceManagement = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
-              <CardContent className="p-3 sm:p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
-                    <Bike className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" />
-                  </div>
-                  <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Auto</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                      {pricingData.filter(p => p.category === 'auto').length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-              <CardContent className="p-3 sm:p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
-                    <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-orange-600" />
-                  </div>
-                  <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Car</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                      {pricingData.filter(p => p.category === 'car').length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Filters and Search - Mobile Optimized */}
@@ -684,18 +527,6 @@ const AdminPriceManagement = () => {
                 
                 {/* Filter Controls */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as any)}>
-                    <SelectTrigger className="h-10 sm:h-11">
-                      <SelectValue placeholder="Filter by category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="auto">Auto</SelectItem>
-                      <SelectItem value="car">Car</SelectItem>
-                      <SelectItem value="bus">Bus</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   <Select value={selectedTripType} onValueChange={(value) => setSelectedTripType(value as any)}>
                     <SelectTrigger className="h-10 sm:h-11">
                       <SelectValue placeholder="Filter by trip type" />
@@ -744,9 +575,7 @@ const AdminPriceManagement = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="auto">Auto</SelectItem>
                         <SelectItem value="car">Car</SelectItem>
-                        <SelectItem value="bus">Bus</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -770,30 +599,19 @@ const AdminPriceManagement = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="vehicleModel" className="text-sm font-medium">
-                      {formData.category === 'auto' ? 'Fuel Type' : 'Vehicle Model'}
+                      Vehicle Model
                     </Label>
                     <Select 
                       value={formData.vehicleModel} 
                       onValueChange={(value) => handleFormChange('vehicleModel', value)}
                     >
                       <SelectTrigger className="h-11 sm:h-10">
-                        <SelectValue placeholder={formData.category === 'auto' ? 'Select Fuel Type' : 'Select Model'} />
+                        <SelectValue placeholder="Select Model" />
                       </SelectTrigger>
                       <SelectContent>
-                        {formData.category === 'auto' 
-                          ? vehicleConfigs.auto.fuelTypes.map((fuelType: string) => (
-                              <SelectItem key={fuelType} value={fuelType}>{fuelType}</SelectItem>
-                            ))
-                          : formData.category === 'car' && formData.vehicleType 
-                            ? (vehicleConfigs.car.models as any)[formData.vehicleType]?.map((model: string) => (
-                                <SelectItem key={model} value={model}>{model}</SelectItem>
-                              ))
-                            : formData.category === 'bus' && formData.vehicleType
-                              ? (vehicleConfigs.bus.models as any)[formData.vehicleType]?.map((model: string) => (
-                                  <SelectItem key={model} value={model}>{model}</SelectItem>
-                                ))
-                              : []
-                        }
+                        {formData.vehicleType && (vehicleConfigs.car.models as any)[formData.vehicleType]?.map((model: string) => (
+                          <SelectItem key={model} value={model}>{model}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -815,21 +633,7 @@ const AdminPriceManagement = () => {
                   </div>
 
                   {/* Auto Price - Only show for auto category */}
-                  {formData.category === 'auto' && (
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="autoPrice" className="text-sm font-medium">Auto Price (₹)</Label>
-                      <Input
-                        id="autoPrice"
-                        type="number"
-                        value={formData.autoPrice}
-                        onChange={(e) => handleFormChange('autoPrice', parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        min="0"
-                        step="0.01"
-                        className="h-11 sm:h-10"
-                      />
-                    </div>
-                  )}
+
 
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
@@ -844,8 +648,7 @@ const AdminPriceManagement = () => {
                 </div>
 
                 {/* Distance-based Pricing */}
-                {formData.category !== 'auto' && (
-                  <div className="space-y-3">
+                <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between">
                         <div>
@@ -859,9 +662,7 @@ const AdminPriceManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const defaultPricing = formData.category === 'bus' 
-                              ? { '50km': 15, '100km': 12, '150km': 10, '200km': 8, '250km': 7, '300km': 6 }
-                              : { '50km': 12, '100km': 10, '150km': 8, '200km': 7, '250km': 6, '300km': 6 };
+                            const defaultPricing = { '50km': 12, '100km': 10, '150km': 8, '200km': 7, '250km': 6, '300km': 6 };
                             setFormData(prev => ({ ...prev, distancePricing: defaultPricing }));
                           }}
                           className="text-xs"
@@ -888,7 +689,7 @@ const AdminPriceManagement = () => {
                       ))}
                     </div>
                   </div>
-                )}
+
 
                 {/* Form Actions */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -916,7 +717,7 @@ const AdminPriceManagement = () => {
             <CardContent>
               {isLoadingPricing ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#29354C] mx-auto"></div>
                   <p className="mt-2 text-gray-600">Loading pricing data...</p>
                 </div>
               ) : filteredPricing.length === 0 ? (
@@ -930,44 +731,9 @@ const AdminPriceManagement = () => {
                   <div className="border-b border-gray-200 overflow-x-auto">
                     <nav className="flex space-x-4 sm:space-x-6 min-w-max px-2 sm:px-0">
                       <button
-                        onClick={() => setSelectedCategory('all')}
-                        className={`py-3 px-2 sm:py-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                          selectedCategory === 'all'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
+                        className="py-3 px-2 sm:py-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap border-[#29354C] text-[#29354C]"
                       >
                         All ({filteredPricing.length})
-                      </button>
-                      <button
-                        onClick={() => setSelectedCategory('auto')}
-                        className={`py-3 px-2 sm:py-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                          selectedCategory === 'auto'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        Auto ({getPricingCountByCategory('auto')})
-                      </button>
-                      <button
-                        onClick={() => setSelectedCategory('car')}
-                        className={`py-3 px-2 sm:py-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                          selectedCategory === 'car'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        Car ({getPricingCountByCategory('car')})
-                      </button>
-                      <button
-                        onClick={() => setSelectedCategory('bus')}
-                        className={`py-3 px-2 sm:py-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                          selectedCategory === 'bus'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        Bus ({getPricingCountByCategory('bus')})
                       </button>
                     </nav>
                   </div>
@@ -992,7 +758,7 @@ const AdminPriceManagement = () => {
                               <TableCell className="py-4">
                                 <div className="flex items-start space-x-3">
                                   <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-full bg-[#29354C]/10 flex items-center justify-center">
                                       {getCategoryIcon(pricing.category)}
                                     </div>
                                   </div>
@@ -1021,12 +787,6 @@ const AdminPriceManagement = () => {
 
                               {/* Pricing Column - Dynamic based on category */}
                               <TableCell>
-                                {pricing.category === 'auto' ? (
-                                  <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                    <p className="text-xs text-blue-600 mb-1">Auto Price</p>
-                                    <p className="text-lg font-bold text-blue-900">₹{pricing.autoPrice}</p>
-                                  </div>
-                                ) : (
                                   <div className="grid grid-cols-2 gap-2">
                                     <div className="text-center p-2 bg-gray-50 rounded">
                                       <p className="text-xs text-gray-600">50km</p>
@@ -1053,7 +813,6 @@ const AdminPriceManagement = () => {
                                       <p className="text-sm font-semibold">₹{pricing.distancePricing['300km']}</p>
                                     </div>
                                   </div>
-                                )}
                               </TableCell>
 
                               {/* Status Column */}
@@ -1105,7 +864,7 @@ const AdminPriceManagement = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-[#29354C]/10 flex items-center justify-center flex-shrink-0">
                                 {getCategoryIcon(pricing.category)}
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -1128,12 +887,6 @@ const AdminPriceManagement = () => {
                         </div>
 
                         {/* Pricing Information */}
-                        {pricing.category === 'auto' ? (
-                          <div className="mb-4 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-xs font-medium text-blue-700 mb-2">Auto Price</p>
-                            <p className="text-xl sm:text-2xl font-bold text-blue-900">₹{pricing.autoPrice}</p>
-                          </div>
-                        ) : (
                           <div className="mb-4">
                             <p className="text-xs font-medium text-gray-600 mb-3">Distance Pricing (per km)</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
@@ -1163,7 +916,6 @@ const AdminPriceManagement = () => {
                               </div>
                             </div>
                           </div>
-                        )}
 
 
                         {/* Action Buttons */}
@@ -1222,7 +974,7 @@ const AdminPriceManagement = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
+              <BarChart3 className="w-5 h-5 text-[#29354C]" />
               Pricing Details
             </DialogTitle>
           </DialogHeader>
@@ -1230,13 +982,13 @@ const AdminPriceManagement = () => {
             <div className="space-y-4 sm:space-y-6">
               {/* Pricing Header */}
               <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full flex-shrink-0">
+                <div className="flex items-center justify-center w-16 h-16 bg-[#29354C]/10 rounded-full flex-shrink-0">
                   {getCategoryIcon(selectedPricing.category)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-xl font-semibold truncate">{selectedPricing.vehicleType}</h3>
                   <p className="text-sm sm:text-base text-gray-600 truncate">
-                    {selectedPricing.category === 'auto' ? 'Fuel Type' : 'Model'}: {selectedPricing.vehicleModel}
+                    Model: {selectedPricing.vehicleModel}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {getStatusBadge(selectedPricing.isActive)}
@@ -1248,32 +1000,19 @@ const AdminPriceManagement = () => {
               </div>
               
               {/* Pricing Information */}
-              {selectedPricing.category === 'auto' ? (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-600">Auto Pricing</label>
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-blue-700 mb-2">Fixed Auto Price</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-blue-900">₹{selectedPricing.autoPrice}</p>
-                      <p className="text-xs text-blue-600 mt-1">Per trip (regardless of distance)</p>
-                    </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-600">Distance-based Pricing (per km)</label>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {(['50km', '100km', '150km', '200km', '250km', '300km'] as const).map(distance => (
+                      <div key={distance} className="text-center">
+                        <p className="text-xs font-medium text-gray-600 mb-1">{distance}</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900">₹{selectedPricing.distancePricing[distance]}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-600">Distance-based Pricing (per km)</label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                      {(['50km', '100km', '150km', '200km', '250km', '300km'] as const).map(distance => (
-                        <div key={distance} className="text-center">
-                          <p className="text-xs font-medium text-gray-600 mb-1">{distance}</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900">₹{selectedPricing.distancePricing[distance]}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
               
               {/* Notes */}
               {selectedPricing.notes && (

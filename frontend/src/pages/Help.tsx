@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Phone, Mail, User, Home, List, HelpCircle, ChevronDown, X } from "lucide-react";
+import { ChevronRight, Phone, Mail, User, Home, List, HelpCircle, ChevronDown, X, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import TopNavigation from "@/components/TopNavigation";
@@ -75,171 +75,221 @@ const Help = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNavigation/>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="hidden md:block">
+        <TopNavigation/>
+      </div>
+      
       {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4">
-        <h1 className="text-xl font-semibold">Help & Support</h1>
+      <div className="bg-gradient-to-r from-[#212c40] to-[#2d3a52] text-white py-4 md:py-8 px-4 shadow-lg">
+        <div className="container mx-auto">
+          <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">Help & Support</h1>
+          <p className="text-white/70">We're here to help you 24/7</p>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-6 pb-24 md:pb-6">
-        {/* Search */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search for help topics..."
-            className="w-full p-3 pl-10 border border-border rounded-lg bg-background"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <HelpCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        </div>
-
-        {/* Help Topics */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Frequently Asked Questions
-            {searchQuery && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({filteredTopics.length} results)
-              </span>
-            )}
-          </h2>
-          <div className="space-y-3">
-            {filteredTopics.map((topic) => (
-              <Card key={topic.id} className="border border-border">
-                <div 
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => toggleFAQ(topic.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-foreground">{topic.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{topic.description}</p>
-                    </div>
-                    {expandedFAQ === topic.id ? (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-                {expandedFAQ === topic.id && (
-                  <div className="px-4 pb-4">
-                    <div className="border-t border-border pt-4">
-                      <p className="text-sm text-foreground whitespace-pre-line">{topic.content}</p>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
-          {filteredTopics.length === 0 && searchQuery && (
-            <div className="text-center py-8">
-              <HelpCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No help topics found for "{searchQuery}"</p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setSearchQuery("")}
-              >
-                Clear Search
-              </Button>
+      <div className="container mx-auto px-4 py-6 pb-24 md:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for help topics..."
+                className="w-full p-4 pl-12 border border-gray-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-[#f48432] focus:border-transparent outline-none transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <HelpCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#212c40]/50" />
             </div>
-          )}
-        </div>
 
-        {/* Contact Support */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Contact Support</h2>
-          <div className="space-y-3">
-            {contactOptions.map((option) => (
-              <Card key={option.id} className="p-4 border border-border">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <option.icon className="w-5 h-5 text-primary" />
+            {/* Help Topics */}
+            <div>
+              <h2 className="text-lg font-bold text-[#212c40] mb-4 flex items-center gap-2">
+                Frequently Asked Questions
+                {searchQuery && (
+                  <span className="text-sm font-normal text-gray-500 ml-auto bg-gray-100 px-3 py-1 rounded-full">
+                    {filteredTopics.length} results
+                  </span>
+                )}
+              </h2>
+              <div className="space-y-3">
+                {filteredTopics.map((topic) => (
+                  <div key={topic.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+                    <div 
+                      className="p-4 cursor-pointer hover:bg-gray-50/50 transition-colors flex items-center justify-between"
+                      onClick={() => toggleFAQ(topic.id)}
+                    >
+                      <div className="flex-1 pr-4">
+                        <h3 className={`font-semibold transition-colors ${expandedFAQ === topic.id ? 'text-[#f48432]' : 'text-[#212c40]'}`}>
+                          {topic.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">{topic.description}</p>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${expandedFAQ === topic.id ? 'bg-[#f48432]/10 rotate-180' : 'bg-gray-100'}`}>
+                        <ChevronDown className={`w-5 h-5 ${expandedFAQ === topic.id ? 'text-[#f48432]' : 'text-gray-500'}`} />
+                      </div>
+                    </div>
+                    
+                    <div className={`grid transition-all duration-300 ease-in-out ${expandedFAQ === topic.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                      <div className="overflow-hidden">
+                        <div className="px-4 pb-5 pt-0">
+                          <div className="border-t border-gray-100 pt-4">
+                            <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{topic.content}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{option.title}</h3>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                ))}
+              </div>
+              
+              {filteredTopics.length === 0 && searchQuery && (
+                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <HelpCircle className="w-8 h-8 text-gray-400" />
                   </div>
-                  <Button variant="outline" size="sm" onClick={option.actionHandler}>
-                    {option.action}
+                  <h3 className="text-lg font-semibold text-gray-700 mb-1">No results found</h3>
+                  <p className="text-gray-500 mb-6">We couldn't find any help topics for "{searchQuery}"</p>
+                  <Button 
+                    variant="outline" 
+                    className="border-[#f48432] text-[#f48432] hover:bg-[#f48432] hover:text-white"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    Clear Search
                   </Button>
                 </div>
-              </Card>
-            ))}
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Contact & Emergency */}
+          <div className="space-y-6">
+            {/* Contact Support */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-lg font-bold text-[#212c40] mb-4">Contact Support</h2>
+              <div className="space-y-4">
+                {contactOptions.map((option) => (
+                  <div key={option.id} className="group p-4 rounded-xl hover:bg-[#212c40]/5 transition-colors border border-gray-100 hover:border-[#212c40]/10">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-[#212c40]/10 rounded-full flex items-center justify-center group-hover:bg-[#212c40] transition-colors">
+                        <option.icon className="w-5 h-5 text-[#212c40] group-hover:text-white transition-colors" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-[#212c40]">{option.title}</h3>
+                        <p className="text-sm text-gray-500 mb-3">{option.description}</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={option.actionHandler}
+                          className="w-full border-[#212c40] text-[#212c40] hover:bg-[#212c40] hover:text-white"
+                        >
+                          {option.action}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="bg-gradient-to-br from-red-50 to-white rounded-xl shadow-sm border border-red-100 p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center animate-pulse">
+                  <Phone className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="font-bold text-red-700 text-lg">Emergency?</h3>
+              </div>
+              <p className="text-sm text-red-600/80 mb-4 leading-relaxed">
+                Need urgent assistance during your ongoing journey? We're here to help 24/7.
+              </p>
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200" 
+                onClick={handleEmergencyContact}
+              >
+                Emergency Support
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Emergency Contact */}
-        <Card className="p-4 border border-border bg-primary/5">
-          <h3 className="font-semibold text-foreground mb-2">Emergency Support</h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            For urgent assistance during your journey
-          </p>
-          <Button className="w-full bg-primary text-primary-foreground" onClick={handleEmergencyContact}>
-            Emergency Contact
-          </Button>
-        </Card>
       </div>
 
       {/* Emergency Contact Modal */}
       {showEmergencyContact && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Emergency Contact</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+        <div className="fixed inset-0 bg-[#212c40]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <Phone className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-[#212c40]">Emergency Contact</h3>
+                  <p className="text-xs text-red-500 font-medium">24/7 Priority Support</p>
+                </div>
+              </div>
+              <button 
                 onClick={() => setShowEmergencyContact(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X className="w-4 h-4" />
-              </Button>
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
             </div>
+
             <div className="space-y-4">
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm font-medium text-red-800 mb-2">24/7 Emergency Helpline</p>
-                <p className="text-sm text-red-700">For immediate assistance during your journey</p>
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
+                <p className="text-sm font-semibold text-red-800 mb-1">When to use this?</p>
+                <p className="text-sm text-red-600/90 leading-relaxed">
+                  Only use this for critical issues like breakdowns, accidents, or safety concerns during an active trip.
+                </p>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Emergency Number</p>
-                    <p className="text-sm text-muted-foreground">Available 24/7</p>
+
+              <div className="grid gap-3">
+                <button 
+                  onClick={() => window.location.href = "tel:+919171838260"}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#212c40] hover:bg-[#212c40]/5 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                      <Phone className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-[#212c40]">Call Emergency Line</p>
+                      <p className="text-xs text-gray-500">Wait time: &lt; 1 min</p>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.location.href = "tel:+919171838260"}
-                  >
-                    Call Now
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">WhatsApp Support</p>
-                    <p className="text-sm text-muted-foreground">Quick messaging support</p>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-[#212c40]" />
+                </button>
+
+                <button 
+                  onClick={() => window.open("https://wa.me/919171838260", "_blank")}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#212c40] hover:bg-[#212c40]/5 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                      <MessageCircle className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-[#212c40]">WhatsApp Support</p>
+                      <p className="text-xs text-gray-500">Share live location</p>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open("https://wa.me/919171838260", "_blank")}
-                  >
-                    Chat Now
-                  </Button>
-                </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-[#212c40]" />
+                </button>
               </div>
+
               <Button 
-                className="w-full" 
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 mt-2" 
                 onClick={() => setShowEmergencyContact(false)}
               >
-                Close
+                Cancel
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -248,4 +298,4 @@ const Help = () => {
   );
 };
 
-export default Help; 
+export default Help;

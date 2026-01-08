@@ -1,720 +1,380 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { ArrowLeftRight, Calendar, MapPin, Search, Bus, Plane, PlaneTakeoff, Home, List, HelpCircle, User, Train } from "lucide-react";
-import HomeBanner from "@/assets/Home3.png";
-import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import CarImg from "@/assets/Car2.png";
-import BusImg from "@/assets/BusBar.png";
-import TravellerImg from "@/assets/AutoLogo.png";
-import React from "react";
-import LocationAutocomplete from "./LocationAutocomplete";
-import { LocationSuggestion, googleMapsService } from "@/services/googleMapsService";
-import { getDefaultDate } from "@/lib/utils";
-
-
-
-const LoadingAnimation = () => (
-  <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
-    <div className="flex space-x-8 animate-pulse">
-      <img src={CarImg} alt="Car" className="w-20 h-20 object-contain animate-bounce" style={{animationDelay: '0ms'}} />
-      <img src={BusImg} alt="Bus" className="w-20 h-20 object-contain animate-bounce" style={{animationDelay: '200ms'}} />
-      <img src={TravellerImg} alt="Auto-Ricksaw" className="w-20 h-20 object-contain animate-bounce" style={{animationDelay: '400ms'}} />
-    </div>
-    <div className="mt-6 text-xl font-semibold text-primary">Searching best Vehicle for you...</div>
-  </div>
-);
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarIcon, Clock, Search, MapPin, Navigation, ChevronDown } from 'lucide-react';
+import LocationAutocomplete from './LocationAutocomplete';
+import CarHeroBanner from '@/assets/CarHeroBanner.png';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const [fromLocation, setFromLocation] = useState("");
-  const [toLocation, setToLocation] = useState("");
-  const [departureDate, setDepartureDate] = useState(() => getDefaultDate(1));
-  const [returnDate, setReturnDate] = useState(() => getDefaultDate(2));
-  const [pickupTime, setPickupTime] = useState("09:00");
-  const [selectedDate, setSelectedDate] = useState("04");
-  const [activeService, setActiveService] = useState("oneWay");
-  const [womenBooking, setWomenBooking] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [typedText, setTypedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  // Store selected location data with coordinates
-  const [fromLocationData, setFromLocationData] = useState<{
-    lat: number;
-    lng: number;
-    description: string;
-  } | null>(null);
-  const [toLocationData, setToLocationData] = useState<{
-    lat: number;
-    lng: number;
-    description: string;
-  } | null>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
+  const [tripType, setTripType] = useState<'oneWay' | 'roundTrip' | 'local'>('oneWay');
+  const [date, setDate] = useState<Date>();
+  const [returnDate, setReturnDate] = useState<Date>();
+  const [time, setTime] = useState('');
+  const [fromLocation, setFromLocation] = useState('');
+  const [toLocation, setToLocation] = useState('');
+  const [localPackage, setLocalPackage] = useState('4hrs40km');
 
-  const fullText = "CHALO SAWARI";
-  const blueText = "SAWARI";
+  /* Intersection Observer logic to trigger animation on scroll */
+  const formRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isTextVisible, setIsTextVisible] = useState(false);
 
-  // Animation trigger on mount
+  // Store full location objects (with lat/lng)
+  const [fromLocationData, setFromLocationData] = useState<any>(null);
+  const [toLocationData, setToLocationData] = useState<any>(null);
+
   useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  // Check Google Maps service status with retry mechanism
-  useEffect(() => {
-    const checkService = async () => {
-      let retryCount = 0;
-      const maxRetries = 3;
-      const retryDelay = 2000; // Increased delay between retries
-
-      const attemptInitialization = async (): Promise<void> => {
-        try {
-          if (googleMapsService.isReady()) {
-            return;
-          } else {
-            await googleMapsService.initialize();
-            if (!googleMapsService.isReady()) {
-              // Check if API key is missing
-              const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-              if (!apiKey || apiKey === 'your_actual_api_key_here') {
-                console.warn('Google Maps API key not configured. Location autocomplete will be disabled.');
-                return;
-              }
-              throw new Error('Service not ready after initialization');
-            }
-          }
-        } catch (err: any) {
-          console.error(`HeroSection: Attempt ${retryCount + 1} failed:`, err);
-          retryCount++;
-          
-          if (retryCount < maxRetries) {
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            return attemptInitialization();
-          } else {
-            // Log final error but don't break the UI
-            const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-            if (!apiKey || apiKey === 'your_actual_api_key_here') {
-              console.warn('Google Maps API key not configured. Location autocomplete will be disabled.');
-            } else {
-              console.warn('Google Maps service not available in HeroSection. Location autocomplete will be disabled.');
-            }
-          }
+    const formObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsFormVisible(true);
+        } else {
+          setIsFormVisible(false); 
         }
-      };
+      },
+      { threshold: 0.1 }
+    );
 
-      attemptInitialization();
-    };
-    
-    checkService();
-  }, []);
+    const textObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsTextVisible(true);
+        } else {
+          setIsTextVisible(false); 
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-
-
-  // Typing animation effect
-  useEffect(() => {
-    if (isVisible && currentIndex < fullText.length) {
-      const timeout = setTimeout(() => {
-        setTypedText(fullText.slice(0, currentIndex + 1));
-        setCurrentIndex(currentIndex + 1);
-      }, 150); // Speed of typing (150ms per character)
-
-      return () => clearTimeout(timeout);
+    if (formRef.current) {
+      formObserver.observe(formRef.current);
     }
-  }, [isVisible, currentIndex, fullText]);
+    if (textRef.current) {
+      textObserver.observe(textRef.current);
+    }
 
-  const handleSwapLocations = () => {
-    const temp = fromLocation;
-    const tempData = fromLocationData;
-    
-    setFromLocation(toLocation);
-    setToLocation(temp);
-    setFromLocationData(toLocationData);
-    setToLocationData(tempData);
-  };
+    return () => {
+      if (formRef.current) formObserver.unobserve(formRef.current);
+      if (textRef.current) textObserver.unobserve(textRef.current);
+    };
+  }, []);
 
   const handleSearch = () => {
-    // Validate required fields
-    if (!fromLocation.trim() || !toLocation.trim()) {
-      alert("Please select both departure and destination locations");
-      return;
-    }
-    
-    if (!departureDate) {
-      alert("Please select pickup date");
-      return;
-    }
-    
-    if (!pickupTime) {
-      alert("Please select pickup time");
-      return;
-    }
-    
-    // Validate date format
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(departureDate)) {
-      alert("Please select a valid pickup date");
-      return;
-    }
-    
-    // Validate time format
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(pickupTime)) {
-      alert("Please select a valid pickup time");
-      return;
-    }
-    
-    // Validate return date for round trip
-    if (activeService === "roundTrip" && !returnDate) {
-      alert("Please select return date for round trip");
-      return;
-    }
-    
-    if (activeService === "roundTrip" && returnDate) {
-      const returnDateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!returnDateRegex.test(returnDate)) {
-        alert("Please select a valid return date");
-        return;
+    // Navigate to /vihicle-search with state
+    navigate('/vihicle-search', {
+      state: {
+        serviceType: tripType, // 'oneWay' | 'roundTrip' | 'local'
+        from: fromLocation,
+        to: toLocation,
+        pickupDate: date ? date.toISOString() : undefined,
+        returnDate: returnDate ? returnDate.toISOString() : undefined,
+        pickupTime: time,
+        package: (tripType === 'local') ? localPackage : undefined,
+        fromData: fromLocationData,
+        toData: toLocationData
       }
-      
-      // Check if return date is after departure date
-      const departure = new Date(departureDate);
-      const returnD = new Date(returnDate);
-      if (returnD <= departure) {
-        alert("Return date must be after departure date");
-        return;
-      }
-    }
-    
-    // Check if we have coordinates for both locations
-    if (!fromLocationData || !toLocationData) {
-      alert("Please ensure both locations are properly selected with coordinates. Try selecting the locations again.");
-      return;
-    }
-    
-    // Debug: Log the data being sent
-    console.log('Debug - HeroSection search data:', {
-      fromLocation,
-      toLocation,
-      departureDate,
-      pickupTime,
-      fromLocationData,
-      toLocationData
     });
-    
-    setLoading(true);
-  };
-
-  // Show loading for 2 seconds, then navigate
-  React.useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
-        setLoading(false);
-        const searchState = {
-          from: fromLocation,
-          to: toLocation,
-          fromData: fromLocationData,
-          toData: toLocationData,
-          pickupDate: departureDate,
-          pickupTime: pickupTime,
-          serviceType: activeService,
-          returnDate: activeService === "roundTrip" ? returnDate : null
-        };
-        
-        console.log('Debug - HeroSection navigating with search state:', searchState);
-        
-        navigate('/vihicle-search', {
-          state: searchState
-        });
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
-
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-    // Update the actual date value based on selected date
-    const daysOffset = parseInt(date);
-    setDepartureDate(getDefaultDate(daysOffset));
-  };
-
-  // Function to render text with blue highlight for "SAWARI"
-  const renderTypedText = () => {
-    const parts = [];
-    let currentPart = "";
-    
-    for (let i = 0; i < typedText.length; i++) {
-      const char = typedText[i];
-      currentPart += char;
-      
-      // Check if we've completed "CHALO " and are starting "SAWARI"
-      if (typedText.slice(0, i + 1) === "CHALO " && i === 5) {
-        parts.push(<span key={`part-${i}`} className="text-black">{currentPart}</span>);
-        currentPart = "";
-      }
-      // Check if we're in the "SAWARI" part
-      else if (typedText.slice(0, 6) === "CHALO " && i >= 6) {
-        if (currentPart === "SAWARI") {
-          parts.push(<span key={`part-${i}`} className="text-blue-600 animate-pulse">{currentPart}</span>);
-          currentPart = "";
-        }
-      }
-    }
-    
-    // Add any remaining text
-    if (currentPart) {
-      const isBluePart = typedText.startsWith("CHALO ") && typedText.length > 6;
-      parts.push(
-        <span key="remaining" className={isBluePart ? "text-blue-600 animate-pulse" : "text-black"}>
-          {currentPart}
-        </span>
-      );
-    }
-    
-    return parts;
   };
 
   return (
-    <section className="relative min-h-[500px] flex flex-col bg-white">
-      {loading && <LoadingAnimation />}
-      
-      {/* Static Banner - No animations as requested */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 py-3">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center">
-            <span className="text-white text-lg font-semibold">
-            Low Cost Better Travels - Bus, Car & Auto 
-            </span>
-          </div>
-        </div>
+    <div className="relative w-full h-[90vh] min-h-[700px] flex items-center overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={CarHeroBanner} 
+          alt="Premium Car Rental" 
+          className="w-full h-full object-cover"
+        />
+        {/* Subtle dark gradient overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent"></div>
       </div>
-      
-      {/* Mobile Layout - Show at top on mobile */}
-      <div className="md:hidden flex flex-col flex-1">
 
-        {/* Top Service Navigation */}
-        <div className={`flex justify-center space-x-4 p-4 border-b border-border bg-white transition-all duration-1000 ease-out delay-200 ${
-          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'
-        }`}>
-          <Button 
-            variant={activeService === "oneWay" ? "default" : "outline"}
-            size="sm"
-            className={`${
-              activeService === "oneWay" 
-                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                : "text-muted-foreground border-border hover:bg-muted"
-            } transition-all duration-300 hover:scale-105`}
-            onClick={() => setActiveService("oneWay")}
-          >
-            One Way
-          </Button>
-          
-          <Button 
-            variant={activeService === "roundTrip" ? "default" : "outline"}
-            size="sm"
-            className={`${
-              activeService === "roundTrip" 
-                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                : "text-muted-foreground border-border hover:bg-muted"
-            } transition-all duration-300 hover:scale-105`}
-            onClick={() => setActiveService("roundTrip")}
-          >
-            Return Trip
-          </Button>
-        </div>
-
-        {/* Main Content */}
-        <div className={`flex-1 p-4 space-y-4 pb-16 bg-gray-50 transition-all duration-1000 ease-out delay-400 ${ isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8' }`}>
-
-          {/* Main Booking Card */}
-          <Card className="pt-4 pb-4 px-4 sm:px-6 bg-white shadow-lg rounded-2xl border-0 transition-all duration-300 hover:shadow-xl">   
-            {/* From Field */}
-            <div className="mb-4 relative group">
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">From</label>
-              <LocationAutocomplete
-                value={fromLocation}
-                onChange={setFromLocation}
-                onLocationSelect={async (location) => {
-                  setFromLocation(location.description);
-                  
-                  // Check if this is a current location (has direct coordinates)
-                  if (location.place_id === 'current_location' && 'lat' in location && 'lng' in location) {
-                    console.log('Debug - Current location with direct coordinates (mobile):', location);
-                    const coords = {
-                      lat: (location as any).lat,
-                      lng: (location as any).lng,
-                      description: location.description
-                    };
-                    console.log('Debug - Setting from coordinates from current location (mobile):', coords);
-                    setFromLocationData(coords);
-                  } else {
-                    // Get coordinates for the selected location from Google Places API
-                    try {
-                      console.log('Debug - Getting coordinates for from location (mobile):', location.place_id);
-                      const placeDetails = await googleMapsService.getPlaceDetails(location.place_id);
-                      console.log('Debug - Place details received (mobile):', placeDetails);
-                      
-                      if (placeDetails && placeDetails.geometry && placeDetails.geometry.location) {
-                        const coords = {
-                          lat: placeDetails.geometry.location.lat(),
-                          lng: placeDetails.geometry.location.lng(),
-                          description: location.description
-                        };
-                        console.log('Debug - Setting from coordinates from Google Places (mobile):', coords);
-                        setFromLocationData(coords);
-                      } else {
-                        console.log('Debug - No geometry data in place details (mobile)');
-                      }
-                    } catch (error) {
-                      console.error('Error getting coordinates (mobile):', error);
-                    }
-                  }
-                }}
-                placeholder="Departure"
-                icon={<Search className="w-4 h-4 text-primary" />}
-                className="pl-14 h-14 border-2 border-gray-200 bg-white text-base sm:text-lg font-medium rounded-xl transition-all duration-300 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                showGetLocation={true}
-              />
-              {/* Swap Icon overlapping From field */}
-              <div className="absolute right-4 sm:right-5 top-full transform -translate-y-1 z-20">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full border-2 border-gray-200 hover:bg-primary/10 hover:border-primary transition-all duration-300 w-10 h-10 shadow-md bg-white hover:scale-110 hover:rotate-180"
-                  onClick={handleSwapLocations}
-                >
-                  <ArrowLeftRight className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* To Field */}
-            <div className="mb-4 relative group">
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">To</label>
-              <LocationAutocomplete
-                value={toLocation}
-                onChange={setToLocation}
-                onLocationSelect={async (location) => {
-                  setToLocation(location.description);
-                  
-                  // Check if this is a current location (has direct coordinates)
-                  if (location.place_id === 'current_location' && 'lat' in location && 'lng' in location) {
-                    console.log('Debug - Current location with direct coordinates (mobile):', location);
-                    const coords = {
-                      lat: (location as any).lat,
-                      lng: (location as any).lng,
-                      description: location.description
-                    };
-                    console.log('Debug - Setting to coordinates from current location (mobile):', coords);
-                    setToLocationData(coords);
-                  } else {
-                    // Get coordinates for the selected location from Google Places API
-                    try {
-                      console.log('Debug - Getting coordinates for to location (mobile):', location.place_id);
-                      const placeDetails = await googleMapsService.getPlaceDetails(location.place_id);
-                      console.log('Debug - Place details received (mobile):', placeDetails);
-                      
-                      if (placeDetails && placeDetails.geometry && placeDetails.geometry.location) {
-                        const coords = {
-                          lat: placeDetails.geometry.location.lat(),
-                          lng: placeDetails.geometry.location.lng(),
-                          description: location.description
-                        };
-                        console.log('Debug - Setting to coordinates from Google Places (mobile):', coords);
-                        setToLocationData(coords);
-                      } else {
-                        console.log('Debug - No geometry data in place details (mobile)');
-                      }
-                    } catch (error) {
-                      console.error('Error getting coordinates (mobile):', error);
-                    }
-                  }
-                }}
-                placeholder="Destination"
-                icon={<MapPin className="w-4 h-4 text-primary" />}
-                className="pl-14 h-14 border-2 border-gray-200 bg-white text-base sm:text-lg font-medium rounded-xl transition-all duration-300 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            {/* Date and Time Row */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
-              {/* Date of Journey */}
-              <div className="group">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Pickup Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                  <Input
-                    type="date"
-                    value={departureDate}
-                    onChange={(e) => setDepartureDate(e.target.value)}
-                    onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                    min={getDefaultDate(0)}
-                    className="pl-10 h-12 border-2 border-gray-200 rounded-lg transition-all duration-300 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer text-sm sm:text-base"
-                  />
-                </div>
-              </div>
-
-              {/* Pickup Time */}
-              <div className="group">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Pickup Time</label>
-                <div className="relative">
-                 
-                  <Input
-                    type="time"
-                    value={pickupTime}
-                    onChange={(e) => setPickupTime(e.target.value)}
-                    onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                    className="pl-4 h-12 border-2 border-gray-200 rounded-lg transition-all duration-300 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer text-sm sm:text-base"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Return Date - Only show for Round Trip */}
-            {activeService === "roundTrip" && (
-              <div className="mb-4 group animate-in slide-in-from-right duration-500">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Return Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                                          <Input
-                          type="date"
-                          value={returnDate}
-                          onChange={(e) => setReturnDate(e.target.value)}
-                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                          min={getDefaultDate(0)}
-                          className="pl-10 h-12 border-2 border-gray-200 rounded-lg transition-all duration-300 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer text-sm sm:text-base"
-                        />
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* Search Button - Mobile */}
-          <Button 
-            className="w-full h-14 sm:h-16 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:-translate-y-1"
-            onClick={handleSearch}
-          >
-            <Search className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-all duration-300 group-hover:rotate-12" />
-            Search Vehicles
-          </Button>
-        </div>
-
-      </div>
-      
-      {/* Desktop Hero Content - Hidden on mobile */}
-      <div className="hidden md:block relative min-h-[600px] flex items-center justify-center bg-cover bg-center contrast-125"
-        style={{ backgroundImage: `url(${HomeBanner})` }}>
-        <div className="absolute inset-0 bg-black/20"></div>
+      <div className="container mx-auto px-6 md:px-12 relative z-10 w-full h-full flex flex-col justify-center">
         
-        <div className="relative z-10 container mx-auto px-4 -ml-20">
-          <div className={`text-right mb-8 transition-all duration-1000 ease-out ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <h1 className="text-4xl lg:text-5xl xl:text-7xl font-bold mt-6 mr-44">
-              <span className="inline-block">
-                {renderTypedText()}
-                {/* Blinking cursor effect */}
-                <span className={`inline-block w-1 h-8 lg:h-16 bg-blue-600 ml-1 ${currentIndex < fullText.length ? 'animate-pulse' : 'opacity-0'}`}></span>
-              </span>
-            </h1>
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="hidden md:block">
-            {/* Service Type Selection */}
-            <div className={`flex justify-center space-x-4 -mt-3 mb-12 h-10 ml-[400px] transition-all duration-1000 ease-out delay-300 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}>
-              <Button 
-                variant={activeService === "oneWay" ? "default" : "outline"}
-                size="sm"
-                className={`${
-                  activeService === "oneWay" 
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                    : "text-muted-foreground border-border hover:bg-muted bg-white"
-                } transition-all duration-300 hover:scale-105 hover:shadow-lg`}
-                onClick={() => setActiveService("oneWay")}
-              >
-                One Way
-              </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center h-full">
+          
+          {/* Left Side Booking Form - Styled like the reference image */}
+          <div 
+            ref={formRef}
+            className={cn(
+              "lg:col-span-4 flex flex-col h-full justify-center pt-20 pb-10 relative z-20 transition-all duration-700 ease-out",
+              isFormVisible 
+                ? "opacity-100 translate-x-0 animate-in slide-in-from-left-10 fade-in" 
+                : "opacity-0 -translate-x-10"
+            )}
+          >
+            
+            {/* Form Container */}
+            <div className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg flex flex-col shadow-2xl">
               
-              <Button 
-                variant={activeService === "roundTrip" ? "default" : "outline"}
-                size="sm"
-                className={`${
-                  activeService === "roundTrip" 
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                    : "text-muted-foreground border-border hover:bg-muted bg-white"
-                } transition-all duration-300 hover:scale-105 hover:shadow-lg`}
-                onClick={() => setActiveService("roundTrip")}
-              >
-                Return Trip
-              </Button>
-            </div>
+              {/* Tabs */}
+              <div className="flex border-b border-white/20 bg-black/40 rounded-t-lg">
+                <button
+                  onClick={() => setTripType('oneWay')}
+                  className={cn(
+                    "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300",
+                    tripType === 'oneWay'
+                      ? "bg-white text-black"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  One Way Trip
+                </button>
+                <button
+                  onClick={() => setTripType('roundTrip')}
+                  className={cn(
+                    "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300 border-l border-r border-white/20",
+                    tripType === 'roundTrip'
+                      ? "bg-white text-black"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  Round Trip
+                </button>
+                <button
+                  onClick={() => setTripType('local')}
+                  className={cn(
+                    "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300",
+                    tripType === 'local'
+                      ? "bg-white text-black"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  Local Trip
+                </button>
+              </div>
 
-            <Card className={`max-w-8xl px-6 lg:px-10 pt-6 pb-8 bg-white/95 backdrop-blur-md shadow-2xl border-0 rounded-2xl -mt-10 ml-[400px] transition-all duration-1000 ease-out delay-500 ${
-              isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
-            } hover:shadow-3xl hover:scale-[1.02]`}>
-              <div className={`grid gap-3 lg:gap-5 items-end -mt-2 ${activeService === "roundTrip" ? "grid-cols-2 lg:grid-cols-5" : "grid-cols-2 lg:grid-cols-4"}`}>
-                {/* From */}
-                <div className="space-y-2 relative group">
-                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide transition-all duration-300 group-hover:text-blue-600">From</label>
+              {/* Form Content */}
+              <div className={cn(
+                "flex flex-col transition-all duration-300",
+                tripType === 'roundTrip' ? "p-5 gap-4" : "p-6 gap-7 py-8"
+              )}>
+                
+                {/* Pickup Location */}
+                <div className="space-y-1">
+                  <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Address</label>
                   <LocationAutocomplete
                     value={fromLocation}
                     onChange={setFromLocation}
-                    onLocationSelect={async (location) => {
-                                              setFromLocation(location.description);
-                        
-                        // Check if this is a current location (has direct coordinates)
-                        if (location.place_id === 'current_location' && 'lat' in location && 'lng' in location) {
-                          const coords = {
-                            lat: (location as any).lat,
-                            lng: (location as any).lng,
-                            description: location.description
-                          };
-                          setFromLocationData(coords);
-                        } else {
-                          // Get coordinates for the selected location from Google Places API
-                          try {
-                            const placeDetails = await googleMapsService.getPlaceDetails(location.place_id);
-                            
-                            if (placeDetails && placeDetails.geometry && placeDetails.geometry.location) {
-                              const coords = {
-                                lat: placeDetails.geometry.location.lat(),
-                                lng: placeDetails.geometry.location.lng(),
-                                description: location.description
-                              };
-                              setFromLocationData(coords);
-                            }
-                          } catch (error) {
-                            console.error('Error getting coordinates:', error);
-                          }
-                        }
-                    }}
-                      placeholder="Departure"
-                    icon={<Search className="w-4 h-4 text-blue-600" />}
-                      className="pl-12 h-12 lg:h-16 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm lg:text-base hover:border-blue-300 hover:shadow-md w-full min-w-[150px] lg:min-w-[200px]"
-                    showGetLocation={true}
-                    />
-                  {/* Swap Icon overlapping From field */}
-                  <div className="absolute -right-5 lg:-right-10 top-12 lg:top-14 transform -translate-y-1/2 z-20">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="rounded-full w-8 h-8 lg:w-10 lg:h-10 bg-white shadow-lg hover:bg-blue-50 hover:border-blue-500 transition-all duration-300 border-gray-200 hover:scale-110 hover:rotate-180 hover:shadow-xl"
-                      onClick={handleSwapLocations}
-                      title="Swap locations"
-                    >
-                      <ArrowLeftRight className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
-                    </Button>
-                  </div>
+                    onLocationSelect={setFromLocationData}
+                    placeholder="Enter City, Airport, or Address"
+                    variant="minimal"
+                    className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto"
+                    icon={null} 
+                  />
                 </div>
 
-                {/* To */}
-                <div className="space-y-2 relative group">
-                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide transition-all duration-300 group-hover:text-green-600">To</label>
-                  <LocationAutocomplete
-                    value={toLocation}
-                    onChange={setToLocation}
-                    onLocationSelect={async (location) => {
-                      setToLocation(location.description);
-                      // Get coordinates for the selected location
-                      try {
-                        const placeDetails = await googleMapsService.getPlaceDetails(location.place_id);
-                        
-                        if (placeDetails && placeDetails.geometry && placeDetails.geometry.location) {
-                          const coords = {
-                            lat: placeDetails.geometry.location.lat(),
-                            lng: placeDetails.geometry.location.lng(),
-                            description: location.description
-                          };
-                          setToLocationData(coords);
-                        }
-                      } catch (error) {
-                        console.error('Error getting coordinates:', error);
-                      }
-                    }}
-                      placeholder="Destination"
-                    icon={<MapPin className="w-4 h-4 text-green-600" />}
-                      className="pl-12 h-12 lg:h-16 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 text-sm lg:text-base hover:border-green-300 hover:shadow-md w-full min-w-[150px] lg:min-w-[200px]"
-                    />
-                </div>
-
-                {/* Departure Date */}
-                <div className="space-y-2 group">
-                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide transition-all duration-300 group-hover:text-purple-600">Pickup Date</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-500 w-4 h-4 lg:w-5 lg:h-5 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                    <Input
-                      type="date"
-                      className="pl-10 lg:pl-12 h-12 lg:h-16 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-sm lg:text-base hover:border-purple-300 hover:shadow-md w-full min-w-[150px] lg:min-w-[200px] cursor-pointer"
-                      value={departureDate}
-                      onChange={(e) => setDepartureDate(e.target.value)}
-                      onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                      min={getDefaultDate(0)}
+                {/* Dropoff Location (Conditional) */}
+                {(tripType === 'oneWay' || tripType === 'roundTrip') && (
+                  <div className="space-y-1">
+                    <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Drop Off Address</label>
+                     <LocationAutocomplete
+                      value={toLocation}
+                      onChange={setToLocation}
+                      onLocationSelect={setToLocationData}
+                      placeholder="Enter City, Airport, or Address"
+                      variant="minimal"
+                      className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto"
+                      icon={null}
                     />
                   </div>
-                </div>
+                )}
 
-                {/* Pickup Time */}
-                <div className="space-y-2 group">
-                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide transition-all duration-300 group-hover:text-orange-600">Pickup Time</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-500 w-4 h-4 lg:w-5 lg:h-5 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                    <Input
-                      type="time"
-                      className="pl-10 lg:pl-12 h-12 lg:h-16 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm lg:text-base hover:border-orange-300 hover:shadow-md w-full min-w-[150px] lg:min-w-[200px] cursor-pointer"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                    />
-                  </div>
-                </div>
-
-                {/* Return Date - Only show for Round Trip */}
-                {activeService === "roundTrip" && (
-                  <div className="space-y-2 group animate-in slide-in-from-right duration-500">
-                    <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide transition-all duration-300 group-hover:text-red-600">Return</label>
+                 {/* Package Selection (Local Trip Only) */}
+                 {tripType === 'local' && (
+                  <div className="space-y-1">
+                    <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Select Package</label>
                     <div className="relative">
-                      <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 text-red-500 w-4 h-4 lg:w-6 lg:h-5 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                                              <Input
-                          type="date"
-                          className="pl-8 lg:pl-10 h-12 lg:h-16 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-sm lg:text-base hover:border-red-300 hover:shadow-md w-full min-w-[150px] lg:min-w-[200px] cursor-pointer"
-                          value={returnDate}
-                          onChange={(e) => setReturnDate(e.target.value)}
-                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                          min={getDefaultDate(0)}
-                        />
+                      <select 
+                        value={localPackage}
+                        onChange={(e) => setLocalPackage(e.target.value)}
+                        className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto appearance-none cursor-pointer [&>option]:text-black"
+                      >
+                        <option value="4hrs40km">4 Hours, 40 KM</option>
+                        <option value="8hrs80km">8 Hours, 80 KM</option>
+                        <option value="12hrs120km">12 Hours, 120 KM</option>
+                      </select>
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
                     </div>
                   </div>
                 )}
 
+                {/* Date & Time Row - 2 Columns */}
+                <div className={cn(
+                  "grid grid-cols-2",
+                  tripType === 'roundTrip' ? "gap-5" : "gap-8"
+                )}>
+                  
+                  {/* Pick Up Date */}
+                  <div className="space-y-1">
+                     <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Date</label>
+                     <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "w-full bg-transparent border-0 border-b border-white/30 rounded-none text-left text-base focus:ring-0 focus:border-white px-0 py-2 h-auto transition-colors flex justify-between items-center group",
+                            !date ? "text-white/40" : "text-white"
+                          )}
+                        >
+                          <span className="truncate">{date ? format(date, "PPP") : "Select Date"}</span>
+                          <CalendarIcon className="w-4 h-4 text-white/50 group-hover:text-white transition-colors flex-shrink-0 ml-2" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          initialFocus
+                          className="bg-white rounded-md"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Pick Up Time (For One Way & Local default position) or Return Date (For Round Trip) */}
+                   {tripType === 'roundTrip' ? (
+                      <div className="space-y-1">
+                         <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Return Date</label>
+                         <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={cn(
+                                "w-full bg-transparent border-0 border-b border-white/30 rounded-none text-left text-base focus:ring-0 focus:border-white px-0 py-2 h-auto transition-colors flex justify-between items-center group",
+                                !returnDate ? "text-white/40" : "text-white"
+                              )}
+                            >
+                              <span className="truncate">{returnDate ? format(returnDate, "PPP") : "Select Date"}</span>
+                              <CalendarIcon className="w-4 h-4 text-white/50 group-hover:text-white transition-colors flex-shrink-0 ml-2" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={returnDate}
+                              onSelect={setReturnDate}
+                              initialFocus
+                              className="bg-white rounded-md"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                   ) : (
+                      <div className="space-y-1">
+                         <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
+                         <div className="relative border-b border-white/30 hover:border-white transition-colors py-2 group">
+                            <input
+                              type="time"
+                              value={time}
+                              onChange={(e) => setTime(e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div className="flex justify-between items-center text-white text-base">
+                              <span className={!time ? "text-white/40" : "text-white"}>
+                                {time || "--:--"}
+                              </span>
+                              <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
+                            </div>
+                         </div>
+                      </div>
+                   )}
+                </div>
+
+                {/* Extra Row for Round Trip Time */}
+                {tripType === 'roundTrip' && (
+                  <div className="w-full space-y-1">
+                     <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
+                     <div className="relative border-b border-white/30 hover:border-white transition-colors py-2 group">
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="flex justify-between items-center text-white text-base">
+                          <span className={!time ? "text-white/40" : "text-white"}>
+                            {time || "--:--"}
+                          </span>
+                          <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {/* Search Button */}
+                <div className="pt-2"> 
+                  <Button 
+                    onClick={handleSearch}
+                    className="w-full bg-[#f48432] hover:bg-[#d66e22] text-white font-bold text-base py-6 rounded-none uppercase tracking-wide transition-all shadow-lg hover:shadow-orange-500/20"
+                  >
+                    Search
+                  </Button>
+                </div>
 
               </div>
-            </Card>
-            
-            {/* Search Button - Outside Card */}
-            <div className={`flex justify-center mt-4 ml-[400px] transition-all duration-1000 ease-out delay-700 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}>
-              <Button 
-                className="-mt-11 h-10 lg:h-12 px-4 lg:px-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-lg font-semibold text-base lg:text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:-translate-y-1"
-                onClick={handleSearch}
-              >
-                <Search className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3 transition-all duration-300 group-hover:rotate-12" />
-                Search
-              </Button>
-              
-
             </div>
           </div>
+
+          {/* Right Side - Empty or Content */}
+          <div className="lg:col-span-8 h-full flex flex-col justify-start items-end text-right pt-10">
+             <div 
+               ref={textRef}
+               className={cn(
+                 "space-y-4 max-w-2xl pr-8 lg:pr-0 transition-all duration-700 ease-out",
+                 isTextVisible 
+                   ? "opacity-100 translate-x-0" 
+                   : "opacity-0 translate-x-10"
+               )}
+             >
+               <h3 className={cn(
+                 "text-[#f48432] font-medium text-xl tracking-wide",
+                 isTextVisible && "animate-in fade-in slide-in-from-right-10 duration-700 delay-100"
+               )}>we are here for you !</h3>
+               <h1 className={cn(
+                 "text-5xl md:text-7xl font-bold text-white leading-tight",
+                 isTextVisible && "animate-in fade-in slide-in-from-right-10 duration-700 delay-200"
+               )}>
+                 Search, Book & <br/> Rent Vehicle <br/> Easily
+               </h1>
+             </div>
+          </div>
+
         </div>
+
+        {/* Bottom Stats - Overlapping like reference */}
+        <div className="absolute bottom-16 right-0 left-0 bg-gradient-to-t from-black/80 to-transparent pt-20 pb-8 px-6 md:px-12">
+           <div className="container mx-auto">
+             <div className="flex flex-wrap justify-end gap-8 md:gap-16 border-t border-white/10 pt-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">+15</div>
+                  <div className="text-xs text-white/60 uppercase tracking-widest">Years of<br/>Experience</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">+200</div>
+                  <div className="text-xs text-white/60 uppercase tracking-widest">Satisfied<br/>Customers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">+150</div>
+                  <div className="text-xs text-white/60 uppercase tracking-widest">Customers<br/>Returns</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">+100</div>
+                  <div className="text-xs text-white/60 uppercase tracking-widest">Cars<br/>Available</div>
+                </div>
+             </div>
+           </div>
+        </div>
+
       </div>
-    </section>
+    </div>
   );
 };
 
 export default HeroSection;
-

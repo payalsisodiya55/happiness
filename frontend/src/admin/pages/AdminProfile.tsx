@@ -196,7 +196,7 @@ const AdminProfile = () => {
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#29354C]" />
             <p className="text-gray-600">Loading profile...</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ const AdminProfile = () => {
         {/* Profile Card */}
         <div className="lg:col-span-1 space-y-6">
           <Card className="overflow-hidden">
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-6 text-white">
+            <div className="bg-[#29354C] p-6 text-white">
               <div className="text-center">
                 <div className="w-24 h-24 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center border-4 border-white/20">
                   <span className="text-3xl font-bold text-white">

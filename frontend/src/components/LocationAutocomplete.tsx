@@ -13,7 +13,8 @@ interface LocationAutocompleteProps {
   icon?: React.ReactNode;
   className?: string;
   disabled?: boolean;
-  showGetLocation?: boolean; // New prop to show/hide get location button
+  showGetLocation?: boolean;
+  variant?: 'default' | 'minimal';
 }
 
 const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
@@ -24,7 +25,8 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   icon = <Search className="w-4 h-4" />,
   className,
   disabled = false,
-  showGetLocation = false
+  showGetLocation = false,
+  variant = 'default'
 }) => {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -278,9 +280,11 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   return (
     <div className="relative">
       <div className="relative">
-        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center z-10 transition-all duration-300 group-hover:bg-blue-200 group-hover:scale-110">
-          {icon}
-        </div>
+        {variant !== 'minimal' && (
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center z-10 transition-all duration-300 group-hover:bg-blue-200 group-hover:scale-110">
+            {icon}
+          </div>
+        )}
         <Input
           ref={inputRef}
           value={value}
@@ -293,8 +297,9 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           }}
           placeholder={placeholder}
           className={cn(
-            "pl-12 h-14 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-base hover:border-blue-300 hover:shadow-md",
-            showGetLocation ? "pr-20" : "pr-4", // Add right padding when GPS button is shown
+            "h-14 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-base hover:border-blue-300 hover:shadow-md",
+            variant === 'default' ? "pl-12" : "pl-3",
+            showGetLocation ? "pr-20" : "pr-4",
             className
           )}
           disabled={disabled}

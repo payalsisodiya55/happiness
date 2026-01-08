@@ -133,8 +133,8 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
           setUser(response.user);
         }
         
-        // Redirect to home page after successful login
-        window.location.href = '/';
+        // Redirect handled by component
+        // window.location.href = '/';
       } else {
         console.log('Login failed:', response);
         throw new Error(response.error?.message || response.message || 'Login failed');

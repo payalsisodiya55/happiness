@@ -95,7 +95,10 @@ export interface Vehicle {
   driver: string;
   type: 'bus' | 'car' | 'auto';
   brand: string;
+  model?: string;
+  year?: number;
   color?: string;
+  transmission?: 'manual' | 'automatic';
   engineCapacity?: string;
   mileage?: string;
   chassisNumber?: string;
@@ -198,7 +201,10 @@ export interface Vehicle {
 export interface CreateVehicleData {
   type: 'bus' | 'car' | 'auto';
   brand: string;
+  model?: string;
+  year?: number;
   color?: string;
+  transmission?: 'manual' | 'automatic';
   engineCapacity?: string;
   mileage?: string;
   chassisNumber?: string;

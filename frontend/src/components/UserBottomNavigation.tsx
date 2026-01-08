@@ -27,7 +27,7 @@ const UserBottomNavigation = () => {
       icon: HelpCircle,
     },
     {
-      title: "Account",
+      title: "Profile",
       href: "/profile",
       icon: User,
     },
@@ -73,17 +73,17 @@ const UserBottomNavigation = () => {
                 "flex flex-col items-center justify-center py-3 px-3 min-w-0 flex-1",
                 "transition-colors duration-200",
                 active
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                  ? "text-[#212c40] bg-[#212c40]/10"
+                  : "text-[#212c40]/70 hover:text-[#212c40] hover:bg-[#212c40]/5"
               )}
             >
               <Icon className={cn(
                 "w-5 h-5 mb-1",
-                active ? "text-blue-600" : "text-gray-500"
+                active ? "text-[#212c40]" : "text-[#212c40]/70"
               )} />
               <span className={cn(
                 "text-xs font-medium truncate",
-                active ? "text-blue-600" : "text-gray-600"
+                active ? "text-[#212c40]" : "text-[#212c40]/70"
               )}>
                 {item.title}
               </span>

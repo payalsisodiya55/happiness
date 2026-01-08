@@ -3,7 +3,8 @@ import {
   Home,
   FileText,
   Car,
-  User
+  User,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,11 @@ const DriverBottomNavigation = () => {
       title: "My Vehicle",
       href: "/driver/myvehicle",
       icon: Car,
+    },
+    {
+      title: "Wallet",
+      href: "/driver/wallet",
+      icon: Wallet,
     },
     {
       title: "Profile",
@@ -56,6 +62,11 @@ const DriverBottomNavigation = () => {
       // My Vehicle should be active for /driver/myvehicle and its direct sub-routes
       return currentPath.startsWith("/driver/myvehicle");
     }
+
+    if (href === "/driver/wallet") {
+      // Wallet should be active for /driver/wallet and its direct sub-routes
+      return currentPath.startsWith("/driver/wallet");
+    }
     
     if (href === "/driver/profile") {
       // Profile should be active for /driver/profile and its direct sub-routes
@@ -84,17 +95,17 @@ const DriverBottomNavigation = () => {
                 "flex flex-col items-center justify-center py-3 px-3 min-w-0 flex-1",
                 "transition-colors duration-200",
                 active
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                  ? "text-[#29354c] bg-blue-50/50"
+                  : "text-gray-600 hover:text-[#29354c] hover:bg-gray-50"
               )}
             >
               <Icon className={cn(
                 "w-5 h-5 mb-1",
-                active ? "text-blue-600" : "text-gray-500"
+                active ? "text-[#f48432]" : "text-gray-500"
               )} />
               <span className={cn(
                 "text-xs font-medium truncate",
-                active ? "text-blue-600" : "text-gray-600"
+                active ? "text-[#29354c]" : "text-gray-600"
               )}>
                 {item.title}
               </span>

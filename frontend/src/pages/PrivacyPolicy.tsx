@@ -1,230 +1,214 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, Eye, Lock, Database, UserCheck, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Shield, FileText } from "lucide-react";
 import TopNavigation from "@/components/TopNavigation";
+import UserBottomNavigation from "@/components/UserBottomNavigation";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
 
 const PrivacyPolicy = () => {
-  const privacySections = [
-    {
-      id: 1,
-      title: "Information We Collect",
-      icon: Database,
-      content: `We collect information you provide directly to us, such as when you create an account, make a booking, or contact us for support.
-
-Personal Information:
-• Name, email address, phone number
-• Date of birth and gender
-• Payment information (processed securely)
-• Travel preferences and booking history
-
-Technical Information:
-• Device information and IP address
-• Browser type and version
-• Usage patterns and preferences
-• Location data (with your permission)`
-    },
-    {
-      id: 2,
-      title: "How We Use Your Information",
-      icon: Eye,
-      content: `We use the information we collect to provide, maintain, and improve our services:
-
-Service Delivery:
-• Process bookings and payments
-• Send booking confirmations and updates
-• Provide customer support
-• Track your journey and provide real-time updates
-
-Communication:
-• Send important service notifications
-• Provide customer support
-• Send promotional offers (with your consent)
-• Share important policy updates
-
-Improvement:
-• Analyze usage patterns to improve our services
-• Develop new features and services
-• Ensure platform security and prevent fraud`
-    },
-    {
-      id: 3,
-      title: "Information Sharing",
-      icon: UserCheck,
-      content: `We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:
-
-Service Providers:
-• Payment processors for transaction processing
-• Transportation partners for booking fulfillment
-• Customer support service providers
-• Analytics and marketing service providers
-
-Legal Requirements:
-• When required by law or legal process
-• To protect our rights and property
-• To ensure user safety and security
-• In case of business transfers or mergers
-
-With Your Consent:
-• When you explicitly agree to share information
-• For promotional partnerships (with opt-out options)`
-    },
-    {
-      id: 4,
-      title: "Data Security",
-      icon: Lock,
-      content: `We implement appropriate security measures to protect your personal information:
-
-Technical Safeguards:
-• SSL encryption for data transmission
-• Secure servers and databases
-• Regular security audits and updates
-• Access controls and authentication
-
-Operational Safeguards:
-• Limited access to personal information
-• Employee training on data protection
-• Incident response procedures
-• Regular backup and recovery systems
-
-Your Role:
-• Keep your account credentials secure
-• Use strong, unique passwords
-• Log out from shared devices
-• Report suspicious activities immediately`
-    },
-    {
-      id: 5,
-      title: "Your Rights and Choices",
-      icon: Shield,
-      content: `You have certain rights regarding your personal information:
-
-Access and Control:
-• View and update your personal information
-• Download your data in a portable format
-• Delete your account and associated data
-• Opt-out of marketing communications
-
-Privacy Settings:
-• Control location sharing preferences
-• Manage notification preferences
-• Adjust privacy settings in your account
-• Choose data sharing preferences
-
-Contact Us:
-• Submit privacy-related requests
-• Ask questions about your data
-• Report privacy concerns
-• Request data corrections`
-    },
-    {
-      id: 6,
-      title: "Cookies and Tracking",
-      icon: FileText,
-      content: `We use cookies and similar technologies to enhance your experience:
-
-Essential Cookies:
-• Required for basic website functionality
-• Enable secure login and booking processes
-• Remember your preferences and settings
-
-Analytics Cookies:
-• Help us understand how you use our services
-• Improve website performance and user experience
-• Provide insights for service enhancement
-
-Marketing Cookies:
-• Deliver relevant advertisements
-• Track campaign effectiveness
-• Personalize your experience (with consent)
-
-You can control cookie settings through your browser preferences.`
-    }
-  ];
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNavigation/>
-      
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4">
-        <div className="flex items-center space-x-4">
-          <Link to="/help">
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Help
-            </Button>
-          </Link>
-          <h1 className="text-xl font-semibold">Privacy Policy</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Desktop Navigation */}
+      <div className="hidden md:block">
+        <TopNavigation />
+      </div>
+
+      {/* Mobile Header */}
+      <div className="md:hidden bg-[#29354c] text-white p-4 sticky top-0 z-50 shadow-md">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate(-1)} 
+            className="text-white hover:bg-white/10 -ml-2"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </Button>
+          <h1 className="text-xl font-bold">Privacy Policy & Terms</h1>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-6 pb-20">
-        {/* Introduction */}
-        <Card className="p-6 border border-border">
-          <div className="text-center">
-            <Shield className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-foreground mb-4">Your Privacy Matters</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              At Chalo Sawari, we are committed to protecting your privacy and ensuring the security of your personal information. 
-              This Privacy Policy explains how we collect, use, and safeguard your data when you use our services.
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Last updated: January 2025
-            </p>
-          </div>
-        </Card>
+      {/* Hero Section (Desktop) */}
+      <div className="hidden md:block bg-[#29354c] text-white py-6">
+        <div className="container mx-auto px-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate(-1)} 
+            className="text-white hover:bg-white/10 mb-2 pl-0 hover:pl-2 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold mb-2">Privacy Policy & Terms of Use</h1>
+          <p className="text-gray-300 max-w-2xl text-sm">
+            Please read these terms carefully before accessing or using our services.
+          </p>
+        </div>
+      </div>
 
-        {/* Privacy Sections */}
-        <div className="space-y-4">
-          {privacySections.map((section) => (
-            <Card key={section.id} className="border border-border">
-              <div className="p-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <section.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-foreground mb-3">{section.title}</h3>
-                    <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
-                      {section.content}
-                    </p>
-                  </div>
+      <div className="flex-1 container mx-auto px-4 py-6 md:py-12 mb-16 md:mb-0">
+        <div className="max-w-4xl mx-auto space-y-8">
+          
+          <Card className="border-none shadow-lg overflow-hidden">
+            <CardContent className="p-6 md:p-10 text-gray-700 leading-relaxed text-sm md:text-base space-y-8">
+              
+              {/* Introduction */}
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-6 h-6 text-[#f48432]" />
+                  <h2 className="text-xl md:text-2xl font-bold text-[#29354c]">1. Terms of Use</h2>
                 </div>
-              </div>
-            </Card>
-          ))}
+                <p className="mb-4">
+                   These Terms of Use ("Terms") govern the access or use by you, an individual, from within any country in the world of applications, websites, content, products, and services (the "Services") made available by Happiness Car Rental.
+                </p>
+                <div className="bg-orange-50 border-l-4 border-[#f48432] p-4 rounded-r-lg">
+                  <p className="font-semibold text-[#29354c] mb-2">PLEASE READ THESE TERMS CAREFULLY BEFORE ACCESSING OR USING THE SERVICES.</p>
+                  <p className="text-sm">
+                    Your access and use of the Services constitutes your agreement to be bound by these Terms, which establishes a contractual relationship between you and Happiness Car Rental. If you do not agree to these Terms, you may not access or use the Services. These Terms expressly supersede all prior agreements or arrangements with you.
+                  </p>
+                </div>
+                <p className="mt-4">
+                  Happiness Car Rental may immediately terminate these Terms or any Services with respect to you, or generally cease offering or deny access to the Services or any portion thereof, at any time for any reason. Supplemental terms may apply to certain Services, such as policies for a particular event, activity or promotion, and such supplemental terms will be disclosed to you in connection with the applicable Services.
+                </p>
+              </section>
+
+              {/* 2. Services */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">2. Services</h2>
+                <p className="mb-4">
+                  The Services constitute a technology platform that enables users of websites or phone numbers provided as part of the Services (each, an "Application") to arrange and schedule transportation with independent third party providers of such services, including independent third party transportation providers under agreement with Happiness Car Rental or certain of Happiness car rental affiliates. Unless otherwise agreed by Happiness Car Rental in a separate written agreement with you, the Services are made available solely for your personal, non-commercial use.
+                </p>
+                
+                <h3 className="font-bold text-[#29354c] mt-4 mb-2">2.3 Restrictions (2.3.1)</h3>
+                <p>
+                  You may not: (i) remove any copyright, trademark or other proprietary notices from any portion of the Services; (ii) reproduce, modify, prepare derivative works based upon, distribute, license, lease, sell, resell, transfer, publicly display, publicly perform, transmit, stream, broadcast or otherwise exploit the Services except as expressly permitted by Happiness Car Rental; decompile, reverse engineer or disassemble the Services except as may be permitted by applicable law; link to, mirror or frame any portion of the Services; cause or launch any programs or scripts for the purpose of scraping, indexing, surveying, or otherwise data mining any portion of the Services or unduly burdening or hindering the operation and/or functionality of any aspect of the Services; or attempt to gain unauthorized access to or impair any aspect of the Services or its related systems or networks.
+                </p>
+              </section>
+
+              {/* 3. Provision */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">3. Provision of the Services</h2>
+                <p>
+                  You acknowledge that the Services may be made available under request options by or in connection with: certain of Happiness Car Rental subsidiaries and affiliates; or independent Third Party Providers, including transportation network company drivers, transportation charter permit holders or holders of similar transportation permits, authorizations or licenses.
+                </p>
+              </section>
+
+              {/* 4. Third Party */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">4. Third Party Services</h2>
+                <p>
+                  The Services may be made available or accessed in connection with third party services and content (including advertising) that Happiness Car Rental does not control. You acknowledge that different terms of use and privacy policies may apply to your use of such third party services and content. Happiness Car Rental does not endorse such third party services and content and in no event shall Happiness Car Rental be responsible or liable in any manner for any products or services of such third party providers.
+                </p>
+              </section>
+
+              {/* 5. Ownership */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">5. Ownership</h2>
+                <p>
+                  The Services and all rights therein are and shall remain Happiness Car Rental property or the property of Happiness Car Rental licensors. Neither these Terms nor your use of the Services convey or grant to you any rights: (i) in or related to the Services except for the limited license granted above; or (ii) to use or reference in any manner Happiness Car Rental company names, logos, product and service names, trademarks or services marks or those of Happiness Car Rental licensors.
+                </p>
+              </section>
+
+              {/* 6. User Accounts */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">6. Use of the Services & User Accounts</h2>
+                <p>
+                  In order to use most aspects of the Services, you must register for and maintain an active personal user Services account ("Account"). You must be at least 18 years of age to obtain an Account. Account registration requires you to submit to Happiness Car Rental certain personal information, such as your name, address, mobile phone number, and email. You agree to maintain accurate, complete, and up-to-date information in your Account. Your failure to maintain accurate, complete, and up-to-date Account information, may result in your inability to access and use the Services or Happiness Car Rental termination of these Terms with you. You are responsible for all activity that occurs under your Account, and also indemnifies the Happiness Car Rental from any claim or damages. You agree to maintain the security and secrecy of your Account password at all times.
+                </p>
+              </section>
+
+              {/* 7. B2B */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">7. B2B Partner</h2>
+                <p>
+                  You may also register as B2B Partner in various available modes like affiliate partner or travel agent partner or API partner; wherein you will be generating business for Happiness Car Rental through your channels and get a sales commission in return. These terms equally apply to B2B partners and end users using services through B2B Partners.
+                </p>
+              </section>
+
+              {/* 8. User Requirements */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">8. User Requirements and Conduct</h2>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>The Service is not available for use by persons under the age of 18.</li>
+                  <li>You may not authorize third parties to use your Account, and you may not allow persons under the age of 18 to receive transportation services unless accompanied by you.</li>
+                  <li>You agree to comply with all applicable laws when using the Services, and you may only use the Services for lawful purposes (e.g., no transport of unlawful or hazardous materials).</li>
+                  <li>You cannot demand that the Services be used for another destination point(s) even if the included Kms in your price package are not fully exhausted.</li>
+                  <li>For an outstation trip, the local destinations in the pick-up city are not included unless they are specifically mentioned in the itinerary.</li>
+                  <li>For a one-way trip, only one pickup and one drop is included; any additional stops may incur additional charges.</li>
+                  <li>AC will remain switched off in hilly areas or wherever required.</li>
+                  <li>You will not use the Services to cause nuisance, annoyance, inconvenience, or property damage.</li>
+                  <li>We do not guarantee specific car models/brands; vehicles are provided by category (Sedan, SUV, etc.).</li>
+                  <li>In certain instances, you may be asked to provide proof of identity to access or use the Services.</li>
+                </ul>
+              </section>
+
+              {/* 9. Messaging */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">9. Text Messaging</h2>
+                <p>
+                  By creating or activating an Account, you agree that the Services may send you text (SMS) messages as part of the normal business operation of your use of the Services.
+                </p>
+              </section>
+
+              {/* 10. Promo Codes */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">10. Promotional Codes</h2>
+                <p>
+                  Happiness Car Rental may, at its sole discretion, create promotional codes that may be redeemed for Account credit. You agree that Promo Codes must be used for the intended audience and purpose, and in a lawful manner. Promo Codes may not be duplicated, sold, or transferred in any manner, or made available to the general public, unless expressly permitted. Promo Codes are not valid for cash and may expire prior to your use.
+                </p>
+              </section>
+
+              {/* 11. Content */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">11. Content & User Submissions</h2>
+                <p className="mb-3">
+                  Happiness Car Rental may permit you to submit, upload, publish, or otherwise make available content and information ("User Content"). Any User Content provided by you remains your property. However, by providing User Content, you grant Happiness Car Rental a worldwide, perpetual, irrevocable, transferrable, royalty-free license to use, copy, modify, distribute, and display such content.
+                </p>
+                <p>
+                  You agree to not provide User Content that is defamatory, libelous, hateful, violent, obscene, pornographic, unlawful, or otherwise offensive.
+                </p>
+              </section>
+
+              {/* 12. Access */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">12. Access / Devices</h2>
+                <p>
+                  You are responsible for obtaining the data network access necessary to use the Services. Your mobile network’s data and messaging rates and fees may apply. Happiness Car Rental does not guarantee that the Services will function on any particular hardware or devices. The Services may be subject to malfunctions and delays inherent in the use of the Internet.
+                </p>
+              </section>
+
+              {/* 13. Payment */}
+              <section>
+                <h2 className="text-xl font-bold text-[#29354c] mb-3">13. Payment / Charges</h2>
+                <div className="space-y-4">
+                  <p>
+                    You understand that use of the Services may result in charges to you for the services or goods you receive from a Third Party Provider ("Charges"). Happiness Car Rental will facilitate your payment of the applicable Charges on behalf of the Third Party Provider. Charges will be inclusive of applicable taxes where required by law. Charges paid by you are final and non-refundable, unless otherwise determined by Happiness Car Rental at its sole discretion.
+                  </p>
+                  <p>
+                    Happiness Car Rental reserves the right to establish, remove and/or revise Charges for any or all services. Charges in certain geographical areas may increase substantially during times of high demand.
+                  </p>
+                  <p>
+                    <strong>Taxes & Tolls:</strong> Happiness Car Rental and Third Party Provider shall not be liable for any inter-state tax, Toll Tax, or parking ticket levied during the ride. You shall be responsible for paying these directly as per actuals.
+                  </p>
+                  <p>
+                    <strong>Cancellation/Shortening:</strong> You are liable to pay the full trip package price in case you decide to shorten your trip for whatsoever reason. No refunds for unused Kms or days.
+                  </p>
+                  <p>
+                    <strong>Repair or Cleaning Fee:</strong> You shall be responsible for the cost of repair for damage to, or necessary cleaning of, vehicles resulting from use of the Services in excess of normal "wear and tear".
+                  </p>
+                </div>
+              </section>
+
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Contact Information */}
-        <Card className="p-6 border border-border bg-primary/5">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Contact Us About Privacy</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            If you have any questions about this Privacy Policy or our data practices, please contact us:
-          </p>
-          <div className="space-y-2">
-                         <p className="text-sm text-foreground">
-               <strong>Email:</strong> chalosawariofficial@gmail.com
-             </p>
-            <p className="text-sm text-foreground">
-              <strong>Phone:</strong> +91 9171838260
-            </p>
-            <p className="text-sm text-foreground">
-              <strong>Address:</strong> Indore, India
-            </p>
-          </div>
-        </Card>
-
-        {/* Updates */}
-        <Card className="p-6 border border-border">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Policy Updates</h3>
-          <p className="text-sm text-muted-foreground">
-            We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy 
-            on this page and updating the "Last updated" date. We encourage you to review this Privacy Policy periodically for any changes.
-          </p>
-        </Card>
       </div>
+      
+      <UserBottomNavigation />
     </div>
   );
 };

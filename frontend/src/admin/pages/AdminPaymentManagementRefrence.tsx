@@ -371,8 +371,8 @@ const AdminPaymentManagement = () => {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <CreditCard className="w-6 h-6 text-blue-600" />
+                    <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                      <CreditCard className="w-6 h-6 text-[#29354C]" />
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Net Revenue</p>
@@ -437,8 +437,8 @@ const AdminPaymentManagement = () => {
                       <p className="text-sm font-medium text-gray-600">Pending Transactions</p>
                       <p className="text-xl font-bold text-gray-900">{revenueData.pendingTransactions}</p>
                     </div>
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Clock className="w-6 h-6 text-blue-600" />
+                    <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                      <Clock className="w-6 h-6 text-[#29354C]" />
                     </div>
                   </div>
                 </CardContent>
@@ -525,7 +525,7 @@ const AdminPaymentManagement = () => {
               <CardContent>
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#29354C] mx-auto"></div>
                     <p className="mt-2 text-gray-600">Loading transactions...</p>
                   </div>
                 ) : filteredTransactions.length === 0 ? (
@@ -717,7 +717,7 @@ const AdminPaymentManagement = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg lg:text-xl">
-              <CreditCard className="w-5 h-5 text-blue-600" />
+              <CreditCard className="w-5 h-5 text-[#29354C]" />
               Transaction Details
             </DialogTitle>
           </DialogHeader>
@@ -725,8 +725,8 @@ const AdminPaymentManagement = () => {
             <div className="space-y-6">
               {/* Transaction Header */}
               <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full flex-shrink-0">
-                  <CreditCard className="w-8 h-8 text-blue-600" />
+                <div className="flex items-center justify-center w-16 h-16 bg-[#29354C]/10 rounded-full flex-shrink-0">
+                  <CreditCard className="w-8 h-8 text-[#29354C]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl font-semibold truncate">{selectedTransaction.transactionId}</h3>
@@ -785,18 +785,18 @@ const AdminPaymentManagement = () => {
               {/* Payment Details */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-600">Payment Details</label>
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="p-3 bg-[#29354C]/5 rounded-lg">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                       {getPaymentMethodIcon(selectedTransaction.paymentMethod)}
                       <div>
-                        <p className="text-sm font-medium text-blue-900 capitalize">{selectedTransaction.paymentMethod}</p>
-                        <p className="text-xs text-blue-700">Payment Method</p>
+                        <p className="text-sm font-medium text-[#29354C] capitalize">{selectedTransaction.paymentMethod}</p>
+                        <p className="text-xs text-[#29354C]/70">Payment Method</p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-blue-900">{selectedTransaction.gateway}</p>
-                      <p className="text-xs text-blue-700">Gateway</p>
+                      <p className="text-sm font-medium text-[#29354C]">{selectedTransaction.gateway}</p>
+                      <p className="text-xs text-[#29354C]/70">Gateway</p>
                     </div>
                   </div>
                 </div>

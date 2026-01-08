@@ -184,7 +184,7 @@ const AdminOffers = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#29354C] mx-auto mb-4"></div>
           <p className="text-gray-600">Validating admin access...</p>
         </div>
       </div>
@@ -413,8 +413,8 @@ const AdminOffers = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                        <Tag className="h-12 w-12 text-gray-400" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#29354C]/5 to-[#29354C]/10">
+                        <Tag className="h-12 w-12 text-[#29354C]/40" />
                       </div>
                     )}
                   </div>
@@ -468,8 +468,8 @@ const AdminOffers = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                        <Tag className="h-8 w-8 text-gray-400" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#29354C]/5 to-[#29354C]/10">
+                        <Tag className="h-8 w-8 text-[#29354C]/40" />
                       </div>
                     )}
                   </div>

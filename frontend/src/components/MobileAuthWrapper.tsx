@@ -25,9 +25,9 @@ const MobileAuthWrapper: React.FC<MobileAuthWrapperProps> = ({ children }) => {
   }
 
   // If user is on mobile and not authenticated, redirect to login
+  // Authentication check removed to allow public access on mobile
   if (isMobile && !isAuthenticated) {
-    console.log('MobileAuthWrapper: Mobile user not authenticated, redirecting to login');
-    return <Navigate to="/auth" state={{ returnUrl: location.pathname }} replace />;
+    // console.log('MobileAuthWrapper: Mobile user not authenticated, but allowed to browse');
   }
 
   // For desktop users or authenticated mobile users, render the content

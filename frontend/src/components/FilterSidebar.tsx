@@ -114,21 +114,12 @@ export const FilterSidebar = ({
 
   // Price range options based on vehicle type
   const getPriceOptions = () => {
-    if (selectedType === 'auto') {
-      return [
-        { id: '0-500', label: '₹0 - ₹500', min: 0, max: 500 },
-        { id: '500-1000', label: '₹500 - ₹1000', min: 500, max: 1000 },
-        { id: '1000-2000', label: '₹1000 - ₹2000', min: 1000, max: 2000 },
-        { id: '2000+', label: '₹2000+', min: 2000, max: 10000 }
-      ];
-    } else {
-      return [
-        { id: '0-1000', label: '₹0 - ₹1000', min: 0, max: 1000 },
-        { id: '1000-3000', label: '₹1000 - ₹3000', min: 1000, max: 3000 },
-        { id: '3000-5000', label: '₹3000 - ₹5000', min: 3000, max: 5000 },
-        { id: '5000+', label: '₹5000+', min: 5000, max: 10000 }
-      ];
-    }
+    return [
+      { id: '0-1000', label: '₹0 - ₹1000', min: 0, max: 1000 },
+      { id: '1000-3000', label: '₹1000 - ₹3000', min: 1000, max: 3000 },
+      { id: '3000-5000', label: '₹3000 - ₹5000', min: 3000, max: 5000 },
+      { id: '5000+', label: '₹5000+', min: 5000, max: 10000 }
+    ];
   };
 
   // Sort options
@@ -219,10 +210,10 @@ export const FilterSidebar = ({
     <div className="mb-6">
       <button
         onClick={() => toggleSection(sectionKey)}
-        className="flex items-center justify-between w-full py-3 px-4 text-left bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-gray-200 transition-all duration-200 shadow-sm"
+        className="flex items-center justify-between w-full py-3 px-4 text-left bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-[#f48432]/20 transition-all duration-200 shadow-sm"
       >
-        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-blue-500" />
+        <h3 className="font-semibold text-[#212c40] flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#f48432]" />
           {title}
         </h3>
         {expandedSections[sectionKey] ? (
@@ -249,7 +240,7 @@ export const FilterSidebar = ({
           onClick={() => setShowMobileFilters(!showMobileFilters)}
           className={`flex items-center gap-2 px-4 py-2 border rounded-lg shadow-sm transition-all duration-200 whitespace-nowrap ${
             showMobileFilters || getTotalActiveFilters() > 0
-              ? 'bg-blue-50 border-blue-300 text-blue-700'
+              ? 'bg-[#f48432]/10 border-[#f48432] text-[#212c40]'
               : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
           }`}
         >
@@ -294,11 +285,11 @@ export const FilterSidebar = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+          <div className="p-2 bg-gradient-to-br from-[#212c40] to-[#2d3a52] rounded-lg">
             <Filter className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Filters</h2>
+            <h2 className="text-xl font-bold text-[#212c40]">Filters</h2>
             <p className="text-sm text-gray-500">Refine your search</p>
           </div>
         </div>
@@ -317,33 +308,33 @@ export const FilterSidebar = ({
 
       {/* Active Filters */}
       {getTotalActiveFilters() > 0 && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+        <div className="mb-6 p-4 bg-gradient-to-r from-[#212c40]/5 to-[#f48432]/5 rounded-lg border border-[#f48432]/20">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-blue-800">
+            <p className="text-sm font-medium text-[#212c40]">
               {getTotalActiveFilters()} filter(s) applied
             </p>
-            <Badge variant="default" className="bg-blue-500 text-white">
+            <Badge variant="default" className="bg-[#f48432] text-white">
               {getTotalActiveFilters()}
             </Badge>
           </div>
           <div className="flex flex-wrap gap-2">
             {filters.seatingCapacity.length > 0 && (
-              <Badge variant="secondary" className="bg-white text-blue-700 border-blue-200">
+              <Badge variant="secondary" className="bg-white text-[#212c40] border-[#f48432]/30">
                 Seating: {filters.seatingCapacity.join(', ')}
               </Badge>
             )}
             {filters.isAc.length > 0 && (
-              <Badge variant="secondary" className="bg-white text-blue-700 border-blue-200">
+              <Badge variant="secondary" className="bg-white text-[#212c40] border-[#f48432]/30">
                 AC: {filters.isAc.join(', ')}
               </Badge>
             )}
             {filters.fuelType.length > 0 && (
-              <Badge variant="secondary" className="bg-white text-green-700 border-green-200">
+              <Badge variant="secondary" className="bg-white text-[#212c40] border-[#f48432]/30">
                 Fuel: {filters.fuelType.join(', ')}
               </Badge>
             )}
             {filters.sortBy && (
-              <Badge variant="secondary" className="bg-white text-orange-700 border-orange-200">
+              <Badge variant="secondary" className="bg-white text-[#f48432] border-[#f48432]/30">
                 {sortOptions.find(opt => opt.id === filters.sortBy)?.label || 'Sorted'}
               </Badge>
             )}
@@ -364,9 +355,9 @@ export const FilterSidebar = ({
                   onCheckedChange={(checked) => 
                     checked && handleFilterChange('priceRange', { min: option.min, max: option.max })
                   }
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                 />
-                <Label htmlFor={option.id} className="text-sm text-gray-700 cursor-pointer">
+                <Label htmlFor={option.id} className="text-sm text-[#212c40] cursor-pointer">
                   {option.label}
                 </Label>
               </div>
@@ -385,9 +376,9 @@ export const FilterSidebar = ({
                   onCheckedChange={(checked) => 
                     handleArrayFilterChange('seatingCapacity', capacity.toString(), checked as boolean)
                   }
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                 />
-                <Label htmlFor={`seating-${capacity}`} className="text-sm text-gray-700 cursor-pointer">
+                <Label htmlFor={`seating-${capacity}`} className="text-sm text-[#212c40] cursor-pointer">
                   {capacity} Seater
                 </Label>
               </div>
@@ -400,7 +391,7 @@ export const FilterSidebar = ({
           <div className="space-y-3">
             {/* AC/Non-AC */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">AC Type</Label>
+              <Label className="text-sm font-medium text-[#212c40]">AC Type</Label>
               <div className="space-y-2">
                 {['AC', 'Non-AC'].map((type) => (
                   <div key={type} className="flex items-center space-x-3">
@@ -410,9 +401,9 @@ export const FilterSidebar = ({
                       onCheckedChange={(checked) => 
                         handleArrayFilterChange('isAc', type, checked as boolean)
                       }
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                      className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                     />
-                    <Label htmlFor={`ac-${type}`} className="text-sm text-gray-600 cursor-pointer">
+                    <Label htmlFor={`ac-${type}`} className="text-sm text-[#212c40] cursor-pointer">
                       {type}
                     </Label>
                   </div>
@@ -420,33 +411,9 @@ export const FilterSidebar = ({
               </div>
             </div>
 
-            {/* Sleeper/Seater (for buses) */}
-            {selectedType === 'bus' && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Seat Type</Label>
-                <div className="space-y-2">
-                  {['Sleeper', 'Seater'].map((type) => (
-                    <div key={type} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`sleeper-${type}`}
-                        checked={filters.isSleeper.includes(type)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('isSleeper', type, checked as boolean)
-                        }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                      />
-                      <Label htmlFor={`sleeper-${type}`} className="text-sm text-gray-600 cursor-pointer">
-                        {type}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Fuel Type */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Fuel Type</Label>
+              <Label className="text-sm font-medium text-[#212c40]">Fuel Type</Label>
               <div className="space-y-2">
                 {availableFilters.fuelTypes?.map((fuel) => (
                   <div key={fuel} className="flex items-center space-x-3">
@@ -456,9 +423,9 @@ export const FilterSidebar = ({
                       onCheckedChange={(checked) => 
                         handleArrayFilterChange('fuelType', fuel, checked as boolean)
                       }
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                      className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                     />
-                    <Label htmlFor={`fuel-${fuel}`} className="text-sm text-gray-600 cursor-pointer capitalize">
+                    <Label htmlFor={`fuel-${fuel}`} className="text-sm text-[#212c40] cursor-pointer capitalize">
                       {fuel}
                     </Label>
                   </div>
@@ -471,11 +438,10 @@ export const FilterSidebar = ({
 
         {/* Vehicle Type Specific Filters */}
         <FilterSection title="VEHICLE TYPE" sectionKey="vehicleType">
-          {selectedType === 'car' && (
             <div className="space-y-3">
               {/* Car Brands */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Brand</Label>
+                <Label className="text-sm font-medium text-[#212c40]">Brand</Label>
                 <div className="space-y-2">
                   {availableFilters.brands?.map((brand) => (
                     <div key={brand} className="flex items-center space-x-3">
@@ -485,9 +451,9 @@ export const FilterSidebar = ({
                         onCheckedChange={(checked) => 
                           handleArrayFilterChange('carBrand', brand, checked as boolean)
                         }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                        className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                       />
-                      <Label htmlFor={`brand-${brand}`} className="text-sm text-gray-600 cursor-pointer">
+                      <Label htmlFor={`brand-${brand}`} className="text-sm text-[#212c40] cursor-pointer">
                         {brand}
                       </Label>
                     </div>
@@ -497,7 +463,7 @@ export const FilterSidebar = ({
 
               {/* Car Models */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Model</Label>
+                <Label className="text-sm font-medium text-[#212c40]">Model</Label>
                 <div className="space-y-2">
                   {availableFilters.models?.map((model) => (
                     <div key={model} className="flex items-center space-x-3">
@@ -507,9 +473,9 @@ export const FilterSidebar = ({
                         onCheckedChange={(checked) => 
                           handleArrayFilterChange('carModel', model, checked as boolean)
                         }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                        className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                       />
-                      <Label htmlFor={`model-${model}`} className="text-sm text-gray-600 cursor-pointer">
+                      <Label htmlFor={`model-${model}`} className="text-sm text-[#212c40] cursor-pointer">
                         {model}
                       </Label>
                     </div>
@@ -517,81 +483,6 @@ export const FilterSidebar = ({
                 </div>
               </div>
             </div>
-          )}
-
-          {selectedType === 'bus' && (
-            <div className="space-y-3">
-              {/* Bus Brands */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Brand</Label>
-                <div className="space-y-2">
-                  {availableFilters.brands?.map((brand) => (
-                    <div key={brand} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`busbrand-${brand}`}
-                        checked={filters.busBrand.includes(brand)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('busBrand', brand, checked as boolean)
-                        }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                      />
-                      <Label htmlFor={`busbrand-${brand}`} className="text-sm text-gray-600 cursor-pointer">
-                        {brand}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bus Models */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Model</Label>
-                <div className="space-y-2">
-                  {availableFilters.models?.map((model) => (
-                    <div key={model} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`busmodel-${model}`}
-                        checked={filters.busModel.includes(model)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('busModel', model, checked as boolean)
-                        }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                      />
-                      <Label htmlFor={`busmodel-${model}`} className="text-sm text-gray-600 cursor-pointer">
-                        {model}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {selectedType === 'auto' && (
-            <div className="space-y-3">
-              {/* Auto Types */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Auto Type</Label>
-                <div className="space-y-2">
-                  {['Electric', 'CNG', 'Petrol'].map((type) => (
-                    <div key={type} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`autotype-${type}`}
-                        checked={filters.autoType.includes(type)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('autoType', type, checked as boolean)
-                        }
-                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                      />
-                      <Label htmlFor={`autotype-${type}`} className="text-sm text-gray-600 cursor-pointer">
-                        {type}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </FilterSection>
 
         {/* Sort Options */}
@@ -605,9 +496,9 @@ export const FilterSidebar = ({
                   onCheckedChange={(checked) => 
                     checked ? handleFilterChange('sortBy', option.id) : handleFilterChange('sortBy', '')
                   }
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                 />
-                <Label htmlFor={option.id} className="text-sm text-gray-700 cursor-pointer">
+                <Label htmlFor={option.id} className="text-sm text-[#212c40] cursor-pointer">
                   {option.label}
                 </Label>
               </div>
@@ -642,121 +533,146 @@ export const FilterSidebar = ({
         <MobileFilterBar />
         
         {showMobileFilters && (
-          <Card className="p-6 mb-6 bg-white shadow-lg border-0 rounded-xl mobile-filter-slide-in">
-            {/* Mobile filter content - simplified version */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
+          <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setShowMobileFilters(false)}
+            />
+
+            {/* Modal Content */}
+            <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom duration-300">
+              
+              {/* Header */}
+              <div className="flex-none flex items-center justify-between p-6 pb-4 border-b border-gray-50">
+                <h3 className="text-xl font-bold text-[#212c40]">Filters</h3>
+                <button
                   onClick={() => setShowMobileFilters(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X className="w-5 h-5" />
-                </Button>
+                  <X className="w-6 h-6" />
+                </button>
               </div>
               
-              {/* Quick filters for mobile */}
-              <div className="space-y-4">
+              {/* Filter Options (Scrollable) */}
+              <div className="flex-1 overflow-y-auto p-6 pt-2"> 
+                
                 {/* Seating Capacity */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Seating Capacity</Label>
+                <div className="mb-6">
+                  <Label className="text-sm font-semibold text-[#212c40] mb-3 block">Seating Capacity</Label>
                   <div className="flex flex-wrap gap-2">
                     {availableFilters.seatingCapacities?.slice(0, 6).map((capacity) => (
-                      <Button
+                      <button
                         key={capacity}
-                        variant={filters.seatingCapacity.includes(capacity) ? "default" : "outline"}
-                        size="sm"
                         onClick={() => {
                           const newSeating = filters.seatingCapacity.includes(capacity) 
                             ? filters.seatingCapacity.filter(c => c !== capacity)
                             : [...filters.seatingCapacity, capacity];
                           handleFilterChange('seatingCapacity', newSeating);
                         }}
-                        className="text-xs"
+                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          filters.seatingCapacity.includes(capacity)
+                            ? 'bg-[#212c40] border-2 border-[#212c40] text-white shadow-md' // Theme Blue
+                            : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
                       >
                         {capacity} Seater
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 {/* AC Type */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">AC Type</Label>
+                <div className="mb-6">
+                  <Label className="text-sm font-semibold text-[#212c40] mb-3 block">AC Type</Label>
                   <div className="flex gap-2">
                     {['AC', 'Non-AC'].map((type) => (
-                      <Button
+                      <button
                         key={type}
-                        variant={filters.isAc.includes(type) ? "default" : "outline"}
-                        size="sm"
                         onClick={() => {
                           const newAc = filters.isAc.includes(type) 
                             ? filters.isAc.filter(t => t !== type)
                             : [...filters.isAc, type];
                           handleFilterChange('isAc', newAc);
                         }}
-                        className="text-xs"
+                        className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          filters.isAc.includes(type)
+                             ? 'bg-[#212c40] border-2 border-[#212c40] text-white shadow-md'
+                             : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
                       >
                         {type}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Fuel Type */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Fuel Type</Label>
+                <div className="mb-6">
+                  <Label className="text-sm font-semibold text-[#212c40] mb-3 block">Fuel Type</Label>
                   <div className="flex flex-wrap gap-2">
                     {availableFilters.fuelTypes?.slice(0, 4).map((fuel) => (
-                      <Button
+                      <button
                         key={fuel}
-                        variant={filters.fuelType.includes(fuel) ? "default" : "outline"}
-                        size="sm"
                         onClick={() => {
                           const newFuel = filters.fuelType.includes(fuel) 
                             ? filters.fuelType.filter(f => f !== fuel)
                             : [...filters.fuelType, fuel];
                           handleFilterChange('fuelType', newFuel);
                         }}
-                        className="text-xs capitalize"
+                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all capitalize ${
+                          filters.fuelType.includes(fuel)
+                             ? 'bg-[#212c40] border-2 border-[#212c40] text-white shadow-md'
+                             : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
                       >
                         {fuel}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Sort */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sort By</Label>
+                <div className="mb-6">
+                  <Label className="text-sm font-semibold text-[#212c40] mb-3 block">Sort By</Label>
                   <div className="flex flex-wrap gap-2">
                     {sortOptions.slice(0, 3).map((option) => (
-                      <Button
+                       <button
                         key={option.id}
-                        variant={filters.sortBy === option.id ? "default" : "outline"}
-                        size="sm"
                         onClick={() => handleFilterChange('sortBy', filters.sortBy === option.id ? '' : option.id)}
-                        className="text-xs"
+                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          filters.sortBy === option.id
+                             ? 'bg-[#212c40] border-2 border-[#212c40] text-white shadow-md'
+                             : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
                       >
                         {option.label.split(':')[1]?.trim() || option.label}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Apply Button */}
-              <Button
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-                onClick={() => setShowMobileFilters(false)}
-              >
-                <Filter className="w-5 h-5 mr-2" />
-                Apply Filters ({getTotalActiveFilters()})
-              </Button>
+              {/* Footer Buttons (Sticky Bottom) */}
+              <div className="flex-none p-6 pt-4 bg-white border-t border-gray-50 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 py-6 rounded-xl border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 hover:text-gray-800"
+                  onClick={() => setShowMobileFilters(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-[2] bg-[#212c40] hover:bg-[#2d3a52] text-white font-bold py-6 rounded-xl shadow-xl shadow-blue-900/10 transition-all active:scale-[0.98] text-base"
+                  onClick={() => setShowMobileFilters(false)}
+                >
+                  <Filter className="w-5 h-5 mr-2" />
+                  Apply Filters ({getTotalActiveFilters()})
+                </Button>
+              </div>
+              
             </div>
-          </Card>
+          </div>
         )}
       </div>
 

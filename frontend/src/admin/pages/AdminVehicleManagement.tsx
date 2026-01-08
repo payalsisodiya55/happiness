@@ -9,10 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { adminVehicles } from "@/services/adminApi";
 import { 
-  Car, 
-  Bus, 
-  Truck, 
-  Bike,
+  Car,
   Search,
   Eye,
   Trash2,
@@ -122,7 +119,6 @@ const AdminVehicleManagement = () => {
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showVehicleDetails, setShowVehicleDetails] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -174,7 +170,8 @@ const AdminVehicleManagement = () => {
   }, []);
 
   useEffect(() => {
-    let filtered = vehicles;
+    // Filter to show only cars as per requirement
+    let filtered = vehicles.filter(v => v.type === 'car');
 
     if (searchTerm) {
       filtered = filtered.filter(vehicle =>
@@ -189,22 +186,13 @@ const AdminVehicleManagement = () => {
       filtered = filtered.filter(vehicle => vehicle.bookingStatus === statusFilter);
     }
 
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(vehicle => vehicle.type === typeFilter);
-    }
+
 
     setFilteredVehicles(filtered);
-  }, [vehicles, searchTerm, statusFilter, typeFilter]);
+  }, [vehicles, searchTerm, statusFilter]);
 
   const getVehicleIcon = (type: string) => {
-    switch (type) {
-      case 'car': return <Car className="w-5 h-5" />;
-      case 'bus': return <Bus className="w-5 h-5" />;
-      case 'truck': return <Truck className="w-5 h-5" />;
-      case 'bike': return <Bike className="w-5 h-5" />;
-      case 'auto': return <Car className="w-5 h-5" />;
-      default: return <Car className="w-5 h-5" />;
-    }
+    return <Car className="w-5 h-5" />;
   };
 
   const getStatusBadge = (status: string) => {
@@ -212,7 +200,7 @@ const AdminVehicleManagement = () => {
       case 'available':
         return <Badge className="bg-green-100 text-green-800">Available</Badge>;
       case 'booked':
-        return <Badge className="bg-blue-100 text-blue-800">Booked</Badge>;
+        return <Badge className="bg-[#29354C]/10 text-[#29354C]">Booked</Badge>;
       case 'in_trip':
         return <Badge className="bg-purple-100 text-purple-800">In Trip</Badge>;
       case 'maintenance':
@@ -302,8 +290,8 @@ const AdminVehicleManagement = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Car className="w-6 h-6 text-blue-600" />
+                <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                  <Car className="w-6 h-6 text-[#29354C]" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Vehicles</p>
@@ -330,8 +318,8 @@ const AdminVehicleManagement = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Car className="w-6 h-6 text-blue-600" />
+                <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                  <Car className="w-6 h-6 text-[#29354C]" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Booked</p>
@@ -386,20 +374,6 @@ const AdminVehicleManagement = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="car">Car</SelectItem>
-                  <SelectItem value="bus">Bus</SelectItem>
-                  <SelectItem value="truck">Truck</SelectItem>
-                  <SelectItem value="bike">Bike</SelectItem>
-                  <SelectItem value="auto">Auto</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -425,7 +399,7 @@ const AdminVehicleManagement = () => {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#29354C]" />
                 <p className="text-gray-600">Loading vehicles...</p>
               </div>
             ) : filteredVehicles.length === 0 ? (
@@ -441,7 +415,7 @@ const AdminVehicleManagement = () => {
                       {/* Vehicle Header */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
+                          <div className="p-2 bg-[#29354C]/10 rounded-lg">
                             {getVehicleIcon(vehicle.type)}
                           </div>
                           <div>

@@ -233,7 +233,7 @@ const AdminDashboard = () => {
     <AdminLayout>
       {/* Enhanced Header with better styling */}
       <div className="mb-8 md:mb-12 animate-slide-in-from-top">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 md:p-8 text-white shadow-xl">
+        <div className="bg-[#29354C] rounded-2xl p-6 md:p-8 text-white shadow-xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-3 animate-fade-in-up">
@@ -271,19 +271,19 @@ const AdminDashboard = () => {
                     onClick={() => setSelectedPeriod('week')}
                     className={`flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
                       selectedPeriod === 'week' 
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                        ? 'bg-blue-50 text-[#29354C] border border-blue-200' 
                         : 'hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     <CalendarDays className={`w-4 h-4 mr-3 ${
-                      selectedPeriod === 'week' ? 'text-blue-600' : 'text-gray-500'
+                      selectedPeriod === 'week' ? 'text-[#29354C]' : 'text-gray-500'
                     }`} />
                     <div className="flex flex-col">
                       <span className="font-medium">This Week</span>
                       <span className="text-xs text-gray-500">Last 7 days</span>
                     </div>
                     {selectedPeriod === 'week' && (
-                      <CheckCircle className="w-4 h-4 ml-auto text-blue-600" />
+                      <CheckCircle className="w-4 h-4 ml-auto text-[#29354C]" />
                     )}
                   </DropdownMenuItem>
                   
@@ -291,19 +291,19 @@ const AdminDashboard = () => {
                     onClick={() => setSelectedPeriod('month')}
                     className={`flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
                       selectedPeriod === 'month' 
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                        ? 'bg-blue-50 text-[#29354C] border border-blue-200' 
                         : 'hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     <CalendarRange className={`w-4 h-4 mr-3 ${
-                      selectedPeriod === 'month' ? 'text-blue-600' : 'text-gray-500'
+                      selectedPeriod === 'month' ? 'text-[#29354C]' : 'text-gray-500'
                     }`} />
                     <div className="flex flex-col">
                       <span className="font-medium">This Month</span>
                       <span className="text-xs text-gray-500">Current month</span>
                     </div>
                     {selectedPeriod === 'month' && (
-                      <CheckCircle className="w-4 h-4 ml-auto text-blue-600" />
+                      <CheckCircle className="w-4 h-4 ml-auto text-[#29354C]" />
                     )}
                   </DropdownMenuItem>
                   
@@ -311,19 +311,19 @@ const AdminDashboard = () => {
                     onClick={() => setSelectedPeriod('year')}
                     className={`flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
                       selectedPeriod === 'year' 
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                        ? 'bg-blue-50 text-[#29354C] border border-blue-200' 
                         : 'hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     <Calendar className={`w-4 h-4 mr-3 ${
-                      selectedPeriod === 'year' ? 'text-blue-600' : 'text-gray-500'
+                      selectedPeriod === 'year' ? 'text-[#29354C]' : 'text-gray-500'
                     }`} />
                     <div className="flex flex-col">
                       <span className="font-medium">This Year</span>
                       <span className="text-xs text-gray-500">Current year</span>
                     </div>
                     {selectedPeriod === 'year' && (
-                      <CheckCircle className="w-4 h-4 ml-auto text-blue-600" />
+                      <CheckCircle className="w-4 h-4 ml-auto text-[#29354C]" />
                     )}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -357,15 +357,15 @@ const AdminDashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-700 mb-1">Total Users</p>
-                <p className="text-2xl md:text-3xl font-bold text-blue-900 animate-count-up">
+                <p className="text-sm font-medium text-[#29354C] mb-1">Total Users</p>
+                <p className="text-2xl md:text-3xl font-bold text-[#29354C] animate-count-up">
                   {animatedTotalUsers.toLocaleString()}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-[#29354C] mt-1">
                   +{getGrowthPercentage(stats.newUsers, stats.totalUsers)}% from {selectedPeriod}
                 </p>
               </div>
-              <div className="p-3 bg-blue-500 rounded-xl text-white">
+              <div className="p-3 bg-[#29354C] rounded-xl text-white">
                 <Users className="w-6 h-6" />
               </div>
             </div>

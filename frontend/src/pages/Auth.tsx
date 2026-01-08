@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, Mail, Lock, User, Phone, Facebook, Twitter, Instagram, Home, List, HelpCircle, ArrowLeft, X, ChevronDown } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import TopNavigation from "@/components/TopNavigation";
-import busLogo from "@/assets/BusLogo.png";
+import happinessLogo from "@/assets/Happiness-logo.jpeg";
 import apiService from "@/services/api";
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { toast } from "@/hooks/use-toast";
+import UserBottomNavigation from "@/components/UserBottomNavigation";
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register, isAuthenticated } = useUserAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { login, isAuthenticated } = useUserAuth();
   const [activeTab, setActiveTab] = useState("login");
   const [showOtpField, setShowOtpField] = useState(false);
   const [showSignupOtpField, setShowSignupOtpField] = useState(false);
@@ -33,10 +30,9 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      console.log('Auth: User already authenticated, redirecting to:', returnUrl);
-      navigate(returnUrl, { replace: true });
+      navigate(returnUrl, { replace: true, state: location.state });
     }
-  }, [isAuthenticated, isLoading, navigate, returnUrl]);
+  }, [isAuthenticated, isLoading, navigate, returnUrl, location.state]);
 
   // Form states
   const [loginForm, setLoginForm] = useState({
@@ -52,13 +48,10 @@ const Auth = () => {
     otp: ""
   });
 
-
-
   const handleSendOtp = async () => {
     if (loginForm.phone.trim()) {
       try {
         setIsLoading(true);
-        // Remove country code and send only the phone number
         const phoneNumber = loginForm.phone.replace(/[^0-9]/g, '');
         
         const response = await apiService.request('/auth/send-otp', {
@@ -74,13 +67,13 @@ const Auth = () => {
           toast({
             title: "OTP Sent",
             description: `OTP sent to ${countryCode} ${loginForm.phone}`,
+            className: "bg-[#212c40] text-white border-none"
           });
         }
-      } catch (error) {
-        console.error('Send OTP error:', error);
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Failed to send OTP. Please try again.",
+          description: error.message || "Failed to send OTP",
           variant: "destructive",
         });
       } finally {
@@ -93,7 +86,6 @@ const Auth = () => {
     if (signupForm.phone.trim() && signupForm.firstName.trim() && signupForm.lastName.trim()) {
       try {
         setIsLoading(true);
-        // Remove country code and send only the phone number
         const phoneNumber = signupForm.phone.replace(/[^0-9]/g, '');
         
         const response = await apiService.request('/auth/send-otp', {
@@ -109,13 +101,13 @@ const Auth = () => {
           toast({
             title: "OTP Sent",
             description: `OTP sent to ${countryCode} ${signupForm.phone}`,
+            className: "bg-[#212c40] text-white border-none"
           });
         }
-      } catch (error) {
-        console.error('Send OTP error:', error);
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Failed to send OTP. Please try again.",
+          description: error.message || "Failed to send OTP",
           variant: "destructive",
         });
       } finally {
@@ -128,23 +120,16 @@ const Auth = () => {
     if (showOtpField && loginForm.otp.trim()) {
       try {
         setIsLoading(true);
-        console.log('Handling login with:', { phone: loginForm.phone, otp: loginForm.otp });
-        
-        // Use the UserAuthContext login function
         await login(loginForm.phone, loginForm.otp);
-        
-        console.log('Login successful in Auth component');
-        
-        // Login successful, user will be redirected by useEffect
         toast({
           title: "Login Successful",
           description: "Welcome back!",
+          className: "bg-[#f48432] text-white border-none"
         });
-      } catch (error) {
-        console.error('Login error in Auth component:', error);
+      } catch (error: any) {
         toast({
           title: "Login Failed",
-          description: error.message || "Failed to login. Please try again.",
+          description: error.message || "Failed to login",
           variant: "destructive",
         });
       } finally {
@@ -169,7 +154,6 @@ const Auth = () => {
     if (showSignupOtpField && signupForm.otp.trim()) {
       try {
         setIsLoading(true);
-        // Remove country code and send only the phone number
         const phoneNumber = signupForm.phone.replace(/[^0-9]/g, '');
         
         const response = await apiService.request('/auth/verify-otp', {
@@ -182,7 +166,7 @@ const Auth = () => {
               firstName: signupForm.firstName,
               lastName: signupForm.lastName,
               email: signupForm.email,
-              password: 'defaultPassword123' // We'll generate a secure password
+              password: 'defaultPassword123'
             }
           })
         });
@@ -190,21 +174,19 @@ const Auth = () => {
         if (response.success) {
           toast({
             title: "Account Created",
-            description: "Account created successfully! Please login with your phone number.",
+            description: "Please login with your phone number",
+            className: "bg-[#f48432] text-white border-none"
           });
-          
-          // Switch to login tab
           setActiveTab('login');
           setShowOtpField(true);
           setLoginForm({ phone: signupForm.phone, otp: '' });
           setShowSignupOtpField(false);
           setSignupForm({ firstName: '', lastName: '', email: '', phone: '', otp: '' });
         }
-      } catch (error) {
-        console.error('Signup error:', error);
+      } catch (error: any) {
         toast({
           title: "Signup Failed",
-          description: error.message || "Failed to create account. Please try again.",
+          description: error.message || "Failed to create account",
           variant: "destructive",
         });
       } finally {
@@ -215,34 +197,29 @@ const Auth = () => {
     }
   };
 
-  const handleResendOtp = async (purpose) => {
+  const handleResendOtp = async (purpose: 'login' | 'signup') => {
     try {
       setIsLoading(true);
       const phone = purpose === 'login' ? loginForm.phone : signupForm.phone;
       if (phone.trim()) {
-        // Remove country code and send only the phone number
         const phoneNumber = phone.replace(/[^0-9]/g, '');
-        
         const response = await apiService.request('/auth/resend-otp', {
           method: 'POST',
-          body: JSON.stringify({ 
-            phone: phoneNumber,
-            purpose: purpose
-          })
+          body: JSON.stringify({ phone: phoneNumber, purpose })
         });
 
         if (response.success) {
           toast({
             title: "OTP Resent",
             description: "OTP resent successfully!",
+            className: "bg-[#212c40] text-white border-none"
           });
         }
       }
-    } catch (error) {
-      console.error('Resend OTP error:', error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to resend OTP. Please try again.",
+        description: error.message || "Failed to resend OTP",
         variant: "destructive",
       });
     } finally {
@@ -250,369 +227,270 @@ const Auth = () => {
     }
   };
 
-
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <TopNavigation />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center">
-          <Card className="w-full max-w-md shadow-lg border border-gray-200">
-            <CardHeader className="text-center pb-4">
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center space-x-2">
-                  <img src={busLogo} alt="Bus Logo" className="w-12 h-12 object-contain" />
-                  <div className="flex flex-col">
-                    <div className="flex items-baseline">
-                      <span className="text-xl font-bold text-black">CHALO</span>
-                      <span className="text-xl font-bold text-blue-600 ml-1">SAWARI</span>
-                    </div>
-                    <span className="text-xs text-gray-600">Travel with Confidence</span>
-                  </div>
+      <div className="container mx-auto px-4 py-8 pb-32 md:pb-8 flex justify-center items-center min-h-[calc(100vh-140px)]">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
+          <CardHeader className="text-center pb-2 bg-gradient-to-b from-blue-50/50 to-white">
+            <div className="flex justify-center mb-2">
+              <div className="flex flex-col items-center">
+                <div className="w-32 h-auto mb-4">
+                  <img src={happinessLogo} alt="Happiness Logo" className="w-full h-full object-contain" />
                 </div>
+                <h1 className="text-2xl font-bold text-[#212c40]">Welcome to Happiness</h1>
+                <p className="text-sm text-gray-500 mt-1">Your Journey, Your Happiness</p>
               </div>
-            </CardHeader>
-            
+            </div>
+          </CardHeader>
+          
+          <CardContent className="pt-2 px-6 md:px-8 pb-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-100 p-1 rounded-xl">
+                <TabsTrigger 
+                  value="login"
+                  className="rounded-lg py-2 data-[state=active]:bg-white data-[state=active]:text-[#f48432] data-[state=active]:shadow-sm font-medium transition-all"
+                >
+                  Login
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="rounded-lg py-2 data-[state=active]:bg-white data-[state=active]:text-[#f48432] data-[state=active]:shadow-sm font-medium transition-all"
+                >
+                  Sign Up
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Login Tab */}
+              <TabsContent value="login" className="space-y-3 focus-visible:outline-none">
+                {!showOtpField ? (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="text-center">
+                      <h2 className="text-xl font-bold text-[#212c40]">What's your mobile number?</h2>
+                      <p className="text-sm text-gray-500 mt-0.5">We'll send you a verification code</p>
+                    </div>
 
-            
-            <CardContent className="pt-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
-                
-                {/* Login Tab */}
-                <TabsContent value="login" className="space-y-4">
-                  {!showOtpField ? (
-                    // Phone Number Input Screen
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Login to get exciting offers</span>
-                      </div>
-
-                      {/* Main Question */}
-                      <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-800">What's your mobile number?</h2>
-                      </div>
-
-                      {/* Mobile Number Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="mobileNumber" className="text-sm font-medium">Mobile Number</Label>
-                        <div className="flex space-x-2">
-                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="+91">+91</SelectItem>
-                              <SelectItem value="+1">+1</SelectItem>
-                              <SelectItem value="+44">+44</SelectItem>
-                              <SelectItem value="+61">+61</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            id="mobileNumber"
-                            type="tel"
-                            placeholder="Mobile number"
-                            className="flex-1"
-                            value={loginForm.phone}
-                            onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Generate OTP Button */}
-                      <Button 
-                        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300 h-12 rounded-lg"
-                        onClick={handleSendOtp}
-                        disabled={!loginForm.phone.trim() || isLoading}
-                      >
-                        {isLoading ? "Sending..." : "Generate OTP"}
-                      </Button>
-
-
-
-                      {/* Footer */}
-                      <div className="text-center text-xs text-gray-600 space-y-1">
-                        <div>By logging in, I agree</div>
-                        <div className="space-x-2">
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Terms & Conditions</Button>
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Privacy Policy</Button>
-                        </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mobileNumber" className="text-sm font-medium text-[#212c40]">Mobile Number</Label>
+                      <div className="flex space-x-2">
+                        <Select value={countryCode} onValueChange={setCountryCode}>
+                          <SelectTrigger className="w-24 border-gray-200 focus:ring-0 focus:border-[#f48432] focus-visible:ring-0 h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="+91">+91</SelectItem>
+                            <SelectItem value="+1">+1</SelectItem>
+                            <SelectItem value="+44">+44</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="mobileNumber"
+                          type="tel"
+                          placeholder="Phone number"
+                          className="flex-1 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0 h-11"
+                          value={loginForm.phone}
+                          onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                        />
                       </div>
                     </div>
-                  ) : (
-                    // OTP Input Screen
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBackToPhone}
-                            className="p-1 h-auto"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                          </Button>
-                          <Label htmlFor="otp" className="text-base">Enter OTP</Label>
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          We've sent a verification code to {countryCode} {loginForm.phone}
-                        </div>
+
+                    <Button 
+                      className="w-full bg-[#f48432] hover:bg-[#e07020] text-white h-11 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                      onClick={handleSendOtp}
+                      disabled={!loginForm.phone.trim() || isLoading}
+                    >
+                      {isLoading ? "Sending..." : "Get OTP"}
+                    </Button>
+
+                    <div className="text-center text-xs text-gray-400 mt-2">
+                      By proceeding, you agree to our <span className="text-[#f48432] cursor-pointer">Terms</span> & <span className="text-[#f48432] cursor-pointer">Privacy Policy</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                     <div className="text-center relative">
+                        <button 
+                          onClick={handleBackToPhone}
+                          className="absolute left-0 top-1 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <ArrowLeft className="w-5 h-5 text-gray-500" />
+                        </button>
+                        <h2 className="text-xl font-bold text-[#212c40]">Enter OTP</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Sent to {countryCode} {loginForm.phone}
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
                         <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                           <Input
                             id="otp"
                             type="text"
-                            placeholder="Enter 6-digit OTP"
-                            className="pl-10"
+                            placeholder="Enter 6-digit code"
+                            className="pl-11 h-11 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0 text-center text-lg tracking-widest"
                             value={loginForm.otp}
                             onChange={(e) => setLoginForm({...loginForm, otp: e.target.value})}
                             maxLength={6}
                           />
                         </div>
+                        
                         <div className="text-center">
                           <Button 
                             variant="link" 
-                            className="text-sm p-0 h-auto"
+                            className="text-sm p-0 h-auto text-[#f48432]"
                             onClick={() => handleResendOtp('login')}
                           >
-                            Didn't receive code? Resend
+                            Resend OTP
                           </Button>
                         </div>
                       </div>
                       
                       <Button 
-                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                        className="w-full bg-[#212c40] hover:bg-[#2d3a52] text-white h-11 rounded-xl font-semibold shadow-lg transition-all"
                         onClick={handleLogin}
                         disabled={isLoading}
                       >
-                        {isLoading ? "Verifying..." : "Verify & Sign In"}
+                        {isLoading ? "Verifying..." : "Verify & Login"}
                       </Button>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Sign Up Tab */}
-                <TabsContent value="signup" className="space-y-4">
-                  {!showSignupOtpField ? (
-                    // Signup Form Screen
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Create account to get started</span>
-                      </div>
-
-                      {/* Main Question */}
-                      <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-800">Create your account</h2>
-                      </div>
-
-                      {/* Name Fields */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                            <Input
-                              id="firstName"
-                              placeholder="First name"
-                              className="pl-10"
-                              value={signupForm.firstName}
-                              onChange={(e) => setSignupForm({...signupForm, firstName: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                            <Input
-                              id="lastName"
-                              placeholder="Last name"
-                              className="pl-10"
-                              value={signupForm.lastName}
-                              onChange={(e) => setSignupForm({...signupForm, lastName: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Email Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium">Email (Optional)</Label>
+                  </div>
+                )}
+              </TabsContent>
+              
+              {/* Sign Up Tab */}
+              <TabsContent value="signup" className="space-y-3 focus-visible:outline-none">
+                {!showSignupOtpField ? (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="firstName" className="text-sm font-medium text-[#212c40]">First Name</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                           <Input
-                            id="email"
-                            type="email"
-                            placeholder="Email address"
-                            className="pl-10"
-                            value={signupForm.email || ''}
-                            onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                            id="firstName"
+                            className="pl-9 h-11 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0"
+                            value={signupForm.firstName}
+                            onChange={(e) => setSignupForm({...signupForm, firstName: e.target.value})}
                           />
                         </div>
                       </div>
-
-                      {/* Mobile Number Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="signupMobileNumber" className="text-sm font-medium">Mobile Number</Label>
-                        <div className="flex space-x-2">
-                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="+91">+91</SelectItem>
-                              <SelectItem value="+1">+1</SelectItem>
-                              <SelectItem value="+44">+44</SelectItem>
-                              <SelectItem value="+61">+61</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="lastName" className="text-sm font-medium text-[#212c40]">Last Name</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                           <Input
-                            id="signupMobileNumber"
-                            type="tel"
-                            placeholder="Mobile number"
-                            className="flex-1"
-                            value={signupForm.phone}
-                            onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
+                            id="lastName"
+                            className="pl-9 h-11 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0"
+                            value={signupForm.lastName}
+                            onChange={(e) => setSignupForm({...signupForm, lastName: e.target.value})}
                           />
-                        </div>
-                      </div>
-
-                      {/* Generate OTP Button */}
-                      <Button 
-                        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300 h-12 rounded-lg"
-                        onClick={handleSendSignupOtp}
-                        disabled={!signupForm.phone.trim() || !signupForm.firstName.trim() || !signupForm.lastName.trim() || isLoading}
-                      >
-                        {isLoading ? "Sending..." : "Generate OTP"}
-                      </Button>
-
-
-
-                      {/* Footer */}
-                      <div className="text-center text-xs text-gray-600 space-y-1">
-                        <div>By creating an account, I agree</div>
-                        <div className="space-x-2">
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Terms & Conditions</Button>
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Privacy Policy</Button>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    // Signup OTP Input Screen
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-sm font-medium text-[#212c40]">Email (Optional)</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="email"
+                          type="email"
+                          className="pl-9 h-11 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0"
+                          value={signupForm.email || ''}
+                          onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signupMobileNumber" className="text-sm font-medium text-[#212c40]">Mobile Number</Label>
+                      <div className="flex space-x-2">
+                        <Select value={countryCode} onValueChange={setCountryCode}>
+                          <SelectTrigger className="w-24 border-gray-200 focus:ring-0 focus:border-[#f48432] focus-visible:ring-0 h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="+91">+91</SelectItem>
+                            <SelectItem value="+1">+1</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="signupMobileNumber"
+                          type="tel"
+                          className="flex-1 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0 h-11"
+                          value={signupForm.phone}
+                          onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      className="w-full bg-[#f48432] hover:bg-[#e07020] text-white h-11 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+                      onClick={handleSendSignupOtp}
+                      disabled={!signupForm.phone.trim() || !signupForm.firstName.trim() || !signupForm.lastName.trim() || isLoading}
+                    >
+                      {isLoading ? "Sending..." : "Create Account"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="text-center relative">
+                        <button 
+                          onClick={handleBackToSignupPhone}
+                          className="absolute left-0 top-1 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <ArrowLeft className="w-5 h-5 text-gray-500" />
+                        </button>
+                        <h2 className="text-xl font-bold text-[#212c40]">Verify Number</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Code sent to {countryCode} {signupForm.phone}
+                        </p>
+                    </div>
+
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBackToSignupPhone}
-                            className="p-1 h-auto"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                          </Button>
-                          <Label htmlFor="signupOtp" className="text-base">Enter OTP</Label>
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          We've sent a verification code to {countryCode} {signupForm.phone}
-                        </div>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                          <Input
-                            id="signupOtp"
-                            type="text"
-                            placeholder="Enter 6-digit OTP"
-                            className="pl-10"
-                            value={signupForm.otp}
-                            onChange={(e) => setSignupForm({...signupForm, otp: e.target.value})}
-                            maxLength={6}
-                          />
-                        </div>
-                        <div className="text-center">
-                          <Button 
-                            variant="link" 
-                            className="text-sm p-0 h-auto"
-                            onClick={() => handleResendOtp('signup')}
-                          >
-                            Didn't receive code? Resend
-                          </Button>
-                        </div>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          id="signupOtp"
+                          type="text"
+                          placeholder="Enter 6-digit code"
+                          className="pl-11 h-11 border-gray-200 focus:border-[#f48432] focus-visible:ring-0 focus:ring-0 text-center text-lg tracking-widest"
+                          value={signupForm.otp}
+                          onChange={(e) => setSignupForm({...signupForm, otp: e.target.value})}
+                          maxLength={6}
+                        />
                       </div>
                       
-                      <Button 
-                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                        onClick={handleSignup}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Creating..." : "Verify & Create Account"}
-                      </Button>
+                      <div className="text-center">
+                        <Button 
+                          variant="link" 
+                          className="text-sm p-0 h-auto text-[#f48432]"
+                          onClick={() => handleResendOtp('signup')}
+                        >
+                          Resend OTP
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-              
-              <div className="mt-6 text-center text-sm text-muted-foreground">
-                {activeTab === "login" ? (
-                  <>
-                    Don't have an account?{" "}
-                                         <Button 
-                       variant="link" 
-                       className="p-0 h-auto text-blue-600"
-                       onClick={() => setActiveTab("signup")}
-                     >
-                       Sign up
-                     </Button>
-                  </>
-                ) : (
-                  <>
-                    Already have an account?{" "}
-                                         <Button 
-                       variant="link" 
-                       className="p-0 h-auto text-blue-600"
-                       onClick={() => setActiveTab("login")}
-                     >
-                       Sign in
-                     </Button>
-                  </>
+                    
+                    <Button 
+                      className="w-full bg-[#212c40] hover:bg-[#2d3a52] text-white h-11 rounded-xl font-semibold shadow-lg transition-all"
+                      onClick={handleSignup}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Verifying..." : "Complete Signup"}
+                    </Button>
+                  </div>
                 )}
-              </div>
-              
-
-            </CardContent>
-          </Card>
-        </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background z-50">
-        <div className="flex justify-around py-2">
-          <Link to="/" className="flex flex-col items-center space-y-1">
-            <Home className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Home</span>
-          </Link>
-          <Link to="/bookings" className="flex flex-col items-center space-y-1">
-            <List className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Bookings</span>
-          </Link>
-          <Link to="/help" className="flex flex-col items-center space-y-1">
-            <HelpCircle className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Help</span>
-          </Link>
-          <Link to="/auth" className="flex flex-col items-center space-y-1">
-            <User className="w-5 h-5 text-primary" />
-            <span className="text-xs text-primary font-medium">Account</span>
-          </Link>
-        </div>
-      </div>
+      <UserBottomNavigation />
     </div>
   );
 };
 
-export default Auth; 
+export default Auth;

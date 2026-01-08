@@ -635,7 +635,7 @@ const AdminUserManagement = () => {
                 <p className="text-xs lg:text-sm font-medium text-gray-600">Total Users</p>
                 <p className="text-lg lg:text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
               </div>
-              <Users className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600" />
+              <Users className="w-6 h-6 lg:w-8 lg:h-8 text-[#29354C]" />
             </div>
           </CardContent>
         </Card>
@@ -685,18 +685,18 @@ const AdminUserManagement = () => {
 
       {/* Bulk Actions Bar */}
       {selectedUsers.length > 0 && (
-        <Card className="mb-4 shadow-sm border-0 bg-blue-50">
+        <Card className="mb-4 shadow-sm border-0 bg-[#29354C]/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-blue-900">
+                <span className="text-sm font-medium text-[#29354C]">
                   {selectedUsers.length} user(s) selected
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={clearSelection}
-                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                  className="text-[#29354C] border-[#29354C]/30 hover:bg-[#29354C]/10"
                   disabled={isBulkUpdating}
                 >
                   Clear Selection
@@ -922,7 +922,7 @@ const AdminUserManagement = () => {
                         <h3 className="font-semibold text-gray-900 truncate">{`${user.firstName} ${user.lastName}`}</h3>
                         <div className="flex flex-wrap gap-2">
                           {user.isVerified && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                            <Badge variant="secondary" className="bg-[#29354C]/10 text-[#29354C] text-xs">
                               <Shield className="w-3 h-3 mr-1" />
                               Verified
                             </Badge>
@@ -1080,9 +1080,9 @@ const AdminUserManagement = () => {
                       <span className="ml-1 capitalize">{selectedUser.isActive ? 'active' : 'inactive'}</span>
                     </Badge>
                     {selectedUser.isVerified && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      <Badge variant="secondary" className="bg-[#29354C]/10 text-[#29354C]">
                         <Shield className="w-3 h-3 mr-1" />
-                        Verified
+                        Verified Account
                       </Badge>
                     )}
                   </div>
@@ -1258,7 +1258,7 @@ const AdminUserManagement = () => {
                     <span className="ml-1 capitalize">{editUserForm.isActive ? 'active' : 'inactive'}</span>
                   </Badge>
                   {editUserForm.isVerified && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    <Badge variant="secondary" className="bg-[#29354C]/10 text-[#29354C]">
                       <Shield className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
@@ -1295,25 +1295,25 @@ const AdminUserManagement = () => {
               </div>
 
               {/* Account Summary */}
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-800">Total Bookings:</span>
-                    <span className="font-medium text-blue-900">{editUserForm.totalBookings}</span>
+              <div className="p-3 bg-[#29354C]/5 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-[#29354C]">Total Bookings:</span>
+                    <span className="font-medium text-[#29354C]">{editUserForm.totalBookings}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-800">Total Spent:</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(editUserForm.totalSpent)}</span>
+                  <div className="flex flex-col text-right">
+                    <span className="text-sm text-[#29354C]">Total Spent:</span>
+                    <span className="font-medium text-[#29354C]">{formatCurrency(editUserForm.totalSpent)}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-800">Average per Booking:</span>
-                    <span className="font-medium text-blue-900">
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-[#29354C]">Average per Booking:</span>
+                  <span className="font-medium text-[#29354C]">
                       {editUserForm.totalBookings > 0 
                         ? formatCurrency(editUserForm.totalSpent / editUserForm.totalBookings)
                         : '₹0'
                       }
                     </span>
-                  </div>
                 </div>
               </div>
             </div>

@@ -1,182 +1,153 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Smartphone } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import busLogo from '../assets/BusLogo.png';
 
 const Footer = () => {
-  const footerSections = [
-    {
-      title: "Company",
-      links: ["About Us", "Careers", "Contact Us",]
-    },
-    {
-      title: "Support",
-      links: ["Help Center", "Terms & Conditions", "Privacy Policy", "Cancellation Policy", "Refund Policy"]
-    },
-    {
-      title: "Services",
-              links: ["Bus Booking", "Car Booking", "Auto-Ricksaw Booking", "Group Vehicle Booking"]
-    },
-    {
-      title: "Top Routes",
-      links: ["Delhi to Mumbai", "Bangalore to Chennai", "Hyderabad to Pune", "Mumbai to Goa", "Chennai to Coimbatore"]
-    },
-  ];
-
   return (
-    <footer className="bg-black text-white">
-      {/* Newsletter Section */}
-      <div className="border-b border-white/10">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Stay Updated</h3>
-              <p className="text-white/80">
-                Subscribe to get the latest offers and travel updates
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="Enter your email address"
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
-              />
-              <Button className="bg-blue-600 text-white">
-                <Mail className="w-4 h-4 mr-2" />
-                Subscribe
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <footer className="bg-[#0f172a] text-white">
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Brand Section */}
-          <div className="lg:col-span-1">
-            <img src={busLogo} alt="Bus Logo" className="h-10 w-auto mb-4 filter brightness-0 invert" />
-            <p className="text-white/80 mb-4">
-              India's leading Bus, Car, and Auto-Ricksaw booking platform connecting millions of travelers with trusted operators.
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          
+          {/* Column 1: About Us */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold">About Us</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Happiness Car Rental Service (travel Vertical) is the division of Happiness Car Rental Services Private Limited, And H.S. ENTERPRISES an Indian Company.
             </p>
             
-            {/* Download App Button */}
-            <div className="mb-4">
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+            {/* Google Play Button */}
+            <div className="pt-4">
+              <img 
+                src="https://happinesscarrental.com/img/playstorepng.png" 
+                alt="Get it on Google Play" 
+                className="h-12 w-auto cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => window.open('https://play.google.com/store/apps/details?id=com.chalo.sawari', '_blank')}
-              >
-                <Smartphone className="w-4 h-4 mr-2" />
-                Download App
-              </Button>
+              />
             </div>
-            
-            <div className="flex space-x-4">
-              <Button variant="ghost" size="icon" className="text-white/80">
-                <Facebook className="w-5 h-5" />
+          </div>
+
+          {/* Column 2: Quick Links 1 */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold">Quick Links</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/bookings" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Booking
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> About
+                </Link>
+              </li>
+              <li>
+                <Link to="/blog" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Blog/B2B Partner
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/career" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Career
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Quick Links 2 */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold">Quick Links</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/refund-policy" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/sla-agreement" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> SLA Agreement for Vendor / Driver
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms-conditions" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Terms & Conditions
+                </Link>
+              </li>
+              <li>
+                <Link to="/archives" className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+                  <span className="text-xs">›</span> Archives Stories
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Contact Info */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold">Contact Info</h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 text-gray-400">
+                <MapPin className="w-5 h-5 mt-1 flex-shrink-0 text-gray-500" />
+                <span className="text-sm leading-relaxed">
+                  Near Rajratna Hotel, TATA Company, Pune Nashik Highway, Chakan, Pune, Maharashtra 410501
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-gray-400">
+                <Mail className="w-5 h-5 flex-shrink-0 text-gray-500" />
+                <a href="mailto:info@happinesscarrental.com" className="text-sm hover:text-white transition-colors">
+                  info@happinesscarrental.com
+                </a>
+              </div>
+              <div className="flex items-center gap-4 text-gray-400">
+                <Phone className="w-5 h-5 flex-shrink-0 text-gray-500" />
+                <div className="flex flex-col text-sm">
+                  <a href="tel:+917058928801" className="hover:text-white transition-colors">+91 7058928801</a>
+                  <a href="tel:+918178710350" className="hover:text-white transition-colors">+91 8178710350</a>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Icons */}
+            <div className="flex gap-3 pt-2">
+              <Button size="icon" className="bg-[#1e293b] hover:bg-[#334155] rounded-full w-10 h-10 transition-colors border-none">
+                <Facebook className="w-5 h-5 text-white" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-white/80">
-                <Twitter className="w-5 h-5" />
+              <Button size="icon" className="bg-[#1e293b] hover:bg-[#334155] rounded-full w-10 h-10 transition-colors border-none">
+                <Twitter className="w-5 h-5 text-white" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-white/80">
-                <Instagram className="w-5 h-5" />
+              <Button size="icon" className="bg-[#1e293b] hover:bg-[#334155] rounded-full w-10 h-10 transition-colors border-none">
+                <Instagram className="w-5 h-5 text-white" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-white/80">
-                <Linkedin className="w-5 h-5" />
+              <Button size="icon" className="bg-[#1e293b] hover:bg-[#334155] rounded-full w-10 h-10 transition-colors border-none">
+                <Linkedin className="w-5 h-5 text-white" />
               </Button>
             </div>
           </div>
 
-          {/* Footer Links */}
-          {footerSections.map((section, index) => (
-            <div key={index}>
-              <h4 className="font-semibold text-lg mb-4">{section.title}</h4>
-              <ul className="space-y-2">
-                {section.links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
-                    {link === "Help Center" ? (
-                      <Link to="/help">
-                        <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                          {link}
-                        </Button>
-                      </Link>
-                    ) : link === "Terms & Conditions" ? (
-                      <Link to="/terms-conditions">
-                        <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                          {link}
-                        </Button>
-                      </Link>
-                    ) : link === "Privacy Policy" ? (
-                      <Link to="/privacy-policy">
-                        <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                          {link}
-                        </Button>
-                      </Link>
-                    ) : link === "Cancellation Policy" ? (
-                      <Link to="/cancellation-policy">
-                        <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                          {link}
-                        </Button>
-                      </Link>
-                    ) : link === "Refund Policy" ? (
-                      <Link to="/refund-policy">
-                        <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                          {link}
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button variant="link" className="text-white/80 p-0 h-auto font-normal">
-                        {link}
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Contact Info */}
-      <div className="border-t border-white/10">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start space-x-3">
-              <Phone className="w-5 h-5 text-blue-400" />
-              <span className="text-white/80">Customer Care: +91 9171838260</span>
-            </div>
-            <div className="flex items-center justify-center md:justify-start space-x-3">
-              <Mail className="w-5 h-5 text-blue-400" />
-                              <span className="text-white/80"><a href="mailto:chalosawariofficial@gmail.com">chalosawariofficial@gmail.com</a></span>
-            </div>
-            <div className="flex items-center justify-center md:justify-start space-x-3">
-              <MapPin className="w-5 h-5 text-blue-400" />
-              <span className="text-white/80">Indore, India</span>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-gray-800 bg-[#020617]">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center text-white/60 text-sm">
-            <p>&copy; 2025 Chalo Sawari. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link to="/terms-conditions">
-                <Button variant="link" className="text-white/60 p-0 h-auto font-normal text-sm">
-                  Terms of Service
-                </Button>
-              </Link>
-              <Link to="/privacy-policy">
-                <Button variant="link" className="text-white/60 p-0 h-auto font-normal text-sm">
-                  Privacy Policy
-                </Button>
-              </Link>
-              <Button variant="link" className="text-white/60 p-0 h-auto font-normal text-sm">
-                Cookie Policy
-              </Button>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-gray-500 text-sm">
+            <div className="flex items-center gap-2">
+              <span>&copy; HCR, All right reserved.</span>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <span>Designed By</span>
+              <span className="font-semibold text-white">HCR</span>
             </div>
           </div>
         </div>

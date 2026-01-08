@@ -269,7 +269,7 @@ const AdminPaymentManagement = () => {
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
+        return <Badge className="bg-[#29354C]/10 text-[#29354C]">Processing</Badge>;
       case 'failed':
         return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
       case 'refunded':
@@ -390,8 +390,8 @@ const AdminPaymentManagement = () => {
           <Card>
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <div className="p-2 bg-[#29354C]/10 rounded-lg flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#29354C]" />
                 </div>
                 <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                   <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Successful</p>
@@ -456,8 +456,8 @@ const AdminPaymentManagement = () => {
                   <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Refunded</p>
                   <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{paymentStats.refundedPayments}</p>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0 ml-3">
-                  <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <div className="p-2 bg-[#29354C]/10 rounded-lg flex-shrink-0 ml-3">
+                  <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#29354C]" />
                 </div>
               </div>
             </CardContent>
@@ -561,7 +561,7 @@ const AdminPaymentManagement = () => {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#29354C] mx-auto"></div>
                 <p className="mt-2 text-gray-600">Loading payments...</p>
               </div>
             ) : filteredPayments.length === 0 ? (
@@ -759,7 +759,7 @@ const AdminPaymentManagement = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg lg:text-xl">
-              <CreditCard className="w-5 h-5 text-blue-600" />
+              <CreditCard className="w-5 h-5 text-[#29354C]" />
               Payment Details
             </DialogTitle>
           </DialogHeader>
@@ -767,8 +767,8 @@ const AdminPaymentManagement = () => {
             <div className="space-y-4 sm:space-y-6">
               {/* Payment Header - Mobile Optimized */}
               <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full flex-shrink-0 mx-auto sm:mx-0">
-                  <CreditCard className="w-8 h-8 text-blue-600" />
+                <div className="flex items-center justify-center w-16 h-16 bg-[#29354C]/10 rounded-full flex-shrink-0 mx-auto sm:mx-0">
+                  <CreditCard className="w-8 h-8 text-[#29354C]" />
                 </div>
                 <div className="flex-1 min-w-0 text-center sm:text-left">
                   <h3 className="text-lg sm:text-xl font-semibold truncate">

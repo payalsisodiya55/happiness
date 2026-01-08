@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Globe, HelpCircle, Phone, Bell, Settings, User, LogOut, Menu } from "lucide-react";
-import busLogo from "@/assets/BusLogo.png";
+import happinessLogo from "@/assets/Happiness-logo-removebg-preview.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useState } from "react";
@@ -43,12 +43,11 @@ const AdminTopNavigation = ({ isMobileMenuOpen, onMobileMenuToggle }: AdminTopNa
           <Link to="/admin" className="flex items-center ml-2 md:ml-4 hover:opacity-80 transition-opacity">
             <div className="flex items-center space-x-1 md:space-x-2">
               {/* Logo Icon */}
-              <img src={busLogo} alt="Bus Logo" className="w-16 h-16 md:w-16 md:h-20 lg:w-20 lg:h-20 object-contain" />
+              <img src={happinessLogo} alt="Happiness Logo" className="w-16 h-16 md:w-16 md:h-20 lg:w-20 lg:h-20 object-contain" />
               {/* Logo Text */}
               <div className="flex flex-col">
                 <div className="flex items-baseline">
-                  <span className="text-lg md:text-lg lg:text-2xl font-bold text-black">CHALO</span>
-                  <span className="text-lg md:text-lg lg:text-2xl font-bold text-blue-600 ml-1">SAWARI</span>
+                  <span className="text-xl md:text-2xl lg:text-3xl font-bold text-[#29354C]">Happiness</span>
                 </div>
                 <span className="text-xs text-gray-600 hidden sm:block">Admin Portal</span>
               </div>

@@ -418,9 +418,9 @@ const AdminBookingManagement = () => {
         );
       case 'accepted':
         return (
-          <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200 px-3 py-1.5 font-medium">
+          <Badge className="bg-[#29354C]/10 text-[#29354C] border-[#29354C]/20 px-3 py-1.5 font-medium">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-[#29354C] rounded-full"></div>
               Accepted
             </div>
           </Badge>
@@ -999,14 +999,14 @@ const AdminBookingManagement = () => {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="min-h-screen bg-gray-50">
         {/* Enhanced Header Section */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-6 sm:py-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                  <div className="p-2 bg-[#29354C] rounded-xl text-white">
                     <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                   </div>
                   <div>
@@ -1059,7 +1059,7 @@ const AdminBookingManagement = () => {
                 <Button
                   onClick={refreshBookings}
                   disabled={isRefreshing}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
+                  className="bg-[#29354C] hover:bg-[#29354C]/90 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
                 >
                   {isRefreshing ? (
                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
@@ -1086,7 +1086,7 @@ const AdminBookingManagement = () => {
                     <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
                     <p className="text-xs text-gray-500 mt-1">All time bookings</p>
                   </div>
-                  <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                  <div className="p-2 sm:p-3 bg-[#29354C] rounded-xl text-white">
                     <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                 </div>
@@ -1169,26 +1169,26 @@ const AdminBookingManagement = () => {
         {bookings.filter(b => b.payment.isPartialPayment).length > 0 && (
           <div className="px-4 sm:px-6 py-4">
             <div className="max-w-7xl mx-auto">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 sm:p-6">
+              <div className="bg-[#29354C]/5 border border-[#29354C]/10 rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-[#29354C]" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-blue-900">Partial Payment Summary</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-[#29354C]">Partial Payment Summary</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-blue-200">
-                    <div className="text-xs sm:text-sm font-medium text-blue-700 mb-1">Total Partial Payments</div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-900">{bookings.filter(b => b.payment.isPartialPayment).length}</div>
-                    <div className="text-xs text-blue-600 mt-1">Split payment bookings</div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#29354C]/10">
+                    <div className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Partial Payments</div>
+                    <div className="text-xl sm:text-2xl font-bold text-[#29354C]">{bookings.filter(b => b.payment.isPartialPayment).length}</div>
+                    <div className="text-xs text-gray-500 mt-1">Split payment bookings</div>
                   </div>
-                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-blue-200">
-                    <div className="text-xs sm:text-sm font-medium text-blue-700 mb-1">Pending Cash Collection</div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#29354C]/10">
+                    <div className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Pending Cash Collection</div>
                     <div className="text-xl sm:text-2xl font-bold text-orange-600">{bookings.filter(b => b.payment.isPartialPayment && b.payment.partialPaymentDetails?.cashPaymentStatus === 'pending').length}</div>
-                    <div className="text-xs text-blue-600 mt-1">Awaiting cash collection</div>
+                    <div className="text-xs text-gray-500 mt-1">Awaiting cash collection</div>
                   </div>
-                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-blue-200">
-                    <div className="text-xs sm:text-sm font-medium text-blue-700 mb-1">Completed Partial Payments</div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#29354C]/10">
+                    <div className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Completed Partial Payments</div>
                     <div className="text-xl sm:text-2xl font-bold text-green-600">{bookings.filter(b => b.payment.isPartialPayment && b.payment.partialPaymentDetails?.cashPaymentStatus === 'collected').length}</div>
                     <div className="text-xs text-blue-600 mt-1">Fully collected</div>
                   </div>

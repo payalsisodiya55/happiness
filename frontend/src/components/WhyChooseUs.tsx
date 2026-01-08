@@ -1,43 +1,42 @@
 import { Card } from "@/components/ui/card";
-import { Shield, Clock, MapPin, Headphones, CreditCard, Star, Users } from "lucide-react";
+import { ShieldCheck, Clock, Banknote, Award, Timer, MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const WhyChooseUs = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const [animatedFeatures, setAnimatedFeatures] = useState(Array(6).fill(false));
   const sectionRef = useRef(null);
 
   const features = [
     {
-      icon: <Shield className="w-8 h-8" />,
-      title: "Safe & Secure",
-      description: "Verified bus operators and secure payment gateway for safe transactions"
+      icon: <ShieldCheck className="w-8 h-8" />,
+      title: "Safe & Sanitized",
+      description: "Every car is thoroughly sanitized before delivery ensuring your complete safety and hygiene."
     },
     {
       icon: <Clock className="w-8 h-8" />,
-      title: "24/7 Support",
-      description: "Round the clock customer support to assist you with your travel needs"
-    },
-    
-    {
-      icon: <Headphones className="w-8 h-8" />,
-      title: "Customer Care",
-      description: "Dedicated customer care team to help you with bookings and queries"
+      title: "24/7 Assistance",
+      description: "Round-the-clock roadside assistance and support team to help you anywhere, anytime."
     },
     {
-      icon: <CreditCard className="w-8 h-8" />,
-      title: "Easy Payments",
-      description: "Multiple payment options including UPI, cards, and digital wallets"
+      icon: <Banknote className="w-8 h-8" />,
+      title: "Transparent Pricing",
+      description: "No hidden charges, zero security deposit options, and honest pricing policies."
     },
     {
-      icon: <Star className="w-8 h-8" />,
-      title: "Best Prices",
-              description: "Compare prices across operators and get the best deals on Bus, Car, and Auto-Ricksaw bookings"
+      icon: <Award className="w-8 h-8" />,
+      title: "Premium Fleet",
+      description: "Choose from our wide range of well-maintained, high-quality vehicles for a premium experience."
     },
     {
-      icon: <Users className="w-8 h-8" />,
-      title: "Quality Services",
-      description: "Chalo Sawari provides the best quality services to its customers"
+      icon: <Timer className="w-8 h-8" />,
+      title: "Instant Booking",
+      description: "Quick and seamless booking process. Get your car in minutes with minimal documentation."
+    },
+    {
+      icon: <MapPin className="w-8 h-8" />,
+      title: "Doorstep Delivery",
+      description: "We deliver the car to your doorstep and pick it up, saving you time and hassle."
     }
   ];
 
@@ -46,16 +45,8 @@ const WhyChooseUs = () => {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          // Stagger the feature animations
-          features.forEach((_, index) => {
-            setTimeout(() => {
-              setAnimatedFeatures(prev => {
-                const newState = [...prev];
-                newState[index] = true;
-                return newState;
-              });
-            }, index * 150); // 150ms delay between each feature
-          });
+        } else {
+          setIsVisible(false);
         }
       },
       { threshold: 0.1 }
@@ -69,38 +60,51 @@ const WhyChooseUs = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-16 bg-white">
-      <div className="container mx-auto px-4">
-        <div className={`text-center mb-12 transition-all duration-1000 ease-out ${
+    <section ref={sectionRef} className="pt-20 pb-10 bg-gray-50/50 relative overflow-hidden">
+      {/* Decorative Elements */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-100/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+
+      <div className="container mx-auto px-4 relative z-10">
+        <div className={cn(
+          "text-center mb-16 transition-all duration-1000 ease-out transform",
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 transition-all duration-300 hover:scale-105">
-            Why Choose Chalo Sawari?
+        )}>
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            Why Choose <span className="text-[#212c40]">Happiness?</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto transition-all duration-300 hover:text-foreground">
-            Experience the best Bus, Car, and Auto-Ricksaw booking platform with unmatched service quality and customer satisfaction
+          <p className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed">
+            Experience the freedom of self-drive with India's most trusted car rental service.
+            We prioritize your comfort, safety, and happiness.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {features.map((feature, index) => (
             <Card 
               key={index} 
-              className={`p-6 text-center transition-all duration-700 ease-out ${
-                animatedFeatures[index] ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
-              } hover:shadow-2xl hover:scale-105 hover:-translate-y-2 border-border bg-white hover:border-primary/20`}
+              className={cn(
+                "group p-8 text-center border-0 shadow-lg bg-white rounded-2xl transition-all duration-700 ease-out hover:-translate-y-2 hover:shadow-xl relative overflow-hidden",
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
+              )}
+              style={{ transitionDelay: `${index * 100}ms` }}
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full text-primary mb-4 transition-all duration-300 hover:bg-primary/20 hover:scale-110 hover:rotate-12">
-                <div className="transition-all duration-300 hover:scale-110">
+              {/* Hover Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#212c40]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div className="relative z-10">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-[#212c40]/5 rounded-2xl text-[#212c40] mb-6 transition-all duration-500 group-hover:bg-[#212c40] group-hover:text-white group-hover:rotate-6 shadow-sm">
                   {feature.icon}
                 </div>
+                
+                <h3 className="text-2xl font-bold text-[#212c40] mb-4 group-hover:text-[#f48432] transition-colors duration-300">
+                  {feature.title}
+                </h3>
+                
+                <p className="text-gray-500 leading-relaxed text-base group-hover:text-gray-700 transition-colors duration-300">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3 transition-all duration-300 hover:text-primary">
-                {feature.title}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed transition-all duration-300 hover:text-foreground">
-                {feature.description}
-              </p>
             </Card>
           ))}
         </div>

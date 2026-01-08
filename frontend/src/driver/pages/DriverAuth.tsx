@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import DriverTopNavigation from "../components/DriverTopNavigation";
-import busLogo from "@/assets/BusLogo.png";
+import happinessLogo from "@/assets/Happiness-logo.jpeg";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDriverAuth } from "@/contexts/DriverAuthContext";
@@ -270,11 +270,10 @@ const DriverAuth = () => {
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
                 <div className="flex items-center space-x-2">
-                  <img src={busLogo} alt="Bus Logo" className="w-12 h-12 object-contain" />
+                  <img src={happinessLogo} alt="Happiness Logo" className="w-12 h-12 object-contain" />
                   <div className="flex flex-col">
                     <div className="flex items-baseline">
-                      <span className="text-xl font-bold text-black">CHALO</span>
-                      <span className="text-xl font-bold text-blue-600 ml-1">SAWARI</span>
+                      <span className="text-xl font-bold text-black">Happiness</span>
                     </div>
                     <span className="text-xs text-gray-600">Driver Portal</span>
                   </div>

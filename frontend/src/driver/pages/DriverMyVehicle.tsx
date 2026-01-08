@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DriverTopNavigation from "@/driver/components/DriverTopNavigation";
+
+import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
 import AddVehicleForm from "@/driver/components/AddVehicleForm";
 import { Home, MessageSquare, Car, User, Plus, Edit, Trash2, MapPin, Calendar, Fuel, Settings, CheckCircle, AlertCircle, Search, Filter, Upload, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -363,65 +364,74 @@ const DriverMyVehicle = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-y-auto">
-      <DriverTopNavigation />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-20">
       
-      {/* Driver Header */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 text-white py-4 shadow-md relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-24 translate-x-24"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-16 -translate-x-16"></div>
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold mb-1 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                Owner Driver
-              </h1>
-              <p className="text-blue-100 text-xs lg:text-sm font-medium">Manage Your Vehicle Fleet</p>
+      {/* Sticky Header Wrapper */}
+      <div className="sticky top-0 z-40">
+        {/* Driver Header */}
+        <div className="bg-[#29354c] text-white pt-6 pb-16 shadow-md relative overflow-hidden rounded-b-[2rem]">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-bold mb-1 text-white">
+                  My Fleet
+                </h1>
+                <p className="text-gray-300 text-sm">Manage your vehicles and documents</p>
+              </div>
+              <Button 
+                className="bg-[#f48432] text-white hover:bg-[#e07528] shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 text-sm font-semibold rounded-full hover:scale-105"
+                onClick={() => setShowAddDialog(true)}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Vehicle
+              </Button>
             </div>
-            <Button 
-              className="bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-300 px-4 py-2 text-sm font-semibold rounded-md hover:scale-105"
-              onClick={() => setShowAddDialog(true)}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Vehicle
-            </Button>
+          </div>
+        </div>
+
+        {/* Vehicle Stats - moved here for sticky effect */}
+        <div className="container mx-auto px-4 -mt-12 relative z-50">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-8">
+          <Card className="bg-white border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl overflow-hidden relative group">
+             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#29354c] group-hover:w-2 transition-all"></div>
+            <CardContent className="p-3 sm:p-5 text-center relative z-10">
+              <div className="text-3xl sm:text-5xl font-bold text-[#29354c] mb-1">{vehicles.length}</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-bold uppercase tracking-wider">Total Vehicles</div>
+            </CardContent>
+            <div className="absolute right-0 bottom-0 p-2 opacity-5">
+              <Car className="w-16 h-16 text-[#29354c]" />
+            </div>
+          </Card>
+          <Card className="bg-white border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl overflow-hidden relative group">
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500 group-hover:w-2 transition-all"></div>
+            <CardContent className="p-3 sm:p-5 text-center relative z-10">
+              <div className="text-3xl sm:text-5xl font-bold text-green-600 mb-1">
+                {vehicles.filter(v => v.isAvailable).length}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-500 font-bold uppercase tracking-wider">Active</div>
+            </CardContent>
+            <div className="absolute right-0 bottom-0 p-2 opacity-5">
+              <CheckCircle className="w-16 h-16 text-green-600" />
+            </div>
+          </Card>
+          <Card className="bg-white border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl overflow-hidden relative group">
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#f48432] group-hover:w-2 transition-all"></div>
+            <CardContent className="p-3 sm:p-5 text-center relative z-10">
+              <div className="text-3xl sm:text-5xl font-bold text-[#f48432] mb-1">
+                {vehicles.filter(v => !v.isAvailable).length}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-500 font-bold uppercase tracking-wider">Inactive</div>
+            </CardContent>
+            <div className="absolute right-0 bottom-0 p-2 opacity-5">
+              <AlertCircle className="w-16 h-16 text-[#f48432]" />
+            </div>
+          </Card>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 pb-20">
-        {/* Vehicle Stats */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 border-blue-300 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl sm:rounded-2xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-blue-300/20 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-12 sm:translate-x-12"></div>
-            <CardContent className="p-3 sm:p-6 text-center relative z-10">
-              <div className="text-2xl sm:text-4xl font-bold text-blue-700 mb-1 sm:mb-2">{vehicles.length}</div>
-              <div className="text-xs sm:text-sm text-blue-800 font-semibold">Total</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-green-50 via-green-100 to-green-200 border-green-300 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl sm:rounded-2xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-green-300/20 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-12 sm:translate-x-12"></div>
-            <CardContent className="p-3 sm:p-6 text-center relative z-10">
-              <div className="text-2xl sm:text-4xl font-bold text-green-700 mb-1 sm:mb-2">
-                {vehicles.filter(v => v.isAvailable).length}
-              </div>
-              <div className="text-xs sm:text-sm text-green-800 font-semibold">Active</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 border-orange-300 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl sm:rounded-2xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-orange-300/20 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-12 sm:translate-x-12"></div>
-            <CardContent className="p-3 sm:p-6 text-center relative z-10">
-              <div className="text-2xl sm:text-4xl font-bold text-orange-700 mb-1 sm:mb-2">
-                {vehicles.filter(v => !v.isAvailable).length}
-              </div>
-              <div className="text-xs sm:text-sm text-orange-800 font-semibold">Inactive</div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="container mx-auto px-4 py-8 pb-20 mt-4">
         {/* Vehicles List */}
         <div className="space-y-6 mb-8">
           <div className="flex items-center justify-between">
@@ -434,22 +444,24 @@ const DriverMyVehicle = () => {
           </div>
           
           {filteredVehicles.length === 0 ? (
-            <Card className="bg-white shadow-md">
-              <CardContent className="p-12 text-center">
-                <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-600 mb-2">No vehicles found</h3>
-                <p className="text-gray-500 mb-4">
+            <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
+              <CardContent className="p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+                <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                  <Car className="w-12 h-12 text-[#29354c]" />
+                </div>
+                <h3 className="text-2xl font-bold text-[#29354c] mb-2">No vehicles found</h3>
+                <p className="text-gray-500 mb-8 max-w-sm mx-auto">
                   {searchTerm || filterStatus !== 'all' || filterType !== 'all' 
                     ? "Try adjusting your search criteria or filters."
-                    : "Get started by adding your first vehicle to the fleet."
+                    : "Your fleet is currently empty. Add your first vehicle to start earning."
                   }
                 </p>
                 {!searchTerm && filterStatus === 'all' && filterType === 'all' && (
                   <Button 
                     onClick={() => setShowAddDialog(true)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-[#f48432] hover:bg-[#e07528] text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-6 h-6 mr-2" />
                     Add Your First Vehicle
                   </Button>
                 )}
@@ -474,8 +486,8 @@ const DriverMyVehicle = () => {
 
       {/* Add Vehicle Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-[90vh] max-h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+          <DialogHeader className="p-6 shrink-0">
             <DialogTitle>Add New Vehicle</DialogTitle>
           </DialogHeader>
           <AddVehicleForm 
@@ -489,8 +501,8 @@ const DriverMyVehicle = () => {
 
       {/* Edit Vehicle Dialog */}
       <Dialog open={!!editingVehicle} onOpenChange={() => setEditingVehicle(null)}>
-        <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-[90vh] max-h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+          <DialogHeader className="p-6 shrink-0">
             <DialogTitle>Edit Vehicle</DialogTitle>
           </DialogHeader>
           {editingVehicle && (
@@ -784,38 +796,7 @@ const DriverMyVehicle = () => {
       </Dialog>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-white z-50">
-        <div className="flex justify-around py-2">
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 ${activeTab === "home" ? "text-blue-600" : "text-gray-500"}`}
-            onClick={() => handleTabChange("home")}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-xs">Home</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 ${activeTab === "requests" ? "text-blue-600" : "text-gray-500"}`}
-            onClick={() => handleTabChange("requests")}
-          >
-            <MessageSquare className="w-5 h-5" />
-            <span className="text-xs">Requests</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 ${activeTab === "myvehicle" ? "text-blue-600" : "text-gray-500"}`}
-            onClick={() => handleTabChange("myvehicle")}
-          >
-            <Car className="w-5 h-5" />
-            <span className="text-xs">MyVehicle</span>
-          </button>
-          <button 
-            className={`flex flex-col items-center space-y-1 p-2 ${activeTab === "profile" ? "text-blue-600" : "text-gray-500"}`}
-            onClick={() => handleTabChange("profile")}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-xs">Profile</span>
-          </button>
-        </div>
-      </div>
+      <DriverBottomNavigation />
     </div>
   );
 };
@@ -878,12 +859,12 @@ const VehicleCard = ({
   };
 
   return (
-    <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white/95 backdrop-blur-sm rounded-xl overflow-hidden group">
+    <Card className="hover:shadow-xl transition-all duration-300 border border-gray-100 shadow-sm bg-white rounded-xl overflow-hidden group">
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Vehicle Image - Compact */}
           <div className="relative flex-shrink-0">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 overflow-hidden rounded-lg border border-gray-200 shadow-sm group-hover:shadow-md transition-all duration-300">
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 overflow-hidden rounded-xl border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-300">
               {vehicle.images && vehicle.images.length > 0 ? (
                 <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}>
                   {vehicle.images.map((image, index) => (
@@ -923,7 +904,7 @@ const VehicleCard = ({
                     Active
                   </Badge>
                 ) : (
-                  <Badge className="bg-orange-500 text-white border-0 shadow-sm text-xs px-1.5 py-0.5 rounded-full">
+                  <Badge className="bg-[#f48432] text-white border-0 shadow-sm text-xs px-1.5 py-0.5 rounded-full">
                     <AlertCircle className="w-2.5 h-2.5 mr-0.5" />
                     Inactive
                   </Badge>
@@ -935,14 +916,14 @@ const VehicleCard = ({
                 <>
                   <button
                     onClick={() => handleImageNavigation('prev')}
-                    className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 text-white p-1 rounded-full hover:bg-black/90 transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
+                    className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => handleImageNavigation('next')}
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/70 text-white p-1 rounded-full hover:bg-black/90 transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
                     aria-label="Next image"
                   >
                     <ChevronRight className="w-3 h-3" />
@@ -950,7 +931,7 @@ const VehicleCard = ({
                   
                   {/* Image Counter */}
                   <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-black/80 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    <Badge className="bg-black/60 backdrop-blur-[2px] text-white text-[10px] px-1.5 py-0 rounded-full font-normal">
                       {currentImageIndex + 1}/{vehicle.images.length}
                     </Badge>
                   </div>
@@ -963,16 +944,16 @@ const VehicleCard = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold text-gray-800 truncate">{vehicle.brand} {vehicle.model}</h3>
+                <h3 className="text-lg font-bold text-[#29354c] truncate">{vehicle.brand} {vehicle.model}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize">
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5 capitalize bg-blue-50 text-[#29354c]">
                     {vehicle.type}
                   </Badge>
-                  <span className="text-xs text-gray-500">• {vehicle.year}</span>
+                  <span className="text-xs text-gray-400">• <span className="text-gray-600">{vehicle.year}</span></span>
                 </div>
                 {vehicle.vehicleLocation?.address && (
                   <div className="flex items-start gap-1 mt-1 text-xs text-gray-500">
-                    <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0 text-[#f48432]" />
                     <span className="truncate">{vehicle.vehicleLocation.address}</span>
                   </div>
                 )}
@@ -981,17 +962,17 @@ const VehicleCard = ({
               {/* Action Buttons */}
               <div className="flex space-x-1 ml-2">
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm"
                   onClick={onEdit}
-                  className="h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200"
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-[#29354c] hover:bg-blue-50 transition-all duration-200 rounded-full"
                 >
-                  <Edit className="w-3.5 h-3.5" />
+                  <Edit className="w-4 h-4" />
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 border-red-600 hover:bg-red-50 transition-all duration-200">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 rounded-full">
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -1018,12 +999,12 @@ const VehicleCard = ({
             {/* Key Details Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               <div className="text-center p-2 bg-gray-50 rounded-lg">
-                <div className="text-xs text-gray-600">Registration</div>
-                <div className="text-xs font-mono font-medium text-gray-800 truncate">{vehicle.registrationNumber}</div>
+                <div className="text-[10px] text-gray-400 uppercase font-semibold">Registration</div>
+                <div className="text-xs font-mono font-bold text-[#29354c] truncate">{vehicle.registrationNumber}</div>
               </div>
               <div className="text-center p-2 bg-gray-50 rounded-lg">
-                <div className="text-xs text-gray-600">Fuel</div>
-                <div className="text-xs font-medium text-gray-800 capitalize">{vehicle.fuelType}</div>
+                <div className="text-[10px] text-gray-400 uppercase font-semibold">Fuel</div>
+                <div className="text-xs font-bold text-[#29354c] capitalize truncate">{vehicle.fuelType}</div>
               </div>
             </div>
 
@@ -1060,22 +1041,22 @@ const VehicleCard = ({
                   onToggleStatus(value)
                 }
               >
-                <SelectTrigger className="flex-1 h-8 text-xs border-gray-200 hover:border-blue-300 focus:border-blue-500 rounded-lg transition-all duration-200">
+                <SelectTrigger className="flex-1 h-9 text-xs border-gray-200 hover:border-[#29354c] focus:border-[#29354c] rounded-lg transition-all duration-200 font-medium text-gray-600">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="active" className="text-green-600 font-medium">Active</SelectItem>
+                  <SelectItem value="inactive" className="text-gray-600">Inactive</SelectItem>
+                  <SelectItem value="maintenance" className="text-orange-600">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
               <Button 
                 variant="outline" 
                 size="sm"
-                className="h-8 px-3 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded-lg transition-all duration-300 text-xs"
+                className="h-9 px-4 hover:bg-[#29354c] hover:text-white border-[#29354c] text-[#29354c] rounded-lg transition-all duration-300 text-xs font-semibold"
                 onClick={onViewDetails}
               >
-                View Details
+                Details
               </Button>
             </div>
           </div>

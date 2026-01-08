@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { List, Clock, MapPin, Calendar, User, Home, HelpCircle, X, Bus, CreditCard, Phone, Mail, Loader2, Download, Receipt, RefreshCw } from "lucide-react";
+import { List, Clock, MapPin, Calendar, User, Home, HelpCircle, X, Car, CreditCard, Phone, Mail, Loader2, Download, Receipt, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TopNavigation from "@/components/TopNavigation";
@@ -12,6 +12,54 @@ import { toast } from "@/hooks/use-toast";
 import LoginPrompt from "@/components/LoginPrompt";
 import { formatDate, formatTime } from "@/lib/utils";
 import { calculateDistance } from "@/lib/distanceUtils";
+
+const sampleBookings = [
+  {
+    _id: "sample_1",
+    bookingNumber: "BK-2024-001",
+    status: "pending",
+    tripDetails: {
+      pickup: { address: "Indore, Madhya Pradesh", date: "2024-01-20", time: "10:00" },
+      destination: { address: "Bhopal, Madhya Pradesh" },
+      distance: 195,
+      duration: "3h 45m"
+    },
+    vehicle: { type: "Sedan", brand: "Maruti", model: "Dzire", registrationNumber: "MP-09-AB-1234" },
+    driver: { firstName: "Rajesh", lastName: "Kumar", phone: "+91 9876543210", rating: 4.8 },
+    pricing: { totalAmount: 2500, ratePerKm: 12 },
+    payment: { status: "pending", method: "cash" }
+  },
+  {
+    _id: "sample_2",
+    bookingNumber: "BK-2024-002",
+    status: "completed",
+    tripDetails: {
+      pickup: { address: "Ujjain, Madhya Pradesh", date: "2023-12-15", time: "08:00" },
+      destination: { address: "Indore, Madhya Pradesh" },
+      distance: 55,
+      duration: "1h 15m"
+    },
+    vehicle: { type: "SUV", brand: "Toyota", model: "Innova", registrationNumber: "MP-09-XY-9876" },
+    driver: { firstName: "Suresh", lastName: "Singh", phone: "+91 9876543211", rating: 4.9 },
+    pricing: { totalAmount: 1500, ratePerKm: 18 },
+    payment: { status: "completed", method: "razorpay", transactionId: "pay_123456" }
+  },
+   {
+    _id: "sample_3",
+    bookingNumber: "BK-2024-003",
+    status: "accepted",
+    tripDetails: {
+      pickup: { address: "Mumbai, Maharashtra", date: "2024-02-10", time: "06:00" },
+      destination: { address: "Pune, Maharashtra" },
+      distance: 150,
+      duration: "3h 00m"
+    },
+    vehicle: { type: "SUV", brand: "Mahindra", model: "XUV700", registrationNumber: "MH-01-CD-4567" },
+    driver: { firstName: "Amit", lastName: "Verma", phone: "+91 9876543212", rating: 4.7 },
+    pricing: { totalAmount: 3000, ratePerKm: 15 },
+    payment: { status: "pending", method: "cash" }
+  }
+];
 
 const Bookings = () => {
   const { user, isAuthenticated } = useUserAuth();
@@ -30,7 +78,15 @@ const Bookings = () => {
       setIsLoading(true);
       setError(null);
       
-      // Get all bookings for the user
+      // USING SAMPLE DATA FOR UI TESTING
+      // console.log("Using sample data for bookings");
+      // setTimeout to simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setBookings(sampleBookings);
+      setIsLoading(false);
+      
+      /* 
+      // Original API Call Logic - Commented out for UI testing
       const response = await apiService.getUserBookings();
       
       if (process.env.NODE_ENV === 'development') {
@@ -61,18 +117,10 @@ const Bookings = () => {
       } else {
         setError(response.error?.message || response.message || 'Failed to fetch bookings');
       }
+      */
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      if (error.message?.includes('Authentication failed')) {
-        setError('Your session has expired. Please login again.');
-      } else if (error.message?.includes('Route not found')) {
-        setError('API endpoint not found. Please check server configuration.');
-      } else if (error.message?.includes('Failed to fetch')) {
-        setError('Network error. Please check if the server is running.');
-      } else {
-        setError(`Failed to fetch bookings: ${error.message}`);
-      }
-    } finally {
+      setError(`Failed to fetch bookings: ${error.message}`);
       setIsLoading(false);
     }
   };
@@ -474,40 +522,42 @@ const Bookings = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopNavigation/>
+      <div className="hidden md:block">
+        <TopNavigation/>
+      </div>
       {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4 flex-shrink-0">
+      <div className="bg-[#212c40] text-white py-8 px-4 flex-shrink-0 shadow-md">
         <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">My Bookings</h1>
-                     <Button 
-             variant="outline" 
-             size="sm"
-             onClick={fetchBookings}
-             className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-           >
-             <Loader2 className="w-4 h-4 mr-2" />
-             Refresh
-           </Button>
+          <h1 className="text-xl font-bold tracking-wide">My Bookings</h1>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={fetchBookings}
+              className="hidden md:flex bg-white text-[#212c40] hover:bg-gray-100 border-none font-medium"
+            >
+              <Loader2 className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="sticky top-0 z-40 flex border-b border-border bg-background flex-shrink-0">
+      <div className="sticky top-0 z-40 flex border-b border-gray-200 bg-white flex-shrink-0 shadow-sm">
         <button
-          className={`flex-1 py-3 text-sm font-medium ${
+          className={`flex-1 py-4 text-sm font-semibold transition-colors ${
             activeTab === "upcoming"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground"
+              ? "text-[#f48432] border-b-2 border-[#f48432]"
+              : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("upcoming")}
         >
           Upcoming Bookings
         </button>
         <button
-          className={`flex-1 py-3 text-sm font-medium ${
+          className={`flex-1 py-4 text-sm font-semibold transition-colors ${
             activeTab === "past"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground"
+              ? "text-[#f48432] border-b-2 border-[#f48432]"
+              : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("past")}
         >
@@ -516,7 +566,7 @@ const Bookings = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-3 space-y-3 pb-24 md:pb-6 overflow-y-auto">
+      <div className="flex-1 p-3 pb-24 md:p-6 md:pb-6 overflow-y-auto bg-gray-50/50">
         {isLoading ? (
           <div className="text-center py-6">
             <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
@@ -536,228 +586,138 @@ const Bookings = () => {
             </div>
           </div>
         ) : currentBookings.length > 0 ? (
-          currentBookings.map((booking) => (
-            <Card key={booking._id} className="p-3 border border-border">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground text-sm leading-tight">
-                    {getPickupAddress(booking)} → {getDestinationAddress(booking)}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">ID: {booking.bookingNumber}</p>
-                </div>
-                <div className="flex flex-col space-y-0.5">
-                  <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 max-w-7xl mx-auto">
+            {currentBookings.map((booking) => (
+            <div key={booking._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden group">
+              {/* Header section with Route and Status */}
+              <div className="p-5 border-b border-gray-50 bg-gray-50/30">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        #{booking.bookingNumber.split('-').pop()}
+                      </span>
+                      <span className="text-xs text-gray-400">{formatDate(getBookingDate(booking))}</span>
+                    </div>
+                    <h3 className="font-bold text-[#212c40] text-lg leading-tight truncate">
+                      {getPickupAddress(booking).split(',')[0]} 
+                      <span className="mx-2 text-gray-300">→</span> 
+                      {getDestinationAddress(booking).split(',')[0]}
+                    </h3>
+                  </div>
+                  
+                  <div className={`px-3 py-1 text-xs font-semibold rounded-full capitalize shadow-sm border ${
                     ['accepted', 'started'].includes(booking.status)
-                      ? "bg-green-100 text-green-800" 
+                      ? "bg-green-50 text-green-700 border-green-100" 
                       : booking.status === 'pending'
-                      ? "bg-yellow-100 text-yellow-800"
+                      ? "bg-yellow-50 text-yellow-700 border-yellow-100"
                       : booking.status === 'completed'
-                      ? "bg-blue-100 text-blue-800"
+                      ? "bg-blue-50 text-blue-700 border-blue-100"
                       : booking.status === 'cancellation_requested'
-                      ? "bg-orange-100 text-orange-800"
-                      : booking.status === 'cancelled'
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-orange-50 text-orange-700 border-orange-100"
+                      : "bg-red-50 text-red-700 border-red-100"
                   }`}>
-                    {booking.status === 'cancellation_requested' 
-                      ? 'Cancellation Requested'
-                      : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
-                    }
-                  </span>
-                  
-                  {/* Show refund status for cancelled bookings */}
-                  {booking.status === 'cancelled' && booking.cancellation?.refundStatus && (
-                    <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                      booking.cancellation.refundStatus === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : booking.cancellation.refundStatus === 'initiated'
-                        ? 'bg-blue-100 text-blue-800'
-                        : booking.cancellation.refundStatus === 'completed'
-                        ? 'bg-green-100 text-green-800'
-                        : booking.cancellation.refundStatus === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      Refund: {booking.cancellation.refundStatus === 'pending' && 'Pending'}
-                      {booking.cancellation.refundStatus === 'initiated' && 'Initiated'}
-                      {booking.cancellation.refundStatus === 'completed' && 'Completed'}
-                      {booking.cancellation.refundStatus === 'failed' && 'Failed'}
-                    </span>
-                  )}
-                  
-                  {/* Show request status for cancellation requested bookings */}
-                  {booking.status === 'cancellation_requested' && booking.cancellation?.requestStatus && (
-                    <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                      booking.cancellation.requestStatus === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : booking.cancellation.requestStatus === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      Request: {booking.cancellation.requestStatus === 'pending' && 'Pending'}
-                      {booking.cancellation.requestStatus === 'approved' && 'Approved'}
-                      {booking.cancellation.requestStatus === 'rejected' && 'Rejected'}
-                    </span>
-                  )}
+                    {booking.status === 'cancellation_requested' ? 'Cancel Requested' : booking.status}
+                  </div>
                 </div>
               </div>
-              
-              <div className="space-y-1.5">
-                {/* Main Date Display - Simple and Clear */}
-                <div className="flex items-center space-x-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-foreground">
-                    {formatDate(getBookingDate(booking))}
-                    {getReturnDate(booking) && (
-                      <span className="text-blue-600 font-medium">
-                        {' → '}{formatDate(getReturnDate(booking))}
-                      </span>
-                    )}
-                  </span>
-                </div>
-                
-                
-                {/* Round Trip Indicator - Only show if it's actually a round trip */}
-                {getReturnDate(booking) && (
-                  <div className="bg-blue-50 border border-blue-200 rounded p-1.5">
-                    <div className="flex items-center justify-center space-x-1 text-xs">
-                      <span className="text-blue-700 font-medium">🔄</span>
-                      <span className="text-blue-800 font-medium">
-                        Round Trip: {formatDate(getBookingDate(booking))} → {formatDate(getReturnDate(booking))}
-                      </span>
-                      <span className="text-blue-600 font-bold">
-                        ({(() => {
-                          const start = new Date(getBookingDate(booking));
-                          const end = new Date(getReturnDate(booking));
-                          const diffTime = Math.abs(end.getTime() - start.getTime());
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-                        })()})
-                      </span>
-                    </div>
+
+              {/* Body Section */}
+              <div className="p-5 space-y-4">
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
+                  {/* Trip Type */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                     <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        {isRoundTrip(booking) ? '↔' : '→'}
+                     </div>
+                     <div>
+                       <p className="text-xs text-gray-400 font-medium uppercase">Trip Type</p>
+                       <p className="font-medium text-[#212c40]">{isRoundTrip(booking) ? 'Round Trip' : 'One Way'}</p>
+                     </div>
                   </div>
-                )}
-                
-                
-                {/* Trip Type Label */}
-                {(getReturnDate(booking) || getTripType(booking) === 'return') ? (
-                  <div className="flex items-center space-x-1.5">
-                    <div className="w-3.5 h-3.5 text-muted-foreground flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-600">↔</span>
-                    </div>
-                    <span className="text-xs text-blue-600 font-medium">
-                      Round Trip
-                    </span>
+
+                  {/* Time */}
+                  <div className="flex items-center gap-2 text-gray-600">
+                     <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-[#f48432]">
+                        <Clock className="w-4 h-4" />
+                     </div>
+                     <div>
+                       <p className="text-xs text-gray-400 font-medium uppercase">Pickup Time</p>
+                       <p className="font-medium text-[#212c40]">{formatTime(getBookingTime(booking))}</p>
+                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center space-x-1.5">
-                    <div className="w-3.5 h-3.5 text-muted-foreground flex items-center justify-center">
-                      <span className="text-xs font-bold text-gray-600">→</span>
-                    </div>
-                    <span className="text-xs text-gray-600 font-medium">
-                      One Way Trip
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex items-center space-x-1.5">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-foreground">
-                    {formatTime(getBookingTime(booking))}
-                  </span>
-                </div>
-                {getReturnDate(booking) && (
-                  <div className="flex items-center space-x-1.5">
-                    <div className="w-3.5 h-3.5 text-muted-foreground flex items-center justify-center">
-                      <span className="text-xs font-bold text-green-600">📅</span>
-                    </div>
-                    <span className="text-xs text-green-600 font-medium">
-                      {(() => {
-                        const start = new Date(getBookingDate(booking));
-                        const end = new Date(getReturnDate(booking));
-                        const diffTime = Math.abs(end.getTime() - start.getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return `${diffDays} day${diffDays > 1 ? 's' : ''} trip`;
-                      })()}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5">
-                    <Bus className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs text-foreground">
-                      {booking.vehicle?.type} - {booking.vehicle?.brand} {booking.vehicle?.model}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs text-foreground font-medium">₹{getBookingPricing(booking).totalAmount || 0}</span>
+
+                  {/* Vehicle */}
+                  <div className="col-span-2 flex items-center gap-2 pt-2 border-t border-gray-50 mt-1">
+                     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                        <Car className="w-4 h-4" />
+                     </div>
+                     <div className="flex-1">
+                       <p className="text-xs text-gray-400 font-medium uppercase">Vehicle</p>
+                       <p className="font-medium text-[#212c40]">
+                          {booking.vehicle?.brand} {booking.vehicle?.model} 
+                          <span className="text-gray-400 font-normal ml-1">({booking.vehicle?.type})</span>
+                       </p>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-xs text-gray-400 font-medium uppercase">Amount</p>
+                        <p className="text-lg font-bold text-[#f48432]">₹{getBookingPricing(booking).totalAmount}</p>
+                     </div>
                   </div>
                 </div>
-                
-                {/* Night Stay Note - Only show for round trips */}
-                {isRoundTrip(booking) && (
-                  <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-1">
-                    <div className="flex items-start space-x-1.5">
-                      <div className="w-3.5 h-3.5 text-amber-600 flex items-center justify-center mt-0.5">
-                        <span className="text-xs font-bold">🌙</span>
-                      </div>
-                      <div className="text-xs text-amber-800">
-                        <span className="font-medium">Note:</span> If night stay is required, please pay ₹500 to the driver in addition to the booking amount.
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Show refund amount for cancelled bookings */}
-                {booking.status === 'cancelled' && booking.cancellation?.refundAmount && booking.cancellation.refundAmount > 0 && (
-                  <div className="flex items-center space-x-1.5">
-                    <RefreshCw className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs text-green-600 font-medium">
-                      Refund: ₹{booking.cancellation.refundAmount}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Payment Status Display */}
-                {getPaymentStatusDisplay(booking)}
+
+                {/* Payment Status Compact */}
+                <div className="flex items-center justify-between bg-gray-50/50 rounded-lg p-2 px-3 border border-gray-100">
+                   <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        booking.payment?.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+                      }`} />
+                      <span className="text-xs font-medium text-gray-600">
+                        Payment: {booking.payment?.method === 'razorpay' ? 'Online' : 'Cash'}
+                      </span>
+                   </div>
+                   <span className={`text-xs font-semibold ${
+                      booking.payment?.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
+                   }`}>
+                      {booking.payment?.status === 'completed' ? 'Paid' : 'Pending'}
+                   </span>
+                </div>
               </div>
-              
-              <div className="flex space-x-1.5 mt-3">
+
+              {/* Footer Actions */}
+              <div className="p-4 pt-0 flex gap-3">
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 text-xs py-1.5"
+                  className="flex-1 bg-[#212c40] hover:bg-[#2d3a52] text-white h-10 rounded-lg shadow-sm transition-all text-sm font-medium"
                   onClick={() => handleViewDetails(booking)}
                 >
                   View Details
                 </Button>
-                {['pending', 'accepted'].includes(booking.status) && (
+                
+                {['pending', 'accepted'].includes(booking.status) ? (
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 text-red-600 border-red-300 hover:bg-red-50 text-xs py-1.5"
+                    variant="outline"
+                    className="flex-1 border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 h-10 rounded-lg text-sm font-medium"
                     onClick={() => {
                       setSelectedBooking(booking);
                       setIsCancelModalOpen(true);
                     }}
                   >
-                    Request Cancellation
+                    Cancel
                   </Button>
-                )}
-                {booking.status === 'cancellation_requested' && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 text-orange-600 border-orange-300 bg-orange-50 text-xs py-1.5"
+                ) : booking.status === 'cancellation_requested' ? (
+                   <Button 
+                    variant="secondary"
+                    className="flex-1 bg-orange-50 text-orange-600 border border-orange-100 h-10 rounded-lg text-sm font-medium opacity-100 cursor-not-allowed"
                     disabled
                   >
-                    Cancellation Requested
+                    Requested
                   </Button>
-                )}
+                ) : <div className="hidden"></div>}
               </div>
-            </Card>
-          ))
+            </div>
+            ))}
+          </div>
         ) : (
           <div className="text-center py-6">
             <List className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
@@ -772,438 +732,200 @@ const Bookings = () => {
         )}
       </div>
 
-      {/* Booking Details Modal */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 md:p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center justify-between text-lg md:text-xl">
+        <DialogContent className="max-w-md md:max-w-2xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 bg-gray-50 sm:rounded-2xl">
+          <DialogHeader className="bg-[#212c40] text-white p-4 shrink-0 shadow-sm z-10">
+            <DialogTitle className="flex items-center justify-between text-lg font-bold tracking-wide">
               <span>Booking Details</span>
+              <button 
+                onClick={() => setIsDetailModalOpen(false)}
+                className="rounded-full p-2 hover:bg-white/10 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
             </DialogTitle>
           </DialogHeader>
           
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
           {selectedBooking && (
-            <div className="space-y-4 md:space-y-6">
-              {/* Route Info */}
-              <div className="bg-blue-50 p-3 md:p-6 rounded-lg">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3 mb-2 md:mb-3">
-                  <h3 className="font-semibold text-base md:text-xl break-words leading-tight">
-                    {getPickupAddress(selectedBooking)} → {getDestinationAddress(selectedBooking)}
-                  </h3>
-                  <span className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded-full whitespace-nowrap self-start md:self-auto ${
-                    ['accepted', 'started'].includes(selectedBooking.status)
-                      ? "bg-green-100 text-green-800" 
-                      : selectedBooking.status === 'pending'
-                      ? "bg-yellow-100 text-yellow-800"
-                      : selectedBooking.status === 'completed'
-                      ? "bg-blue-100 text-blue-800"
-                      : selectedBooking.status === 'cancellation_requested'
-                      ? "bg-orange-100 text-orange-800"
-                      : selectedBooking.status === 'cancelled'
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}>
-                    {selectedBooking.status === 'cancellation_requested' 
-                      ? 'Cancellation Requested'
-                      : selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)
-                    }
-                  </span>
-                </div>
-                <p className="text-sm md:text-base text-muted-foreground">Booking ID: {selectedBooking.bookingNumber}</p>
-              </div>
+            <>
+               {/* 1. Status & Route Summary Card */}
+               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 relative overflow-hidden">
+                  {/* Decorative background circle */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+                  
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-6">
+                       <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Booking ID</p>
+                          <p className="font-mono text-sm font-medium text-[#212c40] bg-gray-50 px-2 py-1 rounded inline-block">
+                            {selectedBooking.bookingNumber}
+                          </p>
+                       </div>
+                       <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${
+                          ['accepted', 'started'].includes(selectedBooking.status) ? "bg-green-50 text-green-700 border-green-100" :
+                          selectedBooking.status === 'completed' ? "bg-blue-50 text-blue-700 border-blue-100" :
+                          selectedBooking.status === 'cancelled' ? "bg-red-50 text-red-700 border-red-100" :
+                          selectedBooking.status === 'cancellation_requested' ? "bg-orange-50 text-orange-700 border-orange-100" :
+                          "bg-yellow-50 text-yellow-700 border-yellow-100"
+                        }`}>
+                          {selectedBooking.status === 'cancellation_requested' ? 'Cancel Req' : selectedBooking.status}
+                        </div>
+                    </div>
 
-              {/* Cancellation Request Status - Show prominently for cancellation requested bookings */}
-              {selectedBooking.status === 'cancellation_requested' && selectedBooking.cancellation && (
-                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 p-4 md:p-6 rounded-lg">
-                  <h4 className="font-semibold text-orange-800 text-base md:text-lg mb-3 flex items-center">
-                    <Clock className="w-5 h-5 mr-2" />
-                    Cancellation Request Status
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm md:text-base">
-                    <div className="flex items-center justify-between">
-                      <span className="text-orange-700 font-medium">Request Status:</span>
-                      <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                        selectedBooking.cancellation.requestStatus === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : selectedBooking.cancellation.requestStatus === 'approved'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {selectedBooking.cancellation.requestStatus === 'pending' && 'Pending Review'}
-                        {selectedBooking.cancellation.requestStatus === 'approved' && 'Approved'}
-                        {selectedBooking.cancellation.requestStatus === 'rejected' && 'Rejected'}
-                      </span>
+                    <div className="flex items-start gap-4">
+                       <div className="flex flex-col items-center pt-1 h-full min-h-[80px]">
+                          <div className="w-3.5 h-3.5 rounded-full bg-blue-600 ring-4 ring-blue-50" />
+                          <div className="w-0.5 flex-1 bg-gray-200 border-l-2 border-dotted border-gray-300 my-1 min-h-[30px]" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-orange-500 ring-4 ring-orange-50" />
+                       </div>
+                       <div className="flex-1 space-y-6">
+                          <div>
+                             <p className="text-xs font-semibold text-gray-400 uppercase mb-0.5">Pickup</p>
+                             <h3 className="font-semibold text-gray-900 text-base leading-tight mb-1">{getPickupAddress(selectedBooking)}</h3>
+                             <div className="flex items-center text-xs text-gray-500 gap-2">
+                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(getBookingDate(selectedBooking))}</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTime(getBookingTime(selectedBooking))}</span>
+                             </div>
+                          </div>
+                          <div>
+                             <p className="text-xs font-semibold text-gray-400 uppercase mb-0.5">Destination</p>
+                             <h3 className="font-semibold text-gray-900 text-base leading-tight mb-1">{getDestinationAddress(selectedBooking)}</h3>
+                             {getReturnDate(selectedBooking) && (
+                               <p className="text-xs text-blue-600 mt-1 font-medium bg-blue-50 inline-block px-2 py-0.5 rounded">
+                                 Return: {formatDate(getReturnDate(selectedBooking))}
+                               </p>
+                             )}
+                          </div>
+                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-orange-700 font-medium">Requested On:</span>
-                      <span className="text-orange-800">
-                        {selectedBooking.cancellation.requestedAt ? 
-                          new Date(selectedBooking.cancellation.requestedAt).toLocaleDateString() : 'N/A'
-                        }
-                      </span>
-                    </div>
-                    {selectedBooking.cancellation.requestReason && (
-                      <div className="sm:col-span-2">
-                        <span className="text-orange-700 font-medium">Reason:</span>
-                        <p className="text-orange-800 mt-1 p-2 bg-orange-100 rounded">
-                          {selectedBooking.cancellation.requestReason}
-                        </p>
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
+               </div>
 
-              {/* Refund Status Summary - Show prominently for cancelled bookings */}
-              {selectedBooking.status === 'cancelled' && selectedBooking.cancellation && (
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 p-4 md:p-6 rounded-lg">
-                  <h4 className="font-semibold text-red-800 text-base md:text-lg mb-3 flex items-center">
-                    <RefreshCw className="w-5 h-5 mr-2" />
-                    Refund Status
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm md:text-base">
-                    <div className="flex items-center justify-between">
-                      <span className="text-red-700 font-medium">Refund Amount:</span>
-                      <span className="text-red-800 font-bold text-lg">
-                        ₹{selectedBooking.cancellation.refundAmount || 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-red-700 font-medium">Refund Status:</span>
-                      <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                        selectedBooking.cancellation.refundStatus === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : selectedBooking.cancellation.refundStatus === 'initiated'
-                          ? 'bg-blue-100 text-blue-800'
-                          : selectedBooking.cancellation.refundStatus === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : selectedBooking.cancellation.refundStatus === 'failed'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {selectedBooking.cancellation.refundStatus === 'pending' && 'Pending'}
-                        {selectedBooking.cancellation.refundStatus === 'initiated' && 'Initiated'}
-                        {selectedBooking.cancellation.refundStatus === 'completed' && 'Completed'}
-                        {selectedBooking.cancellation.refundStatus === 'failed' && 'Failed'}
-                      </span>
-                    </div>
-                    {selectedBooking.cancellation.refundMethod && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-red-700 font-medium">Refund Method:</span>
-                        <span className="text-red-800">{selectedBooking.cancellation.refundMethod}</span>
-                      </div>
-                    )}
-                    {selectedBooking.cancellation.refundCompletedAt && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-red-700 font-medium">Completed On:</span>
-                        <span className="text-red-800">
-                          {new Date(selectedBooking.cancellation.refundCompletedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Download Receipt Button */}
-              <div className="flex justify-center">
-                <Button 
+               {/* Download Receipt Action */}
+               <Button 
                   onClick={() => downloadReceipt(selectedBooking)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 md:px-6 py-2 md:py-3 text-sm md:text-base w-full md:w-auto"
+                  className="w-full bg-white border border-gray-200 text-[#212c40] hover:bg-gray-50 hover:border-gray-300 h-11 font-medium rounded-xl shadow-sm transition-all"
                   disabled={isDownloading}
                 >
-                  {isDownloading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  {isDownloading ? 'Downloading...' : 'Download Receipt'}
+                  {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2 text-[#f48432]" />}
+                  Download Receipt
                 </Button>
-              </div>
 
-              {/* Journey Details */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-foreground text-base md:text-lg">Journey Details</h4>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm md:text-base">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    <span className="break-words">
-                      {formatDate(getBookingDate(selectedBooking))}
-                      {isRoundTrip(selectedBooking) && getReturnDate(selectedBooking) && (
-                        <span className="text-blue-600 font-medium block mt-1">
-                          Return: {formatDate(getReturnDate(selectedBooking))}
-                        </span>
-                      )}
-                    </span>
+               {/* Journey Stats Grid */}
+               <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                     <p className="text-xs text-gray-400 uppercase font-semibold">Total Distance</p>
+                     <p className="text-lg font-bold text-[#212c40]">
+                        {isRoundTrip(selectedBooking) ? (selectedBooking.tripDetails?.distance * 2).toFixed(1) : selectedBooking.tripDetails?.distance || 0}
+                        <span className="text-xs text-gray-500 font-normal ml-1">km</span>
+                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    <span className="break-words">
-                      {formatTime(getBookingTime(selectedBooking))}
-                    </span>
+                  <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                     <p className="text-xs text-gray-400 uppercase font-semibold">Est. Duration</p>
+                     <p className="text-lg font-bold text-[#212c40]">
+                        {selectedBooking.tripDetails?.duration || '--'}
+                        <span className="text-xs text-gray-500 font-normal ml-1">min</span>
+                     </p>
                   </div>
-                  {isRoundTrip(selectedBooking) && (
-                    <div className="flex items-center space-x-2 sm:col-span-2">
-                      <div className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600">↔</span>
-                      </div>
-                      <span className="text-blue-600 font-medium">
-                        Round Trip
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2">
-                    <Receipt className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    <span className="break-words">₹{getBookingPricing(selectedBooking).totalAmount || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
+               </div>
 
-              {/* Round Trip Information - Show prominently for round trips */}
-              {isRoundTrip(selectedBooking) && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 md:p-6 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 text-base md:text-lg mb-3 flex items-center">
-                    <div className="w-5 h-5 mr-2 flex items-center justify-center">
-                      <span className="text-sm font-bold text-blue-600">↔</span>
-                    </div>
-                    Round Trip Details
+               {/* Details Grid: Vehicle & Driver */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Vehicle Details */}
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm h-full">
+                     <h4 className="flex items-center gap-2 font-bold text-[#212c40] mb-4 text-sm border-b pb-2">
+                        <Car className="w-4 h-4 text-[#f48432]" /> VEHICLE DETAILS
+                     </h4>
+                     <div className="space-y-3 text-sm">
+                        <div className="flex justify-between items-center">
+                           <span className="text-gray-500">Type</span>
+                           <span className="font-medium text-gray-900">{selectedBooking.vehicle?.type}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                           <span className="text-gray-500">Brand</span>
+                           <span className="font-medium text-gray-900">{selectedBooking.vehicle?.brand}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                           <span className="text-gray-500">Model</span>
+                           <span className="font-medium text-gray-900">{selectedBooking.vehicle?.model}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1">
+                           <span className="text-gray-500">Reg. No</span>
+                           <span className="font-mono font-medium text-gray-800 bg-gray-100 px-2 py-0.5 rounded text-xs border border-gray-200">
+                             {selectedBooking.vehicle?.registrationNumber}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Driver Details */}
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm h-full">
+                     <h4 className="flex items-center gap-2 font-bold text-[#212c40] mb-4 text-sm border-b pb-2">
+                        <User className="w-4 h-4 text-[#f48432]" /> DRIVER DETAILS
+                     </h4>
+                     <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-full bg-[#212c40]/5 flex items-center justify-center text-[#212c40] font-bold text-lg">
+                           {selectedBooking.driver?.firstName?.[0]}{selectedBooking.driver?.lastName?.[0]}
+                        </div>
+                        <div>
+                           <p className="font-bold text-gray-900">{selectedBooking.driver?.firstName} {selectedBooking.driver?.lastName}</p>
+                           <div className="flex items-center text-xs text-gray-500 mt-0.5">
+                              <span className="text-yellow-500 text-sm mr-1">★</span> 
+                              <span className="font-medium text-gray-700">{selectedBooking.driver?.rating}</span>
+                              <span className="mx-1">•</span>
+                              <span>Driver Rating</span>
+                           </div>
+                        </div>
+                     </div>
+                     {selectedBooking.driver?.phone && (
+                       <Button variant="outline" size="sm" className="w-full gap-2 border-gray-200 text-gray-600 hover:text-[#212c40] hover:bg-gray-50">
+                          <Phone className="w-3.5 h-3.5" /> Call Driver
+                       </Button>
+                     )}
+                  </div>
+               </div>
+
+               {/* Pricing Breakdown */}
+               <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                  <h4 className="flex items-center gap-2 font-bold text-[#212c40] mb-2 text-sm">
+                     <Receipt className="w-4 h-4 text-[#f48432]" /> PRICING BREAKDOWN
                   </h4>
-                  
-                  {/* Visual Timeline */}
-                  <div className="mb-4 p-3 bg-white rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <div className="text-center">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full mb-1"></div>
-                        <div className="text-xs text-blue-700 font-medium">Departure</div>
-                        <div className="text-sm text-blue-800 font-bold">
-                          {formatDate(getBookingDate(selectedBooking))}
-                        </div>
-                      </div>
-                      <div className="flex-1 h-0.5 bg-blue-300 mx-2 relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400"></div>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-3 h-3 bg-indigo-500 rounded-full mb-1"></div>
-                        <div className="text-xs text-indigo-700 font-medium">Return</div>
-                        <div className="text-sm text-indigo-800 font-bold">
-                          {getReturnDate(selectedBooking) ? formatDate(getReturnDate(selectedBooking)) : 'Return Date'}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="space-y-2 text-sm">
+                     <div className="flex justify-between text-gray-600">
+                        <span>Rate per km</span>
+                        <span>₹{getBookingPricing(selectedBooking).ratePerKm}</span>
+                     </div>
+                     <div className="flex justify-between text-gray-600">
+                        <span>Total Distance</span>
+                        <span>{isRoundTrip(selectedBooking) ? (selectedBooking.tripDetails?.distance * 2).toFixed(1) : selectedBooking.tripDetails?.distance} km</span>
+                     </div>
+                     
+                     <div className="border-t border-dashed border-gray-200 my-2"></div>
+                     
+                     <div className="flex justify-between items-center">
+                        <span className="font-bold text-gray-900">Total Amount</span>
+                        <span className="font-bold text-[#f48432] text-xl">₹{getBookingPricing(selectedBooking).totalAmount}</span>
+                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm md:text-base">
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-700 font-medium">Departure Date:</span>
-                      <span className="text-blue-800 font-medium">
-                        {formatDate(getBookingDate(selectedBooking))}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-700 font-medium">Return Date:</span>
-                      <span className="text-blue-800 font-medium">
-                        {getReturnDate(selectedBooking) ? formatDate(getReturnDate(selectedBooking)) : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-700 font-medium">Trip Type:</span>
-                      <span className="text-blue-800 font-medium capitalize">
-                        {getTripType(selectedBooking) === 'return' ? 'Round Trip' : 'One Way'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-700 font-medium">Duration:</span>
-                      <span className="text-blue-800 font-medium">
-                        {getReturnDate(selectedBooking) && getBookingDate(selectedBooking) ? 
-                          (() => {
-                            const start = new Date(getBookingDate(selectedBooking));
-                            const end = new Date(getReturnDate(selectedBooking));
-                            const diffTime = Math.abs(end.getTime() - start.getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-                          })() : 'N/A'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Additional Trip Info */}
-                  {getReturnDate(selectedBooking) && getBookingDate(selectedBooking) && (
-                    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-sm text-blue-800 font-medium mb-1">Trip Summary</div>
-                        <div className="text-lg text-blue-900 font-bold">
-                          {(() => {
-                            const start = new Date(getBookingDate(selectedBooking));
-                            const end = new Date(getReturnDate(selectedBooking));
-                            const diffTime = Math.abs(end.getTime() - start.getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            return `${diffDays} Day${diffDays > 1 ? 's' : ''} Round Trip`;
-                          })()}
-                        </div>
-                        <div className="text-xs text-blue-700 mt-1">
-                          From {formatDate(getBookingDate(selectedBooking))} to {formatDate(getReturnDate(selectedBooking))}
-                        </div>
+                  {/* Payment Info Badge */}
+                   <div className="bg-gray-50 rounded-lg p-3 text-xs flex justify-between items-center border border-gray-100">
+                      <div className="flex gap-2 items-center">
+                          <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-500 font-medium">Payment via {selectedBooking.payment?.method === 'razorpay' ? 'Online' : 'Cash'}</span>
                       </div>
-                    </div>
-                  )}
-                  
-                  {/* Show when return date is not available */}
-                  {!getReturnDate(selectedBooking) && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-sm text-yellow-800 font-medium mb-1">Round Trip Booking</div>
-                        <div className="text-xs text-yellow-700">
-                          This is a round trip booking. Return date details will be updated by the driver.
-                        </div>
+                      <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${
+                         selectedBooking.payment?.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                         {selectedBooking.payment?.status || 'Pending'}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Vehicle Details */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-foreground text-base md:text-lg">Vehicle Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm md:text-base">
-                  <div className="break-words"><strong>Type:</strong> {selectedBooking.vehicle?.type || 'N/A'}</div>
-                  <div className="break-words"><strong>Brand:</strong> {selectedBooking.vehicle?.brand || 'N/A'}</div>
-                  <div className="sm:col-span-2 break-words"><strong>Registration:</strong> {selectedBooking.vehicle?.registrationNumber || 'N/A'}</div>
-                </div>
-              </div>
-
-              {/* Driver Details */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-foreground text-base md:text-lg">Driver Details</h4>
-                <div className="space-y-2 text-sm md:text-base">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    <span className="break-words">
-                      {selectedBooking.driver?.firstName} {selectedBooking.driver?.lastName}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    <span className="break-words">{selectedBooking.driver?.phone || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground">Rating:</span>
-                    <span className="break-words">{selectedBooking.driver?.rating || 'N/A'}/5</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Trip Details */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-foreground text-base md:text-lg">Trip Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm md:text-base">
-                  <div className="break-words"><strong>Distance:</strong> {isRoundTrip(selectedBooking) ? (selectedBooking.tripDetails?.distance * 2).toFixed(1) : selectedBooking.tripDetails?.distance || 'N/A'} km</div>
-                  <div className="break-words"><strong>Duration:</strong> {selectedBooking.tripDetails?.duration || 'N/A'} min</div>
-                </div>
-              </div>
-
-              {/* Pricing Breakdown */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-foreground text-base md:text-lg">Pricing Breakdown</h4>
-                <div className="space-y-2 text-sm md:text-base">
-                  <div className="flex justify-between">
-                    <span>Distance:</span>
-                    <span className="break-words">{selectedBooking.tripDetails?.distance || 'N/A'} km</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Rate per km:</span>
-                    <span className="break-words">₹{getBookingPricing(selectedBooking).ratePerKm || 'N/A'} /km</span>
-                  </div>
-                  <div className="flex justify-between font-semibold border-t pt-2">
-                    <span>Total Amount:</span>
-                    <span className="break-words">₹{getBookingPricing(selectedBooking).totalAmount || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cancellation and Refund Information - Hidden */}
-              {/* {selectedBooking.cancellation && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-foreground text-base md:text-lg">Cancellation & Refund</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    {selectedBooking.cancellation.requestStatus && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">Request Status:</span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          selectedBooking.cancellation.requestStatus === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : selectedBooking.cancellation.requestStatus === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {selectedBooking.cancellation.requestStatus.charAt(0).toUpperCase() + 
-                           selectedBooking.cancellation.requestStatus.slice(1)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {selectedBooking.cancellation.requestReason && (
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-gray-700">Cancellation Reason:</span>
-                        <span className="text-sm text-gray-600 break-words max-w-xs text-right">
-                          {selectedBooking.cancellation.requestReason}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedBooking.cancellation.refundAmount && selectedBooking.cancellation.refundAmount > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">Refund Amount:</span>
-                        <span className="text-sm font-semibold text-green-600">
-                          ₹{selectedBooking.cancellation.refundAmount}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedBooking.cancellation.refundStatus && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">Refund Status:</span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          selectedBooking.cancellation.refundStatus === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : selectedBooking.cancellation.refundStatus === 'initiated'
-                            ? 'bg-blue-100 text-blue-800'
-                            : selectedBooking.cancellation.refundStatus === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : selectedBooking.cancellation.refundStatus === 'failed'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {selectedBooking.cancellation.refundStatus === 'pending' && 'Pending'}
-                          {selectedBooking.cancellation.refundStatus === 'initiated' && 'Initiated'}
-                          {selectedBooking.cancellation.refundStatus === 'completed' && 'Completed'}
-                          {selectedBooking.cancellation.refundStatus === 'failed' && 'Failed'}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedBooking.cancellation.refundCompletedAt && (
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-gray-700">Refund Completed:</span>
-                        <span className="text-sm text-gray-600">
-                          {new Date(selectedBooking.cancellation.refundCompletedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedBooking.cancellation.approvedReason && (
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-gray-700">Admin Notes:</span>
-                        <span className="text-sm text-gray-600 break-words max-w-xs text-right">
-                          {selectedBooking.cancellation.approvedReason}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )} */}
-            </div>
+                   </div>
+               </div>
+            </>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 

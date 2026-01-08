@@ -13,30 +13,27 @@ import { LocationSuggestion } from "@/services/googleMapsService";
 
 // Vehicle type configurations
 const VEHICLE_CONFIGS = {
-  'auto': {
-    name: 'Auto',
-    icon: '🛺',
-    defaultCapacity: 3,
-    variants: ['Auto'],
-    amenities: ['charging', 'usb', 'gps'],
-
-  },
   'car': {
     name: 'Car',
     icon: '🚗',
     defaultCapacity: 4,
     variants: ['Sedan', 'Hatchback', 'SUV'],
     amenities: ['ac', 'charging', 'usb', 'bluetooth', 'gps'],
-
+  },
+  'auto': {
+    name: 'Auto',
+    icon: '🛺',
+    defaultCapacity: 3,
+    variants: ['Auto'],
+    amenities: [],
   },
   'bus': {
     name: 'Bus',
     icon: '🚌',
     defaultCapacity: 40,
     variants: ['Mini Bus', 'Luxury Bus'],
-    amenities: ['ac', 'sleeper', 'charging', 'usb', 'gps', 'camera', 'wifi', 'tv'],
-
-  }
+    amenities: ['ac', 'tv', 'charging', 'sleeper', 'wifi'],
+  },
 };
 
 interface AddVehicleFormProps {
@@ -53,9 +50,7 @@ interface AddVehicleFormProps {
 }
 
 const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmit, onCancel, isSubmitting }: AddVehicleFormProps) => {
-  const [selectedVehicleCategory, setSelectedVehicleCategory] = useState<'auto' | 'car' | 'bus'>(
-    (initial?.type as 'auto' | 'car' | 'bus') || 'car'
-  );
+  const [selectedVehicleCategory, setSelectedVehicleCategory] = useState<'auto' | 'car' | 'bus'>('car');
   const [formData, setFormData] = useState<Partial<CreateVehicleData>>({
     type: (initial?.type as any) || 'car',
     brand: '',
@@ -265,9 +260,9 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
       setFormData(prev => ({
         ...prev,
         ...initial,
-        type: initial.type || prev.type,
+        type: 'car',
       }));
-      if (initial.type) setSelectedVehicleCategory(initial.type);
+      if (initial.type && initial.type === 'car') setSelectedVehicleCategory('car');
       setExisting(existingImages);
       
       // Set vehicle location input for display
@@ -484,32 +479,25 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Vehicle Category Selection */}
-      <div className="space-y-3">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
+      {/* Vehicle Category Selection - Hidden/Fixed to Car */}
+      <div className="hidden">
         <Label className="text-base font-semibold">What type of vehicle do you want to add?</Label>
         <div className="grid grid-cols-3 gap-3">
-          {Object.entries(VEHICLE_CONFIGS).map(([key, config]) => (
             <button
-              key={key}
               type="button"
-              onClick={() => handleCategorySelect(key as 'auto' | 'car' | 'bus')}
-              className={`p-4 border-2 rounded-lg text-center transition-all duration-200 ${
-                selectedVehicleCategory === key
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
+              className="p-4 border-2 rounded-lg text-center transition-all duration-200 border-[#29354c] bg-blue-50 text-[#29354c]"
             >
-              <div className="text-2xl mb-2">{config.icon}</div>
-              <div className="font-medium">{config.name}</div>
+              <div className="text-2xl mb-2">🚗</div>
+              <div className="font-medium">Car</div>
             </button>
-          ))}
         </div>
       </div>
 
       {/* Show form only after category selection */}
       {selectedVehicleCategory && (
         <>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Vehicle Type Selection */}
           <div className="grid grid-cols-1 gap-4">
             <div>
@@ -531,7 +519,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   fetchPricing(selectedVehicleCategory, value, '');
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
                   <SelectValue placeholder={`Select ${selectedVehicleCategory === 'auto' ? 'auto type' : 'variant'}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -553,7 +541,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   value={formData.pricingReference?.vehicleType || ''} 
                   onValueChange={(value) => handlePricingReferenceChange('vehicleType', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
                     <SelectValue placeholder={`Select ${selectedVehicleCategory === 'auto' ? 'auto type' : 'vehicle type'} for pricing`} />
                   </SelectTrigger>
                   <SelectContent>
@@ -572,7 +560,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   value={formData.pricingReference?.vehicleModel || ''} 
                   onValueChange={(value) => handlePricingReferenceChange('vehicleModel', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
                     <SelectValue placeholder={`Select ${selectedVehicleCategory === 'auto' ? 'fuel type' : 'vehicle model'} for pricing`} />
                   </SelectTrigger>
                   <SelectContent>
@@ -604,14 +592,14 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
 
             {/* Pricing Display - Hidden */}
             {false && formData.pricingReference?.vehicleType && formData.pricingReference?.vehicleModel && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">
+              <div className="bg-[#212c40]/5 border border-[#212c40]/20 rounded-lg p-4">
+                <h4 className="font-semibold text-[#212c40] mb-2">
                   {selectedVehicleCategory === 'auto' ? 'Auto Pricing Structure' : 'Vehicle Pricing Structure'}
                 </h4>
                 {isLoadingPricing ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <span className="ml-2 text-blue-600">Loading pricing...</span>
+                    <Loader2 className="h-5 w-5 animate-spin text-[#212c40]" />
+                    <span className="ml-2 text-[#212c40]">Loading pricing...</span>
                   </div>
                 ) : fetchedPricing ? (
                   <div className="space-y-3">
@@ -620,11 +608,11 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Auto Price (One-way):</span>
-                          <div className="font-semibold text-blue-600">₹{fetchedPricing.autoPrice}</div>
+                          <div className="font-semibold text-[#212c40]">₹{fetchedPricing.autoPrice}</div>
                         </div>
                         <div>
                           <span className="text-gray-600">Auto Price (Return):</span>
-                          <div className="font-semibold text-blue-600">₹{returnPricing?.autoPrice || 'N/A'}</div>
+                          <div className="font-semibold text-[#212c40]">₹{returnPricing?.autoPrice || 'N/A'}</div>
                         </div>
                       </div>
                     ) : (
@@ -636,27 +624,27 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">50km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['50km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['50km']}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">100km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['100km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['100km']}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">150km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['150km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['150km']}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">200km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['200km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['200km']}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">250km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['250km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['250km']}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">300km:</span>
-                              <div className="font-semibold text-blue-600">₹{fetchedPricing.distancePricing['300km']}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{fetchedPricing.distancePricing['300km']}/km</div>
                             </div>
                           </div>
                         </div>
@@ -667,27 +655,27 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">50km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['50km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['50km'] || 'N/A'}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">100km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['100km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['100km'] || 'N/A'}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">150km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['150km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['150km'] || 'N/A'}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">200km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['200km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['200km'] || 'N/A'}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">250km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['250km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['250km'] || 'N/A'}/km</div>
                             </div>
                             <div>
                               <span className="text-gray-600">300km:</span>
-                              <div className="font-semibold text-blue-600">₹{returnPricing?.distancePricing['300km'] || 'N/A'}/km</div>
+                              <div className="font-semibold text-[#212c40]">₹{returnPricing?.distancePricing['300km'] || 'N/A'}/km</div>
                             </div>
                           </div>
                         </div>
@@ -698,7 +686,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                         <strong>Notes:</strong> {fetchedPricing.notes}
                       </div>
                     )}
-                    <p className="text-xs text-blue-600 mt-2">
+                    <p className="text-xs text-[#212c40] mt-2">
                       * {fetchedPricing.category === 'auto' 
                         ? 'Auto pricing is fixed per trip regardless of distance' 
                         : 'Pricing will be automatically applied based on distance and trip type'
@@ -1040,6 +1028,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   <Checkbox 
                     id="isAc" 
                     checked={formData.isAc}
+                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
                     onCheckedChange={(checked) => {
                       handleFormChange('isAc', checked);
                       // Also update amenities
@@ -1053,12 +1042,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       }
                     }}
                   />
-                  <Label htmlFor="isAc">AC</Label>
+                  <Label htmlFor="isAc" className="text-[#212c40]">AC</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="isNonAc" 
                     checked={!formData.isAc}
+                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
                     onCheckedChange={(checked) => {
                       handleFormChange('isAc', !checked);
                       // Also update amenities
@@ -1072,12 +1062,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       }
                     }}
                   />
-                  <Label htmlFor="isNonAc">Non-AC</Label>
+                  <Label htmlFor="isNonAc" className="text-[#212c40]">Non-AC</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="isSleeper" 
                     checked={formData.isSleeper}
+                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
                     onCheckedChange={(checked) => {
                       handleFormChange('isSleeper', checked);
                       // Also update amenities
@@ -1091,12 +1082,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       }
                     }}
                   />
-                  <Label htmlFor="isSleeper">Sleeper</Label>
+                  <Label htmlFor="isSleeper" className="text-[#212c40]">Sleeper</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="isNonSleeper" 
                     checked={!formData.isSleeper}
+                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
                     onCheckedChange={(checked) => {
                       handleFormChange('isSleeper', !checked);
                       // Also update amenities
@@ -1110,12 +1102,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       }
                     }}
                   />
-                  <Label htmlFor="isNonSleeper">Non-Sleeper</Label>
+                  <Label htmlFor="isNonSleeper" className="text-[#212c40]">Non-Sleeper</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="hasTv" 
                     checked={formData.amenities?.includes('tv') || false}
+                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
                     onCheckedChange={(checked) => {
                       const currentAmenities = formData.amenities || [];
                       if (checked) {
@@ -1125,7 +1118,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       }
                     }}
                   />
-                  <Label htmlFor="hasTv">TV</Label>
+                  <Label htmlFor="hasTv" className="text-[#212c40]">TV</Label>
                 </div>
               </div>
             </div>
@@ -1158,7 +1151,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                 onChange={setVehicleLocationInput}
                 onLocationSelect={handleVehicleLocationSelect}
                 placeholder="Enter your vehicle's base location (e.g., Indore, Madhya Pradesh)"
-                icon={<MapPin className="w-4 h-4 text-blue-600" />}
+                icon={<MapPin className="w-4 h-4 text-[#f48432]" />}
                 className="w-full"
                 showGetLocation={false}
               />
@@ -1166,9 +1159,9 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
 
             {/* Display selected location details */}
             {formData.vehicleLocation?.address && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="text-sm font-medium text-blue-900 mb-2">Selected Location:</div>
-                <div className="space-y-1 text-sm text-blue-800">
+              <div className="p-3 bg-[#212c40]/5 border border-[#212c40]/20 rounded-lg">
+                <div className="text-sm font-medium text-[#212c40] mb-2">Selected Location:</div>
+                <div className="space-y-1 text-sm text-[#212c40]">
                   <div><strong>Address:</strong> {formData.vehicleLocation.address}</div>
                   {formData.vehicleLocation.city && <div><strong>City:</strong> {formData.vehicleLocation.city}</div>}
                   {formData.vehicleLocation.state && <div><strong>State:</strong> {formData.vehicleLocation.state}</div>}
@@ -1198,7 +1191,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           className="absolute top-1 right-1 bg-white text-gray-800 rounded px-1 text-xs border"
                         >{img.markDelete ? 'Undo' : 'Delete'}</button>
                         {img.isPrimary && !img.markDelete && (
-                          <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">Main</div>
+                          <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">Main</div>
                         )}
                       </div>
                     ))}
@@ -1222,7 +1215,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       <X className="w-3 h-3" />
                     </button>
                     {index === 0 && (
-                      <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                      <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">
                         Main
                       </div>
                     )}
@@ -1270,22 +1263,33 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
             </div>
           </div>
           
-          {/* Submit Buttons */}
-          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Adding Vehicle...
-                </>
-              ) : (
-                'Add Vehicle'
-              )}
-            </Button>
           </div>
+          
+          {/* Form Actions */}
+      <div className="shrink-0 flex justify-end gap-3 p-4 border-t bg-white">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          className="bg-[#f48432] hover:bg-[#e07528] text-white min-w-[120px]"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {mode === 'create' ? 'Adding...' : 'Updating...'}
+            </>
+          ) : (
+            mode === 'create' ? 'Add Vehicle' : 'Update Vehicle'
+          )}
+        </Button>
+      </div>
         </>
       )}
     </form>

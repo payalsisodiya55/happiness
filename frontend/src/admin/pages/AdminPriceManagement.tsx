@@ -541,7 +541,7 @@ const AdminPriceManagement = () => {
                   <div className="sm:col-span-2 lg:col-span-1">
                     <Button 
                       onClick={() => setIsAddingPricing(true)} 
-                      className="w-full h-10 sm:h-11"
+                      className="w-full h-10 sm:h-11 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
                       disabled={isAddingPricing}
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -665,7 +665,7 @@ const AdminPriceManagement = () => {
                             const defaultPricing = { '50km': 12, '100km': 10, '150km': 8, '200km': 7, '250km': 6, '300km': 6 };
                             setFormData(prev => ({ ...prev, distancePricing: defaultPricing }));
                           }}
-                          className="text-xs"
+                          className="text-xs border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                         >
                           Use Defaults
                         </Button>
@@ -695,12 +695,12 @@ const AdminPriceManagement = () => {
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button 
                     onClick={editingPricingId ? handleUpdatePricing : handleAddPricing}
-                    className="flex-1 h-12 sm:h-11"
+                    className="flex-1 h-12 sm:h-11 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {editingPricingId ? 'Update Pricing' : 'Add Pricing'}
                   </Button>
-                  <Button onClick={resetForm} variant="outline" className="h-12 sm:h-11">
+                  <Button onClick={resetForm} variant="outline" className="h-12 sm:h-11 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10">
                     <X className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
@@ -780,7 +780,7 @@ const AdminPriceManagement = () => {
 
                               {/* Trip Type Column */}
                               <TableCell>
-                                <Badge variant={pricing.tripType === 'one-way' ? 'default' : 'secondary'}>
+                                <Badge className={`${pricing.tripType === 'one-way' ? 'bg-[#29354C] hover:bg-[#29354C]/90 text-white' : 'bg-white border border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10'}`}>
                                   {pricing.tripType === 'one-way' ? 'One Way' : 'Return'}
                                 </Badge>
                               </TableCell>
@@ -827,7 +827,7 @@ const AdminPriceManagement = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleViewPricing(pricing)}
-                                    className="h-8 w-8 p-0 hover:bg-blue-50"
+                                    className="h-8 w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                                   >
                                     <Eye className="w-4 h-4" />
                                   </Button>
@@ -835,7 +835,7 @@ const AdminPriceManagement = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleEditPricing(pricing)}
-                                    className="h-8 w-8 p-0 hover:bg-green-50"
+                                    className="h-8 w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                                   >
                                     <Edit className="w-4 h-4" />
                                   </Button>
@@ -878,7 +878,7 @@ const AdminPriceManagement = () => {
                             </div>
                             <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-2">{pricing.vehicleModel}</h3>
                             <div className="flex items-center justify-between">
-                              <Badge variant={pricing.tripType === 'one-way' ? 'default' : 'secondary'} className="text-xs">
+                              <Badge className={`text-xs ${pricing.tripType === 'one-way' ? 'bg-[#29354C] hover:bg-[#29354C]/90 text-white' : 'bg-white border border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10'}`}>
                                 {pricing.tripType === 'one-way' ? 'One Way' : 'Return Trip'}
                               </Badge>
                               {getStatusBadge(pricing.isActive)}
@@ -924,7 +924,7 @@ const AdminPriceManagement = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewPricing(pricing)}
-                            className="flex-1 h-9 text-xs"
+                            className="flex-1 h-9 text-xs border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                           >
                             <Eye className="w-3 h-3 mr-1" />
                             View
@@ -933,7 +933,7 @@ const AdminPriceManagement = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditPricing(pricing)}
-                            className="flex-1 h-9 text-xs"
+                            className="flex-1 h-9 text-xs border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                           >
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
@@ -963,7 +963,7 @@ const AdminPriceManagement = () => {
         <Button
           onClick={() => setIsAddingPricing(true)}
           size="lg"
-          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
         >
           <Plus className="w-6 h-6" />
         </Button>
@@ -992,7 +992,7 @@ const AdminPriceManagement = () => {
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {getStatusBadge(selectedPricing.isActive)}
-                    <Badge variant={selectedPricing.tripType === 'one-way' ? 'default' : 'secondary'}>
+                    <Badge className={`${selectedPricing.tripType === 'one-way' ? 'bg-[#29354C] hover:bg-[#29354C]/90 text-white' : 'bg-white border border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10'}`}>
                       {selectedPricing.tripType === 'one-way' ? 'One Way' : 'Return Trip'}
                     </Badge>
                   </div>

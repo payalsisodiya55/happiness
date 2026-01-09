@@ -1202,7 +1202,7 @@ const AdminDriverManagement = () => {
           <p className="text-gray-600 text-sm lg:text-base">Manage all registered drivers and their verification status</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowAddDriver(true)}>
+          <Button size="sm" className="w-full sm:w-auto bg-[#29354C] hover:bg-[#29354C]/90 text-white" onClick={() => setShowAddDriver(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Driver
           </Button>
@@ -1335,7 +1335,7 @@ const AdminDriverManagement = () => {
               
               <Button 
                 variant="outline" 
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                 onClick={() => {
                   setSearchTerm("");
                   setStatusFilter("all");
@@ -1368,7 +1368,7 @@ const AdminDriverManagement = () => {
                   variant="outline"
                   size="sm"
                   onClick={clearSelection}
-                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                  className="text-[#29354C] border-[#29354C] hover:bg-[#29354C]/10"
                 >
                   Clear Selection
                 </Button>
@@ -1387,7 +1387,7 @@ const AdminDriverManagement = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkDocumentApproval}
-                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  className="bg-[#29354C]/5 border-[#29354C]/20 text-[#29354C] hover:bg-[#29354C]/10"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Approve Documents
@@ -1538,24 +1538,21 @@ const AdminDriverManagement = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditDriver(driver)}
-                      className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                      className="bg-transparent border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setSelectedDriver(driver);
-                        setShowDriverDetails(true);
-                      }}
+                        className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>

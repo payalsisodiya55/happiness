@@ -1,30 +1,26 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Lock, 
-  Phone, 
-  AlertCircle, 
-  Loader2, 
-  UserPlus, 
-  LogIn, 
   ArrowLeft,
-  CheckCircle,
   Mail,
   User,
   Home,
   List,
-  HelpCircle
+  HelpCircle,
+  Truck,
+  ShieldCheck,
+  Phone
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import DriverTopNavigation from "../components/DriverTopNavigation";
-import happinessLogo from "@/assets/Happiness-logo.jpeg";
+
+import happinessLogo from "@/assets/Happiness-logo-removebg-preview.png";
 import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import apiService from "@/services/api";
 
@@ -32,8 +28,6 @@ const DriverAuth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login: driverLogin, isLoggedIn } = useDriverAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [showOtpField, setShowOtpField] = useState(false);
   const [showSignupOtpField, setShowSignupOtpField] = useState(false);
@@ -146,7 +140,6 @@ const DriverAuth = () => {
         
         console.log('Driver login successful in DriverAuth component');
         
-        // Login successful, driver will be redirected by useEffect
         toast({
           title: "Login Successful",
           description: "Welcome back!",
@@ -225,12 +218,11 @@ const DriverAuth = () => {
     }
   };
 
-  const handleResendOtp = async (purpose) => {
+  const handleResendOtp = async (purpose: 'login' | 'signup') => {
     try {
       setIsLoading(true);
       const phone = purpose === 'login' ? loginForm.phone : signupForm.phone;
       if (phone.trim()) {
-        // Remove country code and send only the phone number
         const phoneNumber = phone.replace(/[^0-9]/g, '');
         
         const response = await apiService.request('/auth/driver/resend-otp', {
@@ -252,7 +244,7 @@ const DriverAuth = () => {
       console.error('Resend OTP error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to resend OTP. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to resend OTP. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -261,183 +253,202 @@ const DriverAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-50">
-      <DriverTopNavigation />
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-[#f48432] rounded-full opacity-5 blur-3xl transform translate-x-32 -translate-y-32"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#29354c] rounded-full opacity-5 blur-3xl transform -translate-x-32 translate-y-32"></div>
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center">
-          <Card className="w-full max-w-md shadow-lg border border-gray-200">
-            <CardHeader className="text-center pb-4">
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center space-x-2">
-                  <img src={happinessLogo} alt="Happiness Logo" className="w-12 h-12 object-contain" />
-                  <div className="flex flex-col">
-                    <div className="flex items-baseline">
-                      <span className="text-xl font-bold text-black">Happiness</span>
+
+      
+      <div className="flex-grow container mx-auto px-4 py-4 flex items-center justify-center relative z-10">
+        <div className="w-full max-w-sm">
+          {/* Brand/Logo Section */}
+          <div className="text-center mb-4">
+            <div className="inline-block p-1 rounded-2xl shadow-sm mb-2">
+               <img src={happinessLogo} alt="Happiness Logo" className="w-12 h-12 object-contain rounded-xl" />
+            </div>
+            <h1 className="text-xl font-bold text-[#29354c] tracking-tight">Driver Partner</h1>
+            <p className="text-gray-500 mt-1 text-xs">Join our network of professional drivers</p>
+          </div>
+
+          <Card className="w-full shadow-xl border-0 ring-1 ring-gray-100 bg-white rounded-xl overflow-hidden">
+             {/* Header Bar */}
+             <div className="h-1.5 bg-gradient-to-r from-[#29354c] to-[#f48432]"></div>
+             
+             <CardHeader className="text-center pt-4 pb-0">
+                {/* Feature Icons */}
+                <div className="flex justify-center gap-4 mb-3">
+                    <div className="flex flex-col items-center gap-1 group">
+                        <div className="p-2 bg-blue-50 rounded-full text-[#29354c] group-hover:bg-[#29354c] group-hover:text-white transition-colors">
+                            <Truck className="w-4 h-4" />
+                        </div>
+                        <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">Drive</span>
                     </div>
-                    <span className="text-xs text-gray-600">Driver Portal</span>
-                  </div>
+                    <div className="flex flex-col items-center gap-1 group">
+                        <div className="p-2 bg-orange-50 rounded-full text-[#f48432] group-hover:bg-[#f48432] group-hover:text-white transition-colors">
+                            <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">Secure</span>
+                    </div>
                 </div>
-              </div>
-            </CardHeader>
+             </CardHeader>
             
-            <CardContent className="pt-0">
+            <CardContent className="pt-2 px-5 pb-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-100/80 p-0.5 rounded-lg h-9">
+                  <TabsTrigger 
+                    value="login" 
+                    className="text-xs rounded-md data-[state=active]:bg-[#29354c] data-[state=active]:text-white data-[state=active]:shadow-sm transition-all duration-300"
+                  >
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="signup" 
+                    className="text-xs rounded-md data-[state=active]:bg-[#29354c] data-[state=active]:text-white data-[state=active]:shadow-sm transition-all duration-300"
+                  >
+                    Sign Up
+                  </TabsTrigger>
                 </TabsList>
                 
                 {/* Login Tab */}
-                <TabsContent value="login" className="space-y-4">
+                <TabsContent value="login" className="space-y-3 focus-visible:outline-none focus-visible:ring-0">
                   {!showOtpField ? (
-                    // Phone Number Input Screen
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Login to access driver dashboard</span>
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="text-center mb-1">
+                        <h2 className="text-base font-bold text-[#29354c]">Welcome Back!</h2>
+                        <p className="text-xs text-gray-500">Enter your mobile number to continue</p>
                       </div>
 
-                      {/* Main Question */}
-                      <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-800">What's your mobile number?</h2>
-                      </div>
-
-                      {/* Mobile Number Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="mobileNumber" className="text-sm font-medium">Mobile Number</Label>
-                        <div className="flex space-x-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="mobileNumber" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">Mobile Number</Label>
+                        <div className="flex space-x-2 group">
                           <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24">
+                            <SelectTrigger className="w-20 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="+91">+91</SelectItem>
                               <SelectItem value="+1">+1</SelectItem>
                               <SelectItem value="+44">+44</SelectItem>
-                              <SelectItem value="+61">+61</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Input
-                            id="mobileNumber"
-                            type="tel"
-                            placeholder="Mobile number"
-                            className="flex-1"
-                            value={loginForm.phone}
-                            onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                          />
+                          <div className="relative flex-1">
+                             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+                             <Input
+                                id="mobileNumber"
+                                type="tel"
+                                placeholder="98765 43210"
+                                className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] focus:border-[#29354c] transition-all text-sm"
+                                value={loginForm.phone}
+                                onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                              />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Generate OTP Button */}
                       <Button 
-                        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300 h-12 rounded-lg"
+                        className="w-full bg-[#29354c] hover:bg-[#1a2333] text-white hover:text-white/90 h-10 rounded-lg shadow-md shadow-blue-900/10 font-medium text-sm tracking-wide transition-transform active:scale-[0.98] mt-1"
                         onClick={handleSendOtp}
                         disabled={!loginForm.phone.trim() || isLoading}
                       >
-                        {isLoading ? "Sending..." : "Generate OTP"}
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                             <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                             Sending...
+                          </div>
+                        ) : "Generate OTP"}
                       </Button>
 
-                      {/* Footer */}
-                      <div className="text-center text-xs text-gray-600 space-y-1">
-                        <div>By logging in, I agree</div>
-                        <div className="space-x-2">
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Terms & Conditions</Button>
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Privacy Policy</Button>
-                        </div>
+                      <div className="text-center pt-1">
+                         <p className="text-[10px] text-gray-400">
+                            By continuing, you agree to our <a href="#" className="text-[#f48432] hover:underline">Terms</a> & <a href="#" className="text-[#f48432] hover:underline">Privacy Policy</a>
+                         </p>
                       </div>
                     </div>
                   ) : (
-                    // OTP Input Screen
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBackToPhone}
-                            className="p-1 h-auto"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                          </Button>
-                          <Label htmlFor="otp" className="text-base">Enter OTP</Label>
+                    <div className="space-y-3 animate-in fade-in slide-in-from-right-8 duration-500">
+                      <div className="text-center mb-4">
+                        <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-2 text-[#29354c]">
+                            <Lock className="w-5 h-5" />
                         </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          We've sent a verification code to {countryCode} {loginForm.phone}
-                        </div>
+                        <h2 className="text-base font-bold text-[#29354c]">Verify OTP</h2>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Code sent to <span className="font-medium text-gray-800">{countryCode} {loginForm.phone}</span>
+                        </p>
+                        <button 
+                             onClick={handleBackToPhone} 
+                             className="text-[10px] text-[#f48432] hover:underline mt-1 font-medium flex items-center justify-center w-full gap-1"
+                        >
+                            <ArrowLeft className="w-2.5 h-2.5" /> Change Number
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
                         <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                           <Input
                             id="otp"
                             type="text"
-                            placeholder="Enter 6-digit OTP"
-                            className="pl-10"
+                            placeholder="• • • • • •"
+                            className={`text-center h-12 bg-white border-2 border-gray-100 focus:border-[#29354c] focus:ring-0 transition-all ${loginForm.otp ? 'text-lg tracking-[0.5em] font-bold text-[#29354c]' : 'text-sm tracking-widest text-gray-400 font-medium'}`}
                             value={loginForm.otp}
                             onChange={(e) => setLoginForm({...loginForm, otp: e.target.value})}
                             maxLength={6}
                           />
                         </div>
-                        <div className="text-center">
-                          <Button 
-                            variant="link" 
-                            className="text-sm p-0 h-auto"
-                            onClick={() => handleResendOtp('login')}
-                          >
-                            Didn't receive code? Resend
-                          </Button>
+                        
+                        <div className="flex justify-between items-center text-xs">
+                           <span className="text-gray-400 text-[10px]">Expecting code...</span> 
+                           <button 
+                             className="text-[#f48432] hover:text-[#d36a1e] font-medium text-[10px] hover:underline"
+                             onClick={() => handleResendOtp('login')}
+                           >
+                              Resend Code
+                           </button>
                         </div>
                       </div>
                       
                       <Button 
-                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                        className="w-full bg-[#f48432] hover:bg-[#e07528] text-white h-10 rounded-lg shadow-md shadow-orange-500/20 font-medium text-sm mt-2 transition-transform active:scale-[0.98]"
                         onClick={handleLogin}
                         disabled={isLoading}
                       >
-                        {isLoading ? "Verifying..." : "Verify & Sign In"}
+                         {isLoading ? "Verifying..." : "Verify & Sign In"}
                       </Button>
                     </div>
                   )}
                 </TabsContent>
                 
                 {/* Sign Up Tab */}
-                <TabsContent value="signup" className="space-y-4">
+                <TabsContent value="signup" className="space-y-3 focus-visible:outline-none focus-visible:ring-0">
                   {!showSignupOtpField ? (
-                    // Signup Form Screen
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Create driver account to get started</span>
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="text-center mb-1">
+                         <h2 className="text-base font-bold text-[#29354c]">Create Account</h2>
+                         <p className="text-xs text-gray-500">Join us as a driver partner</p>
                       </div>
 
-                      {/* Main Question */}
-                      <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-800">Create your driver account</h2>
-                      </div>
-
-                      {/* Name Fields */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="firstName" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">First Name</Label>
                           <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
                             <Input
                               id="firstName"
-                              placeholder="First name"
-                              className="pl-10"
+                              placeholder="John"
+                              className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
                               value={signupForm.firstName}
                               onChange={(e) => setSignupForm({...signupForm, firstName: e.target.value})}
                             />
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="lastName" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">Last Name</Label>
                           <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
                             <Input
                               id="lastName"
-                              placeholder="Last name"
-                              className="pl-10"
+                              placeholder="Doe"
+                              className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
                               value={signupForm.lastName}
                               onChange={(e) => setSignupForm({...signupForm, lastName: e.target.value})}
                             />
@@ -445,143 +456,126 @@ const DriverAuth = () => {
                         </div>
                       </div>
 
-                      {/* Email Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium">Email (Optional)</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="signupMobile" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">Mobile Number</Label>
+                        <div className="flex space-x-2">
+                          <Select value={countryCode} onValueChange={setCountryCode}>
+                            <SelectTrigger className="w-20 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="+91">+91</SelectItem>
+                            </SelectContent>
+                          </Select>
+                           <div className="relative flex-1">
+                                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+                                <Input
+                                    id="signupMobile"
+                                    type="tel"
+                                    placeholder="98765 43210"
+                                    className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
+                                    value={signupForm.phone}
+                                    onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
+                                />
+                           </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">Email (Optional)</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
                           <Input
                             id="email"
                             type="email"
-                            placeholder="Email address"
-                            className="pl-10"
+                            placeholder="john@example.com"
+                            className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
                             value={signupForm.email || ''}
                             onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
                           />
                         </div>
                       </div>
 
-                      {/* Mobile Number Input */}
-                      <div className="space-y-2">
-                        <Label htmlFor="signupMobileNumber" className="text-sm font-medium">Mobile Number</Label>
-                        <div className="flex space-x-2">
-                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="+91">+91</SelectItem>
-                              <SelectItem value="+1">+1</SelectItem>
-                              <SelectItem value="+44">+44</SelectItem>
-                              <SelectItem value="+61">+61</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            id="signupMobileNumber"
-                            type="tel"
-                            placeholder="Mobile number"
-                            className="flex-1"
-                            value={signupForm.phone}
-                            onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Generate OTP Button */}
                       <Button 
-                        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300 h-12 rounded-lg"
+                        className="w-full bg-[#29354c] hover:bg-[#1a2333] text-white hover:text-white/90 h-10 rounded-lg shadow-md shadow-blue-900/10 font-medium text-sm mt-1"
                         onClick={handleSendSignupOtp}
                         disabled={!signupForm.phone.trim() || !signupForm.firstName.trim() || !signupForm.lastName.trim() || isLoading}
                       >
-                        {isLoading ? "Sending..." : "Generate OTP"}
+                         {isLoading ? "Sending..." : "Continue & Verify"}
                       </Button>
-
-                      {/* Footer */}
-                      <div className="text-center text-xs text-gray-600 space-y-1">
-                        <div>By creating an account, I agree</div>
-                        <div className="space-x-2">
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Terms & Conditions</Button>
-                          <Button variant="link" className="text-xs p-0 h-auto text-blue-600">Privacy Policy</Button>
-                        </div>
-                      </div>
                     </div>
                   ) : (
-                    // Signup OTP Input Screen
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBackToSignupPhone}
-                            className="p-1 h-auto"
-                          >
-                            <ArrowLeft className="w-4 h-4" />
-                          </Button>
-                          <Label htmlFor="signupOtp" className="text-base">Enter OTP</Label>
+                    <div className="space-y-3 animate-in fade-in slide-in-from-right-8 duration-500">
+                       <div className="text-center mb-4">
+                        <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-2 text-[#29354c]">
+                            <Lock className="w-5 h-5" />
                         </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          We've sent a verification code to {countryCode} {signupForm.phone}
-                        </div>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                          <Input
+                        <h2 className="text-base font-bold text-[#29354c]">Verify & Register</h2>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Code sent to <span className="font-medium text-gray-800">{countryCode} {signupForm.phone}</span>
+                        </p>
+                         <button 
+                             onClick={handleBackToSignupPhone} 
+                             className="text-[10px] text-[#f48432] hover:underline mt-1 font-medium flex items-center justify-center w-full gap-1"
+                        >
+                            <ArrowLeft className="w-2.5 h-2.5" /> Edit Details
+                        </button>
+                      </div>
+
+                      <div className="relative">
+                         <Input
                             id="signupOtp"
                             type="text"
-                            placeholder="Enter 6-digit OTP"
-                            className="pl-10"
+                            placeholder="• • • • • •"
+                            className={`text-center h-12 bg-white border-2 border-gray-100 focus:border-[#29354c] focus:ring-0 transition-all ${signupForm.otp ? 'text-lg tracking-[0.5em] font-bold text-[#29354c]' : 'text-sm tracking-widest text-gray-400 font-medium'}`}
                             value={signupForm.otp}
                             onChange={(e) => setSignupForm({...signupForm, otp: e.target.value})}
                             maxLength={6}
                           />
-                        </div>
-                        <div className="text-center">
-                          <Button 
-                            variant="link" 
-                            className="text-sm p-0 h-auto"
-                            onClick={() => handleResendOtp('signup')}
-                          >
-                            Didn't receive code? Resend
-                          </Button>
-                        </div>
                       </div>
                       
+                      <div className="text-center">
+                         <button 
+                             className="text-[#f48432] hover:text-[#d36a1e] font-medium text-[10px] hover:underline"
+                             onClick={() => handleResendOtp('signup')}
+                           >
+                              Resend Verification Code
+                           </button>
+                      </div>
+
                       <Button 
-                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                        className="w-full bg-[#f48432] hover:bg-[#e07528] text-white h-10 rounded-lg shadow-md shadow-orange-500/20 font-medium text-sm mt-2"
                         onClick={handleSignup}
                         disabled={isLoading}
                       >
-                        {isLoading ? "Creating..." : "Verify & Create Account"}
+                        {isLoading ? "Creating..." : "Create Account"}
                       </Button>
                     </div>
                   )}
                 </TabsContent>
               </Tabs>
               
-              <div className="mt-6 text-center text-sm text-muted-foreground">
+              <div className="mt-5 pt-4 border-t border-gray-100/50 text-center text-xs">
                 {activeTab === "login" ? (
-                  <>
-                    Don't have an account?{" "}
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-blue-600"
+                  <p className="text-gray-500">
+                    New to Happiness?{" "}
+                    <button 
+                      className="font-bold text-[#29354c] hover:text-[#f48432] transition-colors"
                       onClick={() => setActiveTab("signup")}
                     >
-                      Sign up
-                    </Button>
-                  </>
+                      Join now
+                    </button>
+                  </p>
                 ) : (
-                  <>
-                    Already have an account?{" "}
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-blue-600"
+                  <p className="text-gray-500">
+                    Already a partner?{" "}
+                    <button 
+                      className="font-bold text-[#29354c] hover:text-[#f48432] transition-colors"
                       onClick={() => setActiveTab("login")}
                     >
                       Sign in
-                    </Button>
-                  </>
+                    </button>
+                  </p>
                 )}
               </div>
               
@@ -590,27 +584,7 @@ const DriverAuth = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background z-50">
-        <div className="flex justify-around py-2">
-          <Link to="/" className="flex flex-col items-center space-y-1">
-            <Home className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Home</span>
-          </Link>
-          <Link to="/driver" className="flex flex-col items-center space-y-1">
-            <List className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Dashboard</span>
-          </Link>
-          <Link to="/help" className="flex flex-col items-center space-y-1">
-            <HelpCircle className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Help</span>
-          </Link>
-          <Link to="/driver-auth" className="flex flex-col items-center space-y-1">
-            <User className="w-5 h-5 text-primary" />
-            <span className="text-xs text-primary font-medium">Account</span>
-          </Link>
-        </div>
-      </div>
+
     </div>
   );
 };

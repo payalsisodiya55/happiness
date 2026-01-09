@@ -17,6 +17,8 @@ const AdminAuth: React.FC = () => {
 
   // Check if redirected from protected route
   useEffect(() => {
+    document.title = "Happiness - Admin Login";
+    
     if (location.state?.from) {
       setMessage('Please login to access the admin panel.');
     }
@@ -96,7 +98,7 @@ const AdminAuth: React.FC = () => {
               </svg>
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900">Admin Panel</CardTitle>
-            <CardDescription className="text-gray-600">Login to manage your ChaloSawari platform</CardDescription>
+            <CardDescription className="text-gray-600">Login to manage your Happiness platform</CardDescription>
           </CardHeader>
           
           <CardContent>

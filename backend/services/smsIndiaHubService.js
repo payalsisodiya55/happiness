@@ -79,7 +79,7 @@ class SMSIndiaHubService {
       }
 
       // Use the verified message template from SMSIndia Hub
-      const message = `Welcome to the Chalo Sawari powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+      const message = `Welcome to the Happiness powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
       
       // Build the API URL with query parameters (as shown in the example)
       const params = new URLSearchParams({
@@ -179,7 +179,7 @@ class SMSIndiaHubService {
 
       // Test with a simple SMS to verify connection
       const testPhone = '919109992290'; // Use the phone number from the example
-      const testMessage = 'Welcome to the Chalo Sawari powered by SMSINDIAHUB. Your OTP for registration is 12345';
+      const testMessage = 'Welcome to the Happiness powered by SMSINDIAHUB. Your OTP for registration is 12345';
       
       const params = new URLSearchParams({
         APIKey: apiKey,

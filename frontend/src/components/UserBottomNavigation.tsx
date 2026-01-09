@@ -70,20 +70,30 @@ const UserBottomNavigation = () => {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex flex-col items-center justify-center py-3 px-3 min-w-0 flex-1",
-                "transition-colors duration-200",
+                "flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 relative group",
+                "transition-all duration-300 ease-in-out",
                 active
-                  ? "text-[#212c40] bg-[#212c40]/10"
-                  : "text-[#212c40]/70 hover:text-[#212c40] hover:bg-[#212c40]/5"
+                  ? "text-[#f48432]"
+                  : "text-gray-400 hover:text-[#212c40] hover:bg-gray-50/50"
               )}
             >
-              <Icon className={cn(
-                "w-5 h-5 mb-1",
-                active ? "text-[#212c40]" : "text-[#212c40]/70"
-              )} />
+              {active && (
+                 <span className="absolute top-0 w-8 h-1 bg-[#f48432] rounded-b-full shadow-[0_2px_8px_rgba(244,132,50,0.4)] transition-all duration-300"></span>
+              )}
+              
+              <Icon 
+                className={cn(
+                  "w-6 h-6 mb-1 transition-all duration-300",
+                  active ? "text-[#f48432] scale-110 drop-shadow-sm" : "text-gray-400 group-hover:text-[#212c40]"
+                )} 
+                strokeWidth={active ? 2.5 : 2}
+                fill="none"
+                stroke="currentColor"
+              />
+              
               <span className={cn(
-                "text-xs font-medium truncate",
-                active ? "text-[#212c40]" : "text-[#212c40]/70"
+                "text-[10px] font-medium truncate transition-all duration-300",
+                active ? "font-bold text-[#f48432]" : "text-gray-400 group-hover:text-[#212c40]"
               )}>
                 {item.title}
               </span>

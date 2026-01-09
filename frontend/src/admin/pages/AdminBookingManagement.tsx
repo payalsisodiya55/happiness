@@ -436,9 +436,9 @@ const AdminBookingManagement = () => {
         );
       case 'completed':
         return (
-          <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 px-3 py-1.5 font-medium">
+          <Badge className="bg-[#29354C]/10 text-[#29354C] border-[#29354C]/20 px-3 py-1.5 font-medium">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-[#29354C] rounded-full"></div>
               Completed
             </div>
           </Badge>
@@ -1050,7 +1050,7 @@ const AdminBookingManagement = () => {
                 </div>
                 <Button
                   onClick={exportToExcel}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
+                  className="bg-[#29354C] hover:bg-[#29354C]/90 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
                 >
                   <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   <span className="hidden sm:inline">Export to Excel</span>
@@ -1207,7 +1207,7 @@ const AdminBookingManagement = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={exportToExcel}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="bg-[#29354C] hover:bg-[#29354C]/90 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export to Excel
@@ -1301,7 +1301,7 @@ const AdminBookingManagement = () => {
               <div className="mt-6 flex justify-center">
                 <Button 
                   onClick={handleSearch} 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 sm:px-8 py-2 sm:py-3 h-10 sm:h-12 text-sm sm:text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
+                  className="bg-[#29354C] hover:bg-[#29354C]/90 text-white px-6 sm:px-8 py-2 sm:py-3 h-10 sm:h-12 text-sm sm:text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
                 >
                   <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Apply Filters
@@ -1329,7 +1329,7 @@ const AdminBookingManagement = () => {
                   <Button
                     onClick={exportToExcel}
                     variant="outline"
-                    className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
+                    className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export
@@ -1558,9 +1558,9 @@ const AdminBookingManagement = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleStatusUpdate(booking)}
-                            className="h-8 px-3 hover:bg-purple-50 hover:border-purple-300 text-xs font-medium"
+                            className="h-8 px-3 border-[#29354C] text-[#29354C] hover:bg-[#29354C] hover:text-white transition-all text-xs font-medium"
                           >
-                            <CheckSquare className="w-3 h-3 mr-1 text-purple-600" />
+                            <CheckSquare className="w-3 h-3 mr-1" />
                             Update
                           </Button>
                         </div>
@@ -1572,18 +1572,18 @@ const AdminBookingManagement = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewDetails(booking)}
-                          className="flex-1 h-9 hover:bg-blue-50 hover:border-blue-300 text-xs sm:text-sm font-medium"
+                          className="flex-1 h-9 border-[#29354C] text-[#29354C] hover:bg-[#29354C] hover:text-white transition-all text-xs sm:text-sm font-medium"
                         >
-                          <Eye className="w-4 h-4 mr-2 text-blue-600" />
+                          <Eye className="w-4 h-4 mr-2" />
                           Details
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewPayment(booking)}
-                          className="flex-1 h-9 hover:bg-green-50 hover:border-green-300 text-xs sm:text-sm font-medium"
+                          className="flex-1 h-9 border-[#29354C] text-[#29354C] hover:bg-[#29354C] hover:text-white transition-all text-xs sm:text-sm font-medium"
                         >
-                          <CreditCard className="w-4 h-4 mr-2 text-green-600" />
+                          <CreditCard className="w-4 h-4 mr-2" />
                           Payment
                         </Button>
                       </div>
@@ -1783,33 +1783,33 @@ const AdminBookingManagement = () => {
                              </TableCell>
                              <TableCell className="py-4">
                                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                                 <Button
-                                   size="sm"
-                                   variant="outline"
-                                   onClick={() => handleViewDetails(booking)}
-                                   className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-blue-50 hover:border-blue-300"
-                                   title="View Details"
-                                 >
-                                   <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                                 </Button>
-                                 <Button
-                                   size="sm"
-                                   variant="outline"
-                                   onClick={() => handleViewPayment(booking)}
-                                   className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
-                                   title="Payment Details"
-                                 >
-                                   <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                                 </Button>
-                                 <Button
-                                   size="sm"
-                                   variant="outline"
-                                   onClick={() => handleStatusUpdate(booking)}
-                                   className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-purple-50 hover:border-purple-300"
-                                   title="Update Status"
-                                 >
-                                   <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
-                                 </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewDetails(booking)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                    title="View Details"
+                                  >
+                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewPayment(booking)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                    title="Payment Details"
+                                  >
+                                    <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleStatusUpdate(booking)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                    title="Update Status"
+                                  >
+                                    <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
                                  
                                  {/* Cancellation Request Actions */}
                                  {booking.status === 'cancellation_requested' && (
@@ -1920,8 +1920,8 @@ const AdminBookingManagement = () => {
                               onClick={() => setCurrentPage(pageNum)}
                               className={`h-9 w-9 sm:h-10 sm:w-10 p-0 text-sm ${
                                 currentPage === pageNum 
-                                  ? 'bg-blue-600 text-white border-blue-600' 
-                                  : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                  ? 'bg-[#29354C] text-white border-[#29354C]' 
+                                  : 'border-gray-300 hover:border-[#29354C] hover:bg-[#29354C]/5 text-gray-700'
                               }`}
                             >
                               {pageNum}
@@ -2248,7 +2248,7 @@ const AdminBookingManagement = () => {
                         setShowPaymentDetails(false);
                         setShowRefundModal(true);
                       }}
-                      className="flex items-center gap-2 w-full sm:w-auto"
+                      className="flex items-center gap-2 w-full sm:w-auto bg-[#29354C] hover:bg-[#29354C]/90 text-white"
                     >
                       <RotateCcw className="w-4 h-4" />
                       Process Refund
@@ -2304,10 +2304,10 @@ const AdminBookingManagement = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button
+               <Button
                 onClick={processRefund}
                 disabled={isProcessingRefund || !refundReason}
-                className="flex-1"
+                className="flex-1 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
               >
                 {isProcessingRefund ? (
                   <>
@@ -2383,7 +2383,7 @@ const AdminBookingManagement = () => {
               <Button
                 onClick={updateBookingStatus}
                 disabled={isUpdatingStatus || !newStatus || !statusReason}
-                className="flex-1"
+                className="flex-1 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
               >
                 {isUpdatingStatus ? (
                   <>

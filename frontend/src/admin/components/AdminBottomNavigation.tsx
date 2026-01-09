@@ -21,7 +21,7 @@ const AdminBottomNavigation = () => {
   const navigate = useNavigate();
   const [adminProfile] = useState({
     name: "Admin User",
-    email: "admin@chalosawari.com",
+    email: "admin@happiness.com",
     avatar: "https://github.com/shadcn.png"
   });
 

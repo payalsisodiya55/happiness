@@ -410,91 +410,90 @@ const AdminVehicleManagement = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredVehicles.map((vehicle) => (
-                  <Card key={vehicle._id} className="hover:shadow-lg transition-shadow">
+                  <Card key={vehicle._id} className="hover:shadow-lg transition-all duration-300 border-gray-100 hover:border-[#29354C]/20 group bg-white">
                     <CardContent className="p-6">
-                      {/* Vehicle Header */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-[#29354C]/10 rounded-lg">
+                      {/* Top Section: Icon, Name, Status */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 bg-gray-50 rounded-xl group-hover:bg-[#29354C]/5 transition-colors">
                             {getVehicleIcon(vehicle.type)}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{vehicle.brand} {vehicle.model}</h3>
-                            <p className="text-sm text-gray-500">{vehicle.registrationNumber}</p>
+                            <h3 className="font-bold text-gray-900 text-lg leading-tight">{vehicle.brand} {vehicle.model}</h3>
+                            <p className="text-sm text-gray-500 font-medium mt-1">{vehicle.registrationNumber}</p>
                           </div>
                         </div>
                         {getStatusBadge(vehicle.bookingStatus)}
                       </div>
 
-                      {/* Vehicle Details */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Owner</span>
-                          <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">{vehicle.driver.firstName} {vehicle.driver.lastName}</span>
+                      {/* Main Info Block */}
+                      <div className="space-y-4 mb-6">
+                        {/* Owner Info */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Owner</span>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-900 text-sm truncate pr-2">
+                              {vehicle.driver.firstName} {vehicle.driver.lastName}
+                            </span>
                             {!vehicle.driver.isActive && (
-                              <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
-                                Suspended
-                              </span>
+                              <Badge variant="destructive" className="h-5 text-[10px] px-1.5 flex-shrink-0">Suspended</Badge>
                             )}
                           </div>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Current Location</span>
-                          <div className="flex items-center">
-                            <MapPin className="w-3 h-3 mr-1 text-gray-400" />
-                            <span className="text-sm font-medium">
+
+                        {/* Location Info with Timeline Connector design */}
+                        <div className="relative pl-3 border-l-2 border-gray-100 space-y-4 py-1 ml-1">
+                          {/* Current Loc */}
+                          <div className="relative">
+                            <div className="absolute -left-[19px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-blue-500 shadow-sm" />
+                            <span className="text-xs font-semibold text-gray-400 uppercase block mb-0.5">Current Location</span>
+                            <p className="text-sm text-gray-700 leading-snug line-clamp-2" title={vehicle.currentLocation?.address}>
                               {vehicle.currentLocation?.address || 'Not specified'}
-                            </span>
+                            </p>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Base Location</span>
-                          <div className="flex items-center">
-                            <MapPin className="w-3 h-3 mr-1 text-gray-400" />
-                            <span className="text-sm font-medium">
+                          
+                          {/* Base Loc */}
+                          <div className="relative">
+                            <div className="absolute -left-[19px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-gray-300" />
+                            <span className="text-xs font-semibold text-gray-400 uppercase block mb-0.5">Base Location</span>
+                            <p className="text-sm text-gray-700 leading-snug line-clamp-2" title={vehicle.vehicleLocation?.address}>
                               {vehicle.vehicleLocation?.address || 'Location not set'}
-                            </span>
+                            </p>
                           </div>
                         </div>
+                      </div>
 
-
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Fuel Type</span>
-                          <span className="text-sm font-medium capitalize">{vehicle.fuelType}</span>
+                      {/* Specs / Stats Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-6 py-3 border-t border-b border-gray-50">
+                        <div className="text-center px-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Fuel</p>
+                          <p className="text-sm font-bold text-gray-900 capitalize">{vehicle.fuelType}</p>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Seats</span>
-                          <span className="text-sm font-medium">{vehicle.seatingCapacity}</span>
+                        <div className="text-center px-1 border-l border-gray-100">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Seats</p>
+                          <p className="text-sm font-bold text-gray-900">{vehicle.seatingCapacity}</p>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Total Trips</span>
-                          <span className="text-sm font-medium">{vehicle.statistics.totalTrips || 0}</span>
+                        <div className="text-center px-1 border-l border-gray-100">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trips</p>
+                          <p className="text-sm font-bold text-gray-900">{vehicle.statistics.totalTrips || 0}</p>
                         </div>
-
-
                       </div>
 
                       {/* Actions */}
-                      <div className="flex space-x-2 mt-4 pt-4 border-t">
+                      <div className="flex items-center gap-3">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 border-[#29354C] text-[#29354C] hover:bg-[#29354C] hover:text-white transition-all font-medium h-9 shadow-sm"
                           onClick={() => handleVehicleAction('view', vehicle._id)}
                         >
                           <Eye className="w-4 h-4 mr-2" />
-                          View Details
+                          View
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium h-9"
                           onClick={() => handleVehicleAction('delete', vehicle._id)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />

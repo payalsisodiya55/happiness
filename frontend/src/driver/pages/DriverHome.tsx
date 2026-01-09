@@ -188,20 +188,20 @@ const DriverHome = () => {
       {/* Sticky Header Group: Profile + Stats Cards (Overlapping) */}
       <div className="sticky top-16 z-40">
         {/* Dark Theme Header Section */}
-        <div className="bg-[#29354c] pt-6 pb-24 px-4 rounded-b-[2rem] shadow-lg relative z-0">
+        <div className="bg-[#29354c] pt-4 pb-16 px-4 rounded-b-[1.5rem] shadow-lg relative z-0">
           <div className="container mx-auto">
             {/* User Info & Profile */}
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1 flex items-center">
-                  Hello, {driver?.firstName || "Partner"} <span className="ml-2 text-2xl">👋</span>
+                <h1 className="text-2xl font-bold text-white mb-0.5 flex items-center">
+                  Hello, {driver?.firstName || "Partner"} <span className="ml-2 text-xl">👋</span>
                 </h1>
-                <div className="flex items-center bg-[#3a4860] px-3 py-1 rounded-full w-fit">
-                  <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'} mr-2`}></div>
-                  <span className="text-gray-300 text-xs">{isOnline ? 'Online' : 'Offline'} • Indore, Madison Pradesh</span>
+                <div className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span className="text-gray-300 text-[10px] font-medium">{isOnline ? 'Online' : 'Offline'} • Indore, Madison Pradesh</span>
                 </div>
               </div>
-              <div className="w-12 h-12 rounded-full border-2 border-[#f48432] p-0.5 relative">
+              <div className="w-10 h-10 rounded-full border border-[#f48432] p-0.5 relative">
                 <div className="w-full h-full rounded-full bg-gray-300 overflow-hidden">
                   <img 
                     src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
@@ -215,21 +215,21 @@ const DriverHome = () => {
             {/* Offline/Online Toggle Card - Interactive */}
             <div 
               onClick={handleToggleStatus}
-              className={`rounded-xl p-4 flex items-center justify-between mb-2 cursor-pointer transition-colors duration-300 ${isOnline ? 'bg-green-600/20 border border-green-500/30' : 'bg-[#3a4860]'}`}
+              className={`rounded-xl p-3 flex items-center justify-between mb-2 cursor-pointer transition-colors duration-300 ${isOnline ? 'bg-green-600/20 border border-green-500/30' : 'bg-[#3a4860]/80'}`}
             >
               <div className="flex items-center">
-                <div className={`w-4 h-4 rounded-full mr-3 transition-colors duration-300 ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-400'}`}></div>
+                <div className={`w-3 h-3 rounded-full mr-2.5 transition-colors duration-300 ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-400'}`}></div>
                 <div>
-                  <h3 className="text-white font-semibold">{isOnline ? 'You are Online' : 'You are Offline'}</h3>
-                  <p className="text-gray-400 text-xs">{isOnline ? 'Receiving ride requests' : 'Go online to start earning'}</p>
+                  <h3 className="text-white font-semibold text-sm">{isOnline ? 'You are Online' : 'You are Offline'}</h3>
+                  <p className="text-gray-400 text-[10px]">{isOnline ? 'Receiving ride requests' : 'Go online to start earning'}</p>
                 </div>
               </div>
               {/* Toggle Switch UI */}
-              <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${isOnline ? 'left-7' : 'left-1'}`}>
+              <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-300 ${isOnline ? 'left-5' : 'left-0.5'}`}>
                   {isToggling && (
                      <div className="absolute inset-0 flex items-center justify-center">
-                       <div className="w-2 h-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                       <div className="w-2 h-2 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                      </div>
                   )}
                 </div>
@@ -240,39 +240,39 @@ const DriverHome = () => {
 
         {/* Stats Cards - Sticky & Overlapping */}
         {activeTab === "home" && (
-          <div className="container mx-auto px-4 -mt-16 relative z-50">
-             <div className="grid grid-cols-2 gap-4">
+          <div className="container mx-auto px-4 -mt-12 relative z-50">
+             <div className="grid grid-cols-2 gap-3">
               <Card className="shadow-lg border-none rounded-xl overflow-hidden relative">
-                <CardContent className="p-4 relative z-10">
-                  <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Total Earnings</h3>
+                <CardContent className="p-3 relative z-10">
+                  <h3 className="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Total Earnings</h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-[#29354c]">
+                    <span className="text-xl font-bold text-[#29354c]">
                       ₹{isLoading ? "..." : dashboardData.totalEarnings.toLocaleString()}
                     </span>
-                    <div className="w-10 h-10 rounded-lg bg-[#29354c] flex items-center justify-center text-white">
-                      <Banknote className="w-6 h-6" />
+                    <div className="w-8 h-8 rounded-lg bg-[#29354c] flex items-center justify-center text-white">
+                      <Banknote className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center text-green-500 text-xs font-bold">
-                    <TrendingUp className="w-3 h-3 mr-1" />
+                  <div className="mt-1 flex items-center text-green-500 text-[10px] font-bold">
+                    <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
                     <span>+12% vs yest</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="shadow-lg border-none rounded-xl overflow-hidden">
-                <CardContent className="p-4">
-                  <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Rides Completed</h3>
+                <CardContent className="p-3">
+                  <h3 className="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Rides Completed</h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-[#29354c]">
+                    <span className="text-xl font-bold text-[#29354c]">
                       {isLoading ? "..." : dashboardData.completedRides}
                     </span>
-                     <div className="w-10 h-10 rounded-lg bg-[#f48432] flex items-center justify-center text-white">
-                      <Car className="w-6 h-6" />
+                     <div className="w-8 h-8 rounded-lg bg-[#f48432] flex items-center justify-center text-white">
+                      <Car className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center text-blue-500 text-xs font-bold bg-blue-50 w-fit px-2 py-0.5 rounded-full">
-                    <Clock className="w-3 h-3 mr-1" />
+                  <div className="mt-1 flex items-center text-blue-500 text-[10px] font-bold bg-blue-50 w-fit px-1.5 py-0.5 rounded-full">
+                    <Clock className="w-2.5 h-2.5 mr-0.5" />
                     <span>On Time 98%</span>
                   </div>
                 </CardContent>
@@ -283,27 +283,27 @@ const DriverHome = () => {
       </div>
 
       {/* Main Scrollable Content */}
-      <div className="container mx-auto px-4 mt-6 z-30">
+      <div className="container mx-auto px-4 mt-4 z-30">
         {activeTab === "home" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
 
             {/* Quick Actions */}
-            <div className="mt-6">
-              <h3 className="text-[#29354c] font-bold text-lg mb-4 flex items-center">
-                <Zap className="w-5 h-5 text-[#f48432] mr-2 fill-current" />
+            <div className="mt-4">
+              <h3 className="text-[#29354c] font-bold text-base mb-3 flex items-center">
+                <Zap className="w-4 h-4 text-[#f48432] mr-1.5 fill-current" />
                 Quick Actions
               </h3>
               
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 {/* My Vehicle */}
                 <div 
                   onClick={() => handleTabChange("myvehicle")} 
                   className="flex flex-col items-center cursor-pointer group"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
-                    <Car className="w-7 h-7 text-[#29354c]" />
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm">
+                    <Car className="w-6 h-6 text-[#29354c]" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium text-center">My Vehicle</span>
+                  <span className="text-[10px] text-gray-600 font-medium text-center">My Vehicle</span>
                 </div>
 
                 {/* Requests */}
@@ -311,15 +311,15 @@ const DriverHome = () => {
                   onClick={() => handleTabChange("requests")} 
                   className="flex flex-col items-center cursor-pointer group"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm">
                      <div className="relative">
-                      <MessageSquare className="w-7 h-7 text-green-600" />
+                      <MessageSquare className="w-6 h-6 text-green-600" />
                       {dashboardData.activeRequests > 0 && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                       )}
                      </div>
                   </div>
-                  <span className="text-xs text-gray-600 font-medium text-center">Requests</span>
+                  <span className="text-[10px] text-gray-600 font-medium text-center">Requests</span>
                 </div>
 
                 {/* Ratings */}
@@ -327,20 +327,20 @@ const DriverHome = () => {
                   onClick={() => navigate('/driver/profile')} // Redirect to profile for ratings
                   className="flex flex-col items-center cursor-pointer group"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-yellow-50 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
-                    <Star className="w-7 h-7 text-yellow-500 fill-current" />
+                  <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm">
+                    <Star className="w-6 h-6 text-yellow-500 fill-current" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium text-center">Ratings</span>
+                  <span className="text-[10px] text-gray-600 font-medium text-center">Ratings</span>
                 </div>
 
                 {/* Support */}
                 <div 
                   className="flex flex-col items-center cursor-pointer group"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
-                    <Shield className="w-7 h-7 text-purple-600" />
+                  <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm">
+                    <Shield className="w-6 h-6 text-purple-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium text-center">Support</span>
+                  <span className="text-[10px] text-gray-600 font-medium text-center">Support</span>
                 </div>
               </div>
             </div>

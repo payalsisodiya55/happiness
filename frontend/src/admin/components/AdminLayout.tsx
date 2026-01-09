@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useEffect } from "react";
 import AdminTopNavigation from "./AdminTopNavigation";
 import AdminSidebar from "./AdminSidebar";
 import AdminBottomNavigation from "./AdminBottomNavigation";
@@ -9,6 +9,10 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "Happiness - Admin Panel";
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50 relative">

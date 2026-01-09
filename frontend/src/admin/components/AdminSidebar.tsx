@@ -82,11 +82,6 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
       href: "/admin/payments",
       icon: CreditCard,
     },
-    {
-      title: "Offers",
-      href: "/admin/offers",
-      icon: Gift,
-    },
   ];
 
   const isActive = (href: string) => {

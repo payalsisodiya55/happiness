@@ -354,7 +354,7 @@ const AdminPaymentManagement = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={handleRefresh}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
               variant="outline"
             >
               <RefreshCw className="w-4 h-4" />
@@ -362,7 +362,7 @@ const AdminPaymentManagement = () => {
             </Button>
             <Button
               onClick={handleExport}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
             >
               <Download className="w-4 h-4" />
               {isMobile ? "Export" : "Export Data"}
@@ -499,7 +499,7 @@ const AdminPaymentManagement = () => {
                 <Button
                   size="sm"
                   onClick={loadPaymentData}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 px-3"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 px-3 bg-[#29354C] hover:bg-[#29354C]/90 text-white"
                 >
                   {isMobile ? "Go" : "Search"}
                 </Button>
@@ -629,11 +629,12 @@ const AdminPaymentManagement = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePaymentAction('view', payment._id)}
-                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handlePaymentAction('view', payment._id)}
+                                  className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                >
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </div>
@@ -663,7 +664,7 @@ const AdminPaymentManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handlePaymentAction('view', payment._id)}
-                          className="flex-shrink-0 ml-2"
+                          className="flex-shrink-0 ml-2 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>

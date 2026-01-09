@@ -47,7 +47,7 @@ const TopNavigation = () => {
                   : 'text-gray-600 hover:text-[#212c40]'
               }`}
             >
-              <Home className={`w-5 h-5 ${location.pathname === '/' ? 'fill-current' : 'stroke-2'}`} />
+              <Home className={`w-5 h-5 ${location.pathname === '/' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               <span>Home</span>
             </Link>
             <Link 
@@ -69,7 +69,7 @@ const TopNavigation = () => {
                   : 'text-gray-600 hover:text-[#212c40]'
               }`}
             >
-              <HelpCircle className={`w-5 h-5 ${location.pathname === '/help' ? 'fill-current' : 'stroke-2'}`} />
+              <HelpCircle className={`w-5 h-5 ${location.pathname === '/help' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               <span>Help</span>
             </Link>
             <Link 
@@ -80,7 +80,7 @@ const TopNavigation = () => {
                   : 'text-gray-600 hover:text-[#212c40]'
               }`}
             >
-              <User className={`w-5 h-5 ${location.pathname === '/profile' ? 'fill-current' : 'stroke-2'}`} />
+              <User className={`w-5 h-5 ${location.pathname === '/profile' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               <span>Profile</span>
             </Link>
           </div>

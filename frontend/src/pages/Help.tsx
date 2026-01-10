@@ -76,12 +76,12 @@ const Help = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="hidden md:block">
+      <div className="hidden md:block sticky top-0 z-[60] bg-white">
         <TopNavigation/>
       </div>
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#212c40] to-[#2d3a52] text-white py-4 md:py-8 px-4 shadow-lg">
+      <div className="bg-gradient-to-r from-[#212c40] to-[#2d3a52] text-white py-4 md:py-8 px-4 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto">
           <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">Help & Support</h1>
           <p className="text-white/70">We're here to help you 24/7</p>

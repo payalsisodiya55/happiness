@@ -378,7 +378,7 @@ const DriverRequests = () => {
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       
       {/* Header - Fixed/Sticky */}
-      <div className="bg-[#29354c] text-white pt-8 pb-14 shadow-md relative z-30 rounded-b-[2.5rem] flex-shrink-0">
+      <div className="bg-[#29354c] text-white pt-4 pb-8 sm:pt-8 sm:pb-14 shadow-md relative z-30 rounded-b-[2.5rem] flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
 

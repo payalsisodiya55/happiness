@@ -137,7 +137,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="hidden md:block">
+      <div className="hidden md:block sticky top-0 z-[60] bg-white">
         <TopNavigation />
       </div>
       {!isAuthenticated ? (
@@ -169,7 +169,7 @@ const Profile = () => {
         // Profile Management Screen
         <>
           {/* Header */}
-          <div className="bg-[#212c40] text-white p-6 sm:p-8 shadow-md">
+          <div className="bg-[#212c40] text-white p-6 sm:p-8 shadow-md sticky top-0 z-50">
             <h1 className="text-xl sm:text-2xl font-bold tracking-wide">My Profile</h1>
           </div>
 

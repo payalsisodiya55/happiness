@@ -33,6 +33,7 @@ import DriverHome from "./driver/pages/DriverHome";
 import DriverRequests from "./driver/pages/DriverRequests";
 import DriverMyVehicle from "./driver/pages/DriverMyVehicle";
 import DriverProfile from "./driver/pages/DriverProfile";
+import DriverEditProfile from "./driver/pages/DriverEditProfile";
 import DriverWallet from "./driver/pages/DriverWallet";
 import AdminAuth from "./admin/pages/AdminAuth";
 import AdminDashboard from "./admin/pages/AdminDashboard";
@@ -128,6 +129,7 @@ const App = () => (
                 <Route path="/driver/requests" element={<ProtectedDriverRoute><DriverRequests /></ProtectedDriverRoute>} />
                 <Route path="/driver/myvehicle" element={<ProtectedDriverRoute><DriverMyVehicle /></ProtectedDriverRoute>} />
                 <Route path="/driver/profile" element={<ProtectedDriverRoute><DriverProfile /></ProtectedDriverRoute>} />
+                <Route path="/driver/profile/edit" element={<ProtectedDriverRoute><DriverEditProfile /></ProtectedDriverRoute>} />
                 <Route path="/driver/wallet" element={<ProtectedDriverRoute><DriverWallet /></ProtectedDriverRoute>} />
 
                 {/* Admin Module Routes */}

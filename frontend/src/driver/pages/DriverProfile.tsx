@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-
 import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +20,6 @@ const DriverProfile = () => {
   const navigate = useNavigate();
   const { driver, isLoggedIn, logout, refreshDriverData, updateDriverData } = useDriverAuth();
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showEarningsDialog, setShowEarningsDialog] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
@@ -87,51 +84,6 @@ const DriverProfile = () => {
     logout();
     navigate('/driver-auth');
   };
-
-
-
-  const handleUpdateProfile = async (data: any) => {
-    setIsLoading(true);
-    try {
-      // Prepare the data for the backend
-      const updateData: any = {};
-      
-      if (data.firstName && data.lastName) {
-        updateData.firstName = data.firstName;
-        updateData.lastName = data.lastName;
-      }
-      
-      if (data.phone) {
-        updateData.phone = data.phone;
-      }
-      
-      if (data.email) {
-        updateData.email = data.email;
-      }
-      
-      if (data.address) {
-        updateData.address = data.address;
-      }
-
-      const response = await apiService.updateDriverProfile(updateData);
-      
-      if (response.success) {
-        // Update local driver data
-        updateDriverData(response.data);
-        toast.success("Profile updated successfully!");
-        setShowEditDialog(false);
-      } else {
-        toast.error(response.error?.message || "Failed to update profile");
-      }
-    } catch (error: any) {
-      console.error('Profile update error:', error);
-      toast.error(error.message || "Failed to update profile");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
 
   const handleToggleNotifications = (checked: boolean) => {
     setNotifications(checked);
@@ -312,7 +264,7 @@ const DriverProfile = () => {
                 </div>
                 <Button 
                   className="w-full md:w-auto bg-[#f48432] hover:bg-[#e07528] text-white transition-all duration-300"
-                  onClick={() => setShowEditDialog(true)}
+                  onClick={() => navigate('/driver/profile/edit')}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Profile
@@ -594,20 +546,7 @@ const DriverProfile = () => {
         </Card>
       </div>
 
-      {/* Edit Profile Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-          </DialogHeader>
-          <EditProfileForm 
-            driverData={driver} 
-            onSubmit={handleUpdateProfile} 
-            onCancel={() => setShowEditDialog(false)}
-            isLoading={isLoading}
-          />
-        </DialogContent>
-      </Dialog>
+
 
        {/* Earnings Details Dialog */}
        <Dialog open={showEarningsDialog} onOpenChange={setShowEarningsDialog}>
@@ -679,162 +618,6 @@ const DriverProfile = () => {
   );
 };
 
-// Edit Profile Form Component
-const EditProfileForm = ({ 
-  driverData, 
-  onSubmit, 
-  onCancel, 
-  isLoading 
-}: { 
-  driverData: any; 
-  onSubmit: (data: any) => void; 
-  onCancel: () => void; 
-  isLoading: boolean;
-}) => {
-  const [formData, setFormData] = useState({
-    firstName: driverData.firstName || "",
-    lastName: driverData.lastName || "",
-    phone: driverData.phone || "",
-    email: driverData.email || "",
-    address: {
-      street: driverData.address?.street || "",
-      city: driverData.address?.city || "",
-      state: driverData.address?.state || "",
-      pincode: driverData.address?.pincode || "",
-      country: driverData.address?.country || "India"
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const handleAddressChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      address: {
-        ...prev.address,
-        [field]: value
-      }
-    }));
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="firstName">First Name</Label>
-          <Input 
-            id="firstName" 
-            value={formData.firstName}
-            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input 
-            id="lastName" 
-            value={formData.lastName}
-            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-            required
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input 
-          id="phone" 
-          value={formData.phone}
-          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="email">Email Address</Label>
-        <Input 
-          id="email" 
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="street">Street Address</Label>
-        <Input 
-          id="street" 
-          value={formData.address.street}
-          onChange={(e) => handleAddressChange('street', e.target.value)}
-          required
-        />
-      </div>
-      
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="city">City</Label>
-          <Input 
-            id="city" 
-            value={formData.address.city}
-            onChange={(e) => handleAddressChange('city', e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="state">State</Label>
-          <Input 
-            id="state" 
-            value={formData.address.state}
-            onChange={(e) => handleAddressChange('state', e.target.value)}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="pincode">Pincode</Label>
-          <Input 
-            id="pincode" 
-            value={formData.address.pincode}
-            onChange={(e) => handleAddressChange('pincode', e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="country">Country</Label>
-          <Input 
-            id="country" 
-            value={formData.address.country}
-            onChange={(e) => handleAddressChange('country', e.target.value)}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="flex space-x-3 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} className="flex-1" disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button type="submit" className="flex-1" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Updating...
-            </>
-          ) : (
-            'Update Profile'
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-};
-
 // Earnings Details Dialog Component
 const EarningsDetailsDialog = ({ 
   driverData, 
@@ -893,4 +676,4 @@ const EarningsDetailsDialog = ({
   );
 };
 
-export default DriverProfile; 
+export default DriverProfile;

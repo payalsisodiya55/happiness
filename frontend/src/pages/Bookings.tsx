@@ -526,7 +526,7 @@ const Bookings = () => {
         <TopNavigation/>
       </div>
       {/* Header */}
-      <div className="bg-[#212c40] text-white py-8 px-4 flex-shrink-0 shadow-md">
+      <div className="bg-[#212c40] text-white py-8 px-4 flex-shrink-0 shadow-md sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold tracking-wide">My Bookings</h1>
             <Button 

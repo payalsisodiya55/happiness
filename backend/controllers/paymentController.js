@@ -124,9 +124,15 @@ const createRazorpayOrder = asyncHandler(async (req, res) => {
 // @access  Private (User)
 const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   try {
+    const currentUser = req.user || req.driver;
+    if (!currentUser) {
+        return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+    
     console.log('=== PAYMENT VERIFICATION START ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('User ID:', req.user.id);
+    console.log('User/Driver ID:', currentUser.id);
+    console.log('User Role:', req.driver ? 'driver' : 'user');
     console.log('Headers:', req.headers);
     
     // Debug the amount specifically
@@ -202,7 +208,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
       amount,
       paymentMethod,
       currency,
-      userId: req.user.id
+      paymentMethod,
+      currency,
+      userId: currentUser.id
     });
 
     // Verify payment signature
@@ -345,7 +353,7 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
     const paymentType = isTemporaryBooking ? 'booking' : (bookingId ? 'booking' : 'wallet_recharge');
     
     const paymentData = {
-      user: req.user.id,
+      user: currentUser.id,
       amount: amountInRupees,
       currency,
       method: paymentMethod || 'razorpay',
@@ -452,6 +460,39 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
         console.error('Error updating booking:', bookingError);
         // Don't fail the payment if booking update fails
       }
+
+    } else if (paymentType === 'wallet_recharge') {
+       // Handle Wallet Recharge
+       console.log('Processing Wallet Recharge...');
+       try {
+           if (req.driver) {
+               // Update Driver Wallet using the driver model method
+               await req.driver.addEarnings(amountInRupees, `Wallet Recharge (Txn: ${razorpayPaymentId})`);
+               console.log(`Driver ${req.driver.firstName} wallet credited with ₹${amountInRupees}`);
+           } else if (req.user) {
+               // Update User Wallet
+               const user = await User.findById(req.user.id);
+               if (user) {
+                   if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
+                   if (!user.wallet.balance) user.wallet.balance = 0;
+                   if (!user.wallet.transactions) user.wallet.transactions = [];
+                   
+                   user.wallet.balance += amountInRupees;
+                   user.wallet.transactions.push({
+                       type: 'credit',
+                       amount: amountInRupees,
+                       description: 'Wallet recharge',
+                       timestamp: new Date(),
+                       transactionId: razorpayPaymentId
+                   });
+                   await user.save();
+                   console.log(`User ${user.firstName} wallet credited with ₹${amountInRupees}`);
+               }
+           }
+       } catch (walletError) {
+           console.error('Error updating wallet balance:', walletError);
+           // We might want to flag this but payment is already successful
+       }
     }
 
     console.log('=== PAYMENT VERIFICATION SUCCESS ===');

@@ -45,6 +45,7 @@ import AdminAuth from "./admin/pages/AdminAuth";
 import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminUserManagement from "./admin/pages/AdminUserManagement";
 import AdminDriverManagement from "./admin/pages/AdminDriverManagement";
+import AdminDriverWalletManagement from "./admin/pages/AdminDriverWalletManagement";
 import AdminPriceManagement from "./admin/pages/AdminPriceManagement";
 import AdminVehicleManagement from "./admin/pages/AdminVehicleManagement";
 
@@ -151,6 +152,7 @@ const App = () => (
                 <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
                 <Route path="/admin/users" element={<ProtectedAdminRoute><AdminUserManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/drivers" element={<ProtectedAdminRoute><AdminDriverManagement /></ProtectedAdminRoute>} />
+                <Route path="/admin/driver-wallets" element={<ProtectedAdminRoute><AdminDriverWalletManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/vehicles" element={<ProtectedAdminRoute><AdminVehicleManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/prices" element={<ProtectedAdminRoute><AdminPriceManagement /></ProtectedAdminRoute>} />
 

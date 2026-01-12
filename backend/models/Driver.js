@@ -518,9 +518,10 @@ DriverSchema.methods.addEarnings = function(amount, description) {
 
 // Deduct from wallet
 DriverSchema.methods.deductFromWallet = function(amount, description) {
-  if (this.earnings.wallet.balance < amount) {
-    throw new Error('Insufficient wallet balance');
-  }
+  // Check removed to allow negative balance (debt)
+  // if (this.earnings.wallet.balance < amount) {
+  //   throw new Error('Insufficient wallet balance');
+  // }
 
   this.earnings.wallet.balance -= amount;
   this.earnings.wallet.transactions.push({

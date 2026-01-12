@@ -1,24 +1,37 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, ChevronRight } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import driverApiService from "@/services/driverApi";
 import { toast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import RazorpayService from "@/services/razorpayService";
 
 // Real data only - no mock/dummy data
 
 const DriverWallet = () => {
   const navigate = useNavigate();
-  const { driver } = useDriverAuth();
+  const { driver, refreshDriverData } = useDriverAuth();
   const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalWithdrawal, setTotalWithdrawal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Add Money State
+  const [isAddMoneyOpen, setIsAddMoneyOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const fetchWalletData = async () => {
@@ -33,7 +46,7 @@ const DriverWallet = () => {
         let income = 0;
         let withdrawal = 0;
 
-        walletTransactions.forEach(tx => {
+        walletTransactions.forEach((tx: any) => {
           if (tx.type === 'credit') {
             income += tx.amount;
           } else if (tx.type === 'debit') {
@@ -67,11 +80,67 @@ const DriverWallet = () => {
     }
   }, [driver]);
 
-  const handleWithdraw = () => {
-    toast({
-      title: "Withdrawal Request Sent",
-      description: "Your payout will be processed within 24 hours.",
-    });
+  const handlePayment = async () => {
+    const amountVal = parseFloat(amount);
+    if (!amount || isNaN(amountVal) || amountVal < 1000) {
+      toast({
+        title: "Invalid Amount",
+        description: "Minimum amount to add is ₹1000",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!driver?.email || !driver?.phone) {
+        toast({
+            title: "Missing Information",
+            description: "Please update your email and phone number in profile to continue.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    setIsProcessing(true);
+    const razorpayService = new RazorpayService();
+
+    try {
+        await razorpayService.processWalletRecharge(
+            amountVal, // Pass amount in Rupees, backend handles conversion to paise
+
+            {
+                name: `${driver.firstName} ${driver.lastName}`,
+                email: driver.email,
+                phone: driver.phone
+            },
+            async (response: any) => {
+                setIsProcessing(false);
+                setIsAddMoneyOpen(false);
+                setAmount("");
+                // Refresh data
+                await refreshDriverData();
+                toast({
+                    title: "Success",
+                    description: "Money added to wallet successfully!",
+                });
+            },
+            (error: any) => {
+                setIsProcessing(false);
+                console.error("Payment failed", error);
+                // Error toast handled by service
+            },
+            () => {
+                setIsProcessing(false);
+            }
+        );
+    } catch (e) {
+        console.error(e);
+        setIsProcessing(false);
+        toast({
+            title: "Error",
+            description: "Failed to initiate payment",
+            variant: "destructive",
+        });
+    }
   };
 
   return (
@@ -118,18 +187,12 @@ const DriverWallet = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mt-8">
+              <div className="grid grid-cols-1 gap-4 mt-8">
                 <Button 
-                  onClick={handleWithdraw}
-                  className="bg-[#f48432] hover:bg-[#d9732a] text-white py-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all"
+                    onClick={() => setIsAddMoneyOpen(true)}
+                    className="bg-[#f48432] hover:bg-[#d9732a] text-white py-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all w-full"
                 >
-                  Withdraw
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white py-6 rounded-xl text-lg backdrop-blur-sm transition-all"
-                >
-                  Add Money
+                    Add Money
                 </Button>
               </div>
             </CardContent>
@@ -186,9 +249,9 @@ const DriverWallet = () => {
                   </Card>
                 ))
               ) : (
-                transactions.map((tx, index) => {
+                transactions.map((tx: any, index) => {
                   // Format date for display
-                  const formatDate = (dateString) => {
+                  const formatDate = (dateString: string) => {
                     try {
                       const date = new Date(dateString);
                       const now = new Date();
@@ -250,6 +313,55 @@ const DriverWallet = () => {
           </div>
       </div>
       
+      {/* Add Money Modal */}
+      <Dialog open={isAddMoneyOpen} onOpenChange={setIsAddMoneyOpen}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#29354c] text-xl font-bold">Add Money to Wallet</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-500">Amount (₹)</label>
+                <Input 
+                    type="number" 
+                    placeholder="Enter amount (Min ₹1000)" 
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="text-lg font-bold border-[#29354c]/20 focus:border-[#f48432]"
+                />
+                <p className="text-xs text-gray-400">Minimum deposit allowed is ₹1000</p>
+             </div>
+             
+             <div className="grid grid-cols-3 gap-2">
+                 {[1000, 2000, 5000].map((val) => (
+                     <button
+                        key={val}
+                        onClick={() => setAmount(val.toString())}
+                        className="py-2 px-1 text-sm bg-gray-50 hover:bg-[#29354c]/5 border border-gray-200 rounded-lg text-gray-600 transition-colors font-medium"
+                     >
+                        + ₹{val}
+                     </button>
+                 ))}
+             </div>
+
+             <Button 
+                onClick={handlePayment} 
+                disabled={isProcessing}
+                className="w-full bg-[#f48432] hover:bg-[#d9732a] text-white font-bold h-12 text-base rounded-xl mt-4"
+             >
+                {isProcessing ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                    </>
+                ) : (
+                    "Proceed to Pay"
+                )}
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <DriverBottomNavigation />
     </div>
   );

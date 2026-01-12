@@ -41,21 +41,27 @@ const protect = async (req, res, next) => {
     console.log('Token decoded successfully, user ID:', decoded.id);
     
     // Get user from token
-    const user = await User.findById(decoded.id).select('-password');
-    
+    let user = await User.findById(decoded.id).select('-password');
+    let driver = null;
+
     if (!user) {
-      console.log('User not found in database');
-      return res.status(401).json({
-        success: false,
-        error: {
-          message: 'User not found',
-          statusCode: 401
-        }
-      });
+      console.log('User not found in User collection, checking Driver collection...');
+      driver = await Driver.findById(decoded.id).select('-password');
+      
+      if (!driver) {
+        console.log('User/Driver not found in database');
+        return res.status(401).json({
+          success: false,
+          error: {
+            message: 'User not found',
+            statusCode: 401
+          }
+        });
+      }
     }
 
-    // Check if user is active
-    if (!user.isActive) {
+    // Check if account is active
+    if (user && !user.isActive) {
       console.log('User account is deactivated');
       return res.status(401).json({
         success: false,
@@ -66,9 +72,29 @@ const protect = async (req, res, next) => {
       });
     }
 
-    console.log('User authenticated successfully:', user._id);
-    req.user = user;
+    if (driver && !driver.isActive) {
+      console.log('Driver account is deactivated');
+      return res.status(401).json({
+        success: false,
+        error: {
+          message: 'Account is deactivated',
+          statusCode: 401
+        }
+      });
+    }
+
+    if (user) {
+       console.log('User authenticated successfully:', user._id);
+       req.user = user;
+    } else {
+       console.log('Driver authenticated successfully:', driver._id);
+       req.driver = driver;
+       // For compatibility with some controllers that might expect req.user
+       // req.user = driver; // CAUTION: decide if we want to alias or handle explicitly.
+       // Let's handle explicitly in paymentController.
+    }
     next();
+
   } catch (error) {
     console.log('Token verification failed:', error.message);
     return res.status(401).json({

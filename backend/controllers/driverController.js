@@ -468,12 +468,17 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
         if (driver) {
           // Calculate driver's earnings after commission
           const totalAmount = booking.pricing?.totalAmount || 0;
-          const driverEarnings = booking.payment.method === 'razorpay'
-            ? Math.round(totalAmount * 0.8)  // 80% for online payments
-            : totalAmount;                    // 100% for cash payments
-
-          await driver.addEarnings(driverEarnings, `Trip completed - ${booking.bookingNumber}`);
-          console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+          
+          if (booking.payment.method === 'razorpay') {
+            const driverEarnings = Math.round(totalAmount * 0.8);
+            await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
+            console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+          } else {
+             // Cash payment: Deduct 20% commission
+             const adminCommission = Math.round(totalAmount * 0.2);
+             await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
+             console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
+          }
         }
       } catch (error) {
         console.error('❌ Error adding earnings to driver wallet:', error);
@@ -610,12 +615,17 @@ const completeTrip = asyncHandler(async (req, res) => {
       if (driver) {
         // Calculate driver's earnings after commission
         const totalAmount = booking.pricing?.totalAmount || 0;
-        const driverEarnings = booking.payment.method === 'razorpay'
-          ? Math.round(totalAmount * 0.8)  // 80% for online payments
-          : totalAmount;                    // 100% for cash payments
-
-        await driver.addEarnings(driverEarnings, `Trip completed - ${booking.bookingNumber}`);
-        console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+        
+        if (booking.payment.method === 'razorpay') {
+          const driverEarnings = Math.round(totalAmount * 0.8);
+          await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
+          console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+        } else {
+           // Cash payment: Deduct 20% commission
+           const adminCommission = Math.round(totalAmount * 0.2);
+           await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
+           console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
+        }
       }
     } catch (error) {
       console.error('❌ Error adding earnings to driver wallet:', error);
@@ -666,7 +676,7 @@ const cancelTrip = asyncHandler(async (req, res) => {
   const booking = await Booking.findOne({
     _id: id,
     driver: req.driver.id,
-    status: { $in: ['pending', 'accepted'] } // Only pending or accepted trips can be cancelled by driver
+    status: { $in: ['pending', 'accepted', 'started'] } // Allow cancelling pending, accepted, or started (mid-route)
   });
 
   if (!booking) {
@@ -684,6 +694,28 @@ const cancelTrip = asyncHandler(async (req, res) => {
 
   // Update booking status to cancelled
   booking.status = 'cancelled';
+  
+  // Calculate and apply penalty
+  try {
+      const penalty = Driver.calculateCancellationPenalty(booking, new Date());
+      console.log('Calculating cancellation penalty:', penalty);
+      
+      const driver = await Driver.findById(req.driver.id);
+      if (driver && penalty.amount > 0) {
+          // If cancelled mid-way ('started'), maybe increase penalty? 
+          // For now, use the standard calculation which uses time diff. 
+          // If 'started', departure time is in past, so it will fall into "after acceptance" logic potentially.
+          
+          await driver.deductFromWallet(penalty.amount, `Penalty: ${penalty.type} - ${booking.bookingNumber}`);
+          
+          // Also record in driver.penalties array
+          await driver.applyPenalty(penalty.type, penalty.amount, reason || 'Cancelled by driver', booking._id, 'system'); 
+          
+          console.log(`💰 Deducted ₹${penalty.amount} penalty from driver wallet`);
+      }
+  } catch (err) {
+      console.error('Error applying cancellation penalty:', err);
+  }
   
   // Add cancellation details with proper refund information
   booking.cancellation = {

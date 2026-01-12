@@ -238,24 +238,7 @@ const HeroSection = () => {
                   </div>
                 )}
 
-                 {/* Package Selection (Local Trip Only) */}
-                 {tripType === 'local' && (
-                  <div className="space-y-1">
-                    <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Select Package</label>
-                    <div className="relative">
-                      <select 
-                        value={localPackage}
-                        onChange={(e) => setLocalPackage(e.target.value)}
-                        className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto appearance-none cursor-pointer [&>option]:text-black"
-                      >
-                        <option value="4hrs40km">4 Hours, 40 KM</option>
-                        <option value="8hrs80km">8 Hours, 80 KM</option>
-                        <option value="12hrs120km">12 Hours, 120 KM</option>
-                      </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Date & Time Row - 2 Columns */}
                 <div className={cn(

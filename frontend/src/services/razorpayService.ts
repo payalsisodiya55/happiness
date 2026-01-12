@@ -84,7 +84,8 @@ class RazorpayService {
       
       const token = localStorage.getItem('token') || 
                    localStorage.getItem('userToken') || 
-                   localStorage.getItem('authToken');
+                   localStorage.getItem('authToken') ||
+                   localStorage.getItem('driverToken');
       
       if (!token) {
         throw new Error('Authentication token not found');
@@ -141,7 +142,8 @@ class RazorpayService {
       
       const token = localStorage.getItem('token') || 
                    localStorage.getItem('userToken') || 
-                   localStorage.getItem('authToken');
+                   localStorage.getItem('authToken') ||
+                   localStorage.getItem('driverToken');
       
       if (!token) {
         throw new Error('Authentication token not found');

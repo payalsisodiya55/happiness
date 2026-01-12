@@ -25,7 +25,8 @@ import {
   X,
   Menu,
   Gift,
-  DollarSign
+  DollarSign,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,11 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
       title: "Driver Management",
       href: "/admin/drivers",
       icon: Car,
+    },
+    {
+      title: "Driver Wallets",
+      href: "/admin/driver-wallets",
+      icon: Wallet,
     },
     {
       title: "Vehicle Management",

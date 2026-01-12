@@ -92,13 +92,15 @@ const CarDetails = () => {
             setTripDistance(distanceResult.distance);
 
             // Calculate price using consistent VehiclePricing API
+            // Round distance to 1 decimal place to match display
+            const roundedDistance = Math.round(distanceResult.distance * 10) / 10;
             const price = await getConsistentVehiclePrice(
               car,
               searchParams.pickupDate,
               searchParams.returnDate,
-              distanceResult.distance
+              roundedDistance
             );
-              setCalculatedPrice(price);
+            setCalculatedPrice(price);
           } else {
             setCalculatedPrice(car.price || 0);
           }

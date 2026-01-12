@@ -99,7 +99,9 @@ const VihicleSearch = () => {
         const vehiclesArray = (response.data as any).docs || (response.data as any);
         // Process vehicles asynchronously to calculate prices
         const transformedVehicles = Array.isArray(vehiclesArray) ? await Promise.all(vehiclesArray.map(async (vehicle: any) => {
-          const price = await getVehiclePrice(vehicle, pickupDate, returnDate, tripDistance || undefined);
+          // Round distance to 1 decimal place to match display
+          const roundedDistance = tripDistance ? Math.round(tripDistance * 10) / 10 : undefined;
+          const price = await getVehiclePrice(vehicle, pickupDate, returnDate, roundedDistance);
           return {
             _id: vehicle._id,
             brand: vehicle.brand || 'Unknown',
@@ -154,7 +156,9 @@ const VihicleSearch = () => {
       console.log('🔄 Updating vehicle prices with new distance:', tripDistance);
       const updatePrices = async () => {
         const updatedVehicles = await Promise.all(vehicleData.map(async (vehicle) => {
-          const newPrice = await getVehiclePrice(vehicle, pickupDate, returnDate, tripDistance);
+          // Round distance to 1 decimal place to match display
+          const roundedDistance = Math.round(tripDistance * 10) / 10;
+          const newPrice = await getVehiclePrice(vehicle, pickupDate, returnDate, roundedDistance);
           console.log('💰 Updated price for vehicle', vehicle._id, ':', newPrice);
           return {
             ...vehicle,

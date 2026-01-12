@@ -37,11 +37,13 @@ const BookingSummary = () => {
   useEffect(() => {
     const calculateConsistentPrice = async () => {
       try {
+        // Round distance to 1 decimal place to match display
+        const roundedDistance = car.tripDistance ? Math.round(car.tripDistance * 10) / 10 : 0;
         const price = await getConsistentVehiclePrice(
           car,
           pickupDate,
           searchParams?.returnDate,
-          car.tripDistance
+          roundedDistance
         );
         setCalculatedPrice(price);
       } catch (error) {
@@ -343,14 +345,14 @@ const BookingSummary = () => {
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg flex gap-3 items-start">
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-800">
-                    Pay <span className="font-bold">₹{currentAdvanceAmount}</span> now to confirm your booking. The remaining amount can be paid to the driver.
+                    Pay <span className="font-bold">₹{currentAdvanceAmount.toLocaleString('en-IN')}</span> now to confirm your booking. The remaining amount can be paid to the driver.
                   </p>
                 </div>
               ) : (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg flex gap-3 items-start">
                   <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-green-800">
-                    You can pay the full amount of <span className="font-bold">₹{totalAmount}</span> directly to the driver after the trip.
+                    You can pay the full amount of <span className="font-bold">₹{totalAmount.toLocaleString('en-IN')}</span> directly to the driver after the trip.
                   </p>
                 </div>
               )}
@@ -399,13 +401,13 @@ const BookingSummary = () => {
                       })()}
                       <div className="flex justify-between text-gray-600 text-sm">
                         <span>Base Fare</span>
-                        <span>₹{calculatedPrice || '0'}</span>
+                        <span>₹{(calculatedPrice || 0).toLocaleString('en-IN')}</span>
                       </div>
                     </>
                   ) : (
                     <div className="flex justify-between text-gray-600 text-sm">
                       <span>Base Fare</span>
-                      <span>₹{car.calculatedPrice || car.price || '0'}</span>
+                      <span>₹{(car.calculatedPrice || car.price || 0).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-gray-600 text-sm">
@@ -419,7 +421,7 @@ const BookingSummary = () => {
                   <div className="border-t border-dashed border-gray-200 my-2"></div>
                   <div className="flex justify-between font-bold text-[#212c40] text-lg">
                     <span>Total Amount</span>
-                    <span>₹{totalAmount}</span>
+                    <span>₹{totalAmount.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -429,12 +431,12 @@ const BookingSummary = () => {
                       {paymentMethod === 'online' ? 'Advance Payment (20%)' : 'Pay Now'}
                     </span>
                     <span className={`font-bold ${paymentMethod === 'online' ? 'text-[#f48432]' : 'text-gray-800'}`}>
-                      ₹{currentAdvanceAmount}
+                      ₹{currentAdvanceAmount.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm text-gray-500">
                     <span>Pay to Driver</span>
-                    <span>₹{currentPayToDriver}</span>
+                    <span>₹{currentPayToDriver.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -443,7 +445,7 @@ const BookingSummary = () => {
                   disabled={isProcessing}
                   className="w-full mt-6 bg-gradient-to-r from-[#f48432] to-[#ff9a56] hover:from-[#e67728] hover:to-[#f48432] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-orange-100 transition-all hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
                 >
-                  {isProcessing ? 'Processing...' : (paymentMethod === 'online' ? `Pay ₹${currentAdvanceAmount} & Confirm` : 'Confirm Cash Booking')}
+                  {isProcessing ? 'Processing...' : (paymentMethod === 'online' ? `Pay ₹${currentAdvanceAmount.toLocaleString('en-IN')} & Confirm` : 'Confirm Cash Booking')}
                 </button>
               </div>
             </div>
@@ -460,7 +462,7 @@ const BookingSummary = () => {
               {paymentMethod === 'online' ? 'Pay Now (20%)' : 'Pay to Driver'}
             </div>
             <div className="text-xl font-bold text-[#212c40]">
-              {paymentMethod === 'online' ? `₹${currentAdvanceAmount}` : `₹${currentPayToDriver}`}
+              {paymentMethod === 'online' ? `₹${currentAdvanceAmount.toLocaleString('en-IN')}` : `₹${currentPayToDriver.toLocaleString('en-IN')}`}
             </div>
           </div>
           <button

@@ -45,33 +45,17 @@ export const calculateFare = (distance: number, pricing: VehiclePricing, tripTyp
     const autoPricing = pricing.autoPrice || 0;
     totalFare = autoPricing;
   } else {
-    // For car and bus vehicles, calculate distance-based tiered pricing
+    // For car and bus vehicles, use simple calculation: distance × base_rate
     const distancePricing = pricing.distancePricing;
     if (distancePricing) {
-      // Distance slabs: 0-50km, 51-100km, 101-150km, 151-200km, 201-250km, 251km+
-
-      let ratePerKm = 0;
-
-      if (distance <= 50) {
-        ratePerKm = distancePricing['50km'] || 0;
-      } else if (distance <= 100) {
-        ratePerKm = distancePricing['100km'] || 0;
-      } else if (distance <= 150) {
-        ratePerKm = distancePricing['150km'] || 0;
-      } else if (distance <= 200) {
-        ratePerKm = distancePricing['200km'] || 0;
-      } else if (distance <= 250) {
-        ratePerKm = distancePricing['250km'] || 0;
-      } else {
-        ratePerKm = distancePricing['300km'] || distancePricing['250km'] || 0;
-      }
-
-      totalFare = distance * ratePerKm;
+      // Use 50km rate as base rate for all distances
+      const baseRate = distancePricing['50km'] || 102;
+      totalFare = distance * baseRate;
     }
   }
 
-  // Round to whole rupees (no decimal places)
-  return Math.round(totalFare);
+  // Return exact amount without rounding to avoid extra charges
+  return totalFare;
 };
 
 /**
@@ -167,28 +151,12 @@ export const getConsistentVehiclePrice = async (
       console.log(`✅ [CONSISTENT] Found VehiclePricing for model ${vehicle.model}:`, vehiclePricing);
       console.log(`🚗 [CONSISTENT] vehiclepricings.vehicleModel:`, vehiclePricing.vehicleModel);
 
-      // Get the appropriate price based on distance from distancePricing
-      let ratePerKm = 0;
+      // Use simple calculation: distance × base_rate (use 50km rate as base rate for all distances)
+      const baseRate = vehiclePricing.distancePricing['50km'] || 102;
+      const totalPrice = tripDistance * baseRate; // No rounding to avoid extra amounts
 
-      if (tripDistance <= 50) {
-        ratePerKm = vehiclePricing.distancePricing['50km'];
-      } else if (tripDistance <= 100) {
-        ratePerKm = vehiclePricing.distancePricing['100km'];
-      } else if (tripDistance <= 150) {
-        ratePerKm = vehiclePricing.distancePricing['150km'];
-      } else if (tripDistance <= 200) {
-        ratePerKm = vehiclePricing.distancePricing['200km'];
-      } else if (tripDistance <= 250) {
-        ratePerKm = vehiclePricing.distancePricing['250km'];
-      } else {
-        ratePerKm = vehiclePricing.distancePricing['300km'] || vehiclePricing.distancePricing['250km'];
-      }
-
-      // Multiply distance with the admin-set price
-      const totalPrice = Math.round(tripDistance * ratePerKm);
-
-      console.log(`💰 [CONSISTENT] VehiclePricing calculation: ${ratePerKm}/km × ${tripDistance}km = ₹${totalPrice}`);
-      console.log(`📊 [CONSISTENT] Using ${ratePerKm}/km rate from admin-set pricing for ${tripDistance}km distance`);
+      console.log(`💰 [CONSISTENT] Simple calculation: ${baseRate}/km × ${tripDistance}km = ₹${totalPrice}`);
+      console.log(`📊 [CONSISTENT] Using base rate ${baseRate}/km for all distances`);
 
       return totalPrice > 0 ? totalPrice : 2500;
     }

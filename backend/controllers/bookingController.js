@@ -139,12 +139,14 @@ const createBooking = asyncHandler(async (req, res) => {
         }
         totalAmount = ratePerKm * distance;
       } else {
-        // For car and bus vehicles, calculate using the new flat-tier pricing helper
-        // This uses the same logic as Vehicle.calculateFare
-        ratePerKm = vehicle.getRateForDistance(distance, tripType);
+        // For car and bus vehicles, use simple calculation: distance × base_rate
+        // Use 50km rate as base rate for all distances
+        ratePerKm = vehicle.pricing?.distancePricing?.['one-way']?.['50km'] ||
+                   vehicle.pricing?.distancePricing?.['return']?.['50km'] ||
+                   vehicle.pricing?.perKmPrice || 102;
 
         // If ratePerKm is 0, try to fetch from VehiclePricing model
-        if (ratePerKm === 0) {
+        if (!ratePerKm || ratePerKm === 0) {
           console.log('Vehicle pricing not populated, fetching from VehiclePricing model...');
           const pricingData = await VehiclePricing.findOne({
             category: vehicle.pricingReference.category,
@@ -155,25 +157,27 @@ const createBooking = asyncHandler(async (req, res) => {
           });
 
           if (pricingData) {
+            // Use 50km rate as base rate for simple calculation
+            ratePerKm = pricingData.distancePricing?.['one-way']?.['50km'] ||
+                       pricingData.distancePricing?.['return']?.['50km'] ||
+                       pricingData.perKmRate || 101;
+
             // Update vehicle pricing data
             if (!vehicle.pricing) vehicle.pricing = {};
-            vehicle.pricing.distancePricing = pricingData.distancePricing;
-            vehicle.pricing.perKmPrice = pricingData.perKmRate || vehicle.getRateForDistance(distance, tripType);
+            vehicle.pricing.perKmPrice = ratePerKm;
             vehicle.pricing.lastUpdated = new Date();
             await vehicle.save();
 
-            // Recalculate rate
-            ratePerKm = vehicle.getRateForDistance(distance, tripType);
             console.log('Vehicle pricing updated from VehiclePricing model');
           }
         }
 
-        totalAmount = ratePerKm * distance;
+        totalAmount = distance * ratePerKm; // No rounding to avoid extra amounts
       }
 
-      // Round total amount to whole rupees (no decimal places)
-      totalAmount = Math.round(totalAmount);
-      ratePerKm = Math.round(ratePerKm);
+    // Keep exact amount without rounding to avoid extra charges
+    // totalAmount remains as calculated
+    ratePerKm = Math.round(ratePerKm); // Only round rate for display purposes
 
       // Fallback pricing if still no pricing available
       if (totalAmount === 0 || isNaN(totalAmount)) {

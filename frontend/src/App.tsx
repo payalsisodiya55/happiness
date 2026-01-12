@@ -45,6 +45,7 @@ import AdminVehicleManagement from "./admin/pages/AdminVehicleManagement";
 import AdminPaymentManagement from "./admin/pages/AdminPaymentManagement";
 
 import AdminBookingManagement from "./admin/pages/AdminBookingManagement";
+import AdminPenaltyManagement from "./admin/pages/AdminPenaltyManagement";
 import AdminProfile from "./admin/pages/AdminProfile";
 
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
@@ -141,7 +142,7 @@ const App = () => (
                 <Route path="/admin/prices" element={<ProtectedAdminRoute><AdminPriceManagement /></ProtectedAdminRoute>} />
 
                 <Route path="/admin/payments" element={<ProtectedAdminRoute><AdminPaymentManagement /></ProtectedAdminRoute>} />
-
+                <Route path="/admin/penalties" element={<ProtectedAdminRoute><AdminPenaltyManagement /></ProtectedAdminRoute>} />
 
                 <Route path="/admin/bookings" element={<ProtectedAdminRoute><AdminBookingManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/bookings/active" element={<ProtectedAdminRoute><AdminBookingManagement /></ProtectedAdminRoute>} />

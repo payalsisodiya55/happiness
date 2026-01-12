@@ -17,7 +17,9 @@ const createBooking = asyncHandler(async (req, res) => {
     time,
     passengers = 1,
     specialRequests = '',
-    paymentMethod
+    paymentMethod,
+    totalAmount: providedTotalAmount, // Pre-calculated amount from frontend
+    advanceAmount: providedAdvanceAmount // Advance amount for online payments
   } = req.body;
 
   // Validate required fields
@@ -81,7 +83,7 @@ const createBooking = asyncHandler(async (req, res) => {
     });
   }
 
-  // Calculate total amount using vehicle pricing
+  // Calculate total amount using vehicle pricing or use provided amount
   let totalAmount = 0;
   let ratePerKm = 0;
 
@@ -89,78 +91,121 @@ const createBooking = asyncHandler(async (req, res) => {
     // Get trip type from request or default to one-way
     const tripType = req.body.tripType || 'one-way';
 
-    // Calculate fare based on vehicle type and pricing
-    if (vehicle.pricingReference?.category === 'auto') {
-      // For auto vehicles, use rate per km multiplied by distance
-      const autoPricing = vehicle.pricing?.autoPrice;
-      if (tripType === 'return') {
-        ratePerKm = autoPricing?.return || autoPricing?.oneWay || 0;
-        totalAmount = ratePerKm * distance; // Multiply rate by distance
-      } else {
-        ratePerKm = autoPricing?.oneWay || autoPricing?.return || 0;
-        totalAmount = ratePerKm * distance; // Multiply rate by distance
-      }
+    // If totalAmount is provided from frontend, use it instead of calculating
+    if (providedTotalAmount && providedTotalAmount > 0) {
+      console.log('Using pre-calculated amount from frontend:', providedTotalAmount);
+      totalAmount = Math.round(providedTotalAmount);
+      // Calculate rate per km based on distance (for display purposes)
+      ratePerKm = distance > 0 ? Math.round(totalAmount / distance) : 0;
     } else {
-      // For car and bus vehicles, calculate distance-based pricing
-      const distancePricing = vehicle.pricing?.distancePricing;
-      if (distancePricing) {
-        // Try multiple possible trip type keys
-        let pricing = distancePricing[tripType];
-        if (!pricing) {
-          pricing = distancePricing['oneWay'] ||
-            distancePricing['one-way'] ||
-            distancePricing['oneway'] ||
-            distancePricing['return'] ||
-            Object.values(distancePricing)[0];
+      // Import VehiclePricing model for fallback
+      const VehiclePricing = require('../models/VehiclePricing');
+
+      // Calculate fare based on vehicle type and pricing
+      if (vehicle.pricingReference?.category === 'auto') {
+        // For auto vehicles, use rate per km multiplied by distance
+        let autoPricing = vehicle.pricing?.autoPrice;
+
+        // If vehicle pricing is not populated, fetch from VehiclePricing model
+        if (!autoPricing || (autoPricing.oneWay === 0 && autoPricing.return === 0)) {
+          console.log('Vehicle pricing not populated, fetching from VehiclePricing model...');
+          const pricingData = await VehiclePricing.findOne({
+            category: vehicle.pricingReference.category,
+            vehicleType: vehicle.pricingReference.vehicleType,
+            vehicleModel: vehicle.pricingReference.vehicleModel,
+            tripType: tripType,
+            isActive: true
+          });
+
+          if (pricingData) {
+            // Update vehicle pricing data
+            if (!vehicle.pricing) vehicle.pricing = {};
+            vehicle.pricing.autoPrice = {
+              oneWay: pricingData.autoPrice || 0,
+              return: pricingData.autoPrice || 0
+            };
+            vehicle.pricing.lastUpdated = new Date();
+            await vehicle.save();
+
+            autoPricing = vehicle.pricing.autoPrice;
+            console.log('Vehicle pricing updated from VehiclePricing model');
+          }
         }
 
-        if (pricing) {
-          // Determine rate based on distance tier using new 6-tier structure
-          if (distance <= 50 && pricing['50km']) {
-            ratePerKm = pricing['50km'];
-          } else if (distance <= 100 && pricing['100km']) {
-            ratePerKm = pricing['100km'];
-          } else if (distance <= 150 && pricing['150km']) {
-            ratePerKm = pricing['150km'];
-          } else if (distance <= 200 && pricing['200km']) {
-            ratePerKm = pricing['200km'];
-          } else if (distance <= 250 && pricing['250km']) {
-            ratePerKm = pricing['250km'];
-          } else if (pricing['300km']) {
-            ratePerKm = pricing['300km'];
-          } else if (pricing['250km']) {
-            ratePerKm = pricing['250km'];
-          } else if (pricing['200km']) {
-            ratePerKm = pricing['200km'];
-          } else if (pricing['150km']) {
-            ratePerKm = pricing['150km'];
-          } else if (pricing['100km']) {
-            ratePerKm = pricing['100km'];
-          } else if (pricing['50km']) {
-            ratePerKm = pricing['50km'];
-          }
+        if (tripType === 'return') {
+          ratePerKm = autoPricing?.return || autoPricing?.oneWay || 0;
+        } else {
+          ratePerKm = autoPricing?.oneWay || autoPricing?.return || 0;
+        }
+        totalAmount = ratePerKm * distance;
+      } else {
+        // For car and bus vehicles, calculate using the new flat-tier pricing helper
+        // This uses the same logic as Vehicle.calculateFare
+        ratePerKm = vehicle.getRateForDistance(distance, tripType);
 
-          totalAmount = ratePerKm * distance;
+        // If ratePerKm is 0, try to fetch from VehiclePricing model
+        if (ratePerKm === 0) {
+          console.log('Vehicle pricing not populated, fetching from VehiclePricing model...');
+          const pricingData = await VehiclePricing.findOne({
+            category: vehicle.pricingReference.category,
+            vehicleType: vehicle.pricingReference.vehicleType,
+            vehicleModel: vehicle.pricingReference.vehicleModel,
+            tripType: tripType,
+            isActive: true
+          });
+
+          if (pricingData) {
+            // Update vehicle pricing data
+            if (!vehicle.pricing) vehicle.pricing = {};
+            vehicle.pricing.distancePricing = pricingData.distancePricing;
+            vehicle.pricing.perKmPrice = pricingData.perKmRate || vehicle.getRateForDistance(distance, tripType);
+            vehicle.pricing.lastUpdated = new Date();
+            await vehicle.save();
+
+            // Recalculate rate
+            ratePerKm = vehicle.getRateForDistance(distance, tripType);
+            console.log('Vehicle pricing updated from VehiclePricing model');
+          }
+        }
+
+        totalAmount = ratePerKm * distance;
+      }
+
+      // Round total amount to whole rupees (no decimal places)
+      totalAmount = Math.round(totalAmount);
+      ratePerKm = Math.round(ratePerKm);
+
+      // Fallback pricing if still no pricing available
+      if (totalAmount === 0 || isNaN(totalAmount)) {
+        console.log('Using fallback pricing calculation...');
+
+        // Default fallback rates based on vehicle category
+        const fallbackRates = {
+          auto: 15, // ₹15 per km for auto
+          car: 12,  // ₹12 per km for car
+          bus: 8    // ₹8 per km for bus
+        };
+
+        ratePerKm = fallbackRates[vehicle.pricingReference?.category] || 10; // Default ₹10 per km
+        totalAmount = ratePerKm * distance;
+        totalAmount = Math.round(totalAmount);
+
+        console.log(`Applied fallback pricing: ₹${ratePerKm} per km, total: ₹${totalAmount}`);
+
+        if (totalAmount === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Unable to calculate fare. Vehicle pricing is not configured and fallback calculation failed. Please contact support.'
+          });
         }
       }
-    }
-
-    // Round total amount to whole rupees (no decimal places)
-    totalAmount = Math.round(totalAmount);
-    ratePerKm = Math.round(ratePerKm);
-
-    if (totalAmount === 0 || isNaN(totalAmount)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Unable to calculate fare. Please check vehicle pricing.'
-      });
     }
 
   } catch (error) {
     console.error('Error calculating fare:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error calculating fare'
+      message: 'Error calculating fare. Please try again or contact support.'
     });
   }
 
@@ -473,7 +518,7 @@ const getBookingReceipt = asyncHandler(async (req, res) => {
       <body>
         <div class="receipt">
           <div class="header">
-            <div class="logo">CHALO SAWARI</div>
+            <div class="logo">Happiness</div>
             <div class="subtitle">Your Journey Partner</div>
             <div style="margin-top: 15px; font-size: 18px; color: #1f2937;">Booking Receipt</div>
           </div>
@@ -876,7 +921,7 @@ const getBookingById = asyncHandler(async (req, res) => {
 const cancelBooking = asyncHandler(async (req, res) => {
   const { reason } = req.body;
 
-  const booking = await Booking.findById(req.params.id);
+  const booking = await Booking.findById(req.params.id).populate('driver vehicle');
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -884,14 +929,18 @@ const cancelBooking = asyncHandler(async (req, res) => {
     });
   }
 
-  if (booking.user.toString() !== req.user.id) {
+  // Check if user or driver is cancelling
+  const isUserCancelling = booking.user.toString() === req.user?.id;
+  const isDriverCancelling = booking.driver?._id?.toString() === req.driver?.id;
+
+  if (!isUserCancelling && !isDriverCancelling) {
     return res.status(403).json({
       success: false,
       message: 'Not authorized to cancel this booking'
     });
   }
 
-  if (!['pending', 'confirmed'].includes(booking.status)) {
+  if (!['pending', 'confirmed', 'accepted'].includes(booking.status)) {
     return res.status(400).json({
       success: false,
       message: 'Cannot cancel booking in current status'
@@ -900,18 +949,44 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
   // Update booking status with proper tracking
   booking.status = 'cancelled';
-  booking._updatedByModel = 'User';
-  booking._updatedBy = req.user.id;
+  booking._updatedByModel = isUserCancelling ? 'User' : 'Driver';
+  booking._updatedBy = isUserCancelling ? req.user.id : req.driver.id;
   booking._statusReason = reason;
+
+  // Calculate penalty if driver is cancelling
+  let penaltyApplied = false;
+  if (isDriverCancelling) {
+    try {
+      const PenaltyCalculator = require('../utils/penaltyCalculator');
+      const penalty = PenaltyCalculator.calculateCancellationPenalty(booking, new Date());
+
+      // Apply penalty to driver
+      await PenaltyCalculator.applyPenaltyToDriver(booking.driver._id, {
+        type: penalty.type,
+        amount: penalty.amount,
+        reason: penalty.reason,
+        bookingId: booking._id,
+        appliedBy: req.driver.id // Self-imposed penalty
+      });
+
+      penaltyApplied = true;
+
+      console.log(`Penalty applied to driver ${booking.driver._id}: ₹${penalty.amount} for ${penalty.reason}`);
+    } catch (error) {
+      console.error('Error applying penalty:', error);
+      // Continue with cancellation even if penalty fails
+    }
+  }
 
   // Add cancellation details
   booking.cancellation = {
-    cancelledBy: req.user.id,
-    cancelledByModel: 'User',
+    cancelledBy: isUserCancelling ? req.user.id : req.driver.id,
+    cancelledByModel: isUserCancelling ? 'User' : 'Driver',
     cancelledAt: new Date(),
     reason: reason,
     refundAmount: booking.pricing.totalAmount,
-    refundStatus: 'pending'
+    refundStatus: 'pending',
+    penaltyApplied: penaltyApplied
   };
 
   await booking.save();

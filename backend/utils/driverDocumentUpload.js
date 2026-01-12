@@ -73,6 +73,69 @@ const uploadDocumentWithErrorHandling = (req, res, next) => {
   });
 };
 
+// Configure Cloudinary storage for Profile Photos
+const profilePhotoStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'chalo-sawari/profile-photos',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [
+      { width: 400, height: 400, crop: 'fill', gravity: 'face' }, // Square profile photos
+      { quality: 'auto:good' } // Optimize quality
+    ]
+  }
+});
+
+// Configure Multer for profile photo uploads
+const uploadProfilePhotoMulter = multer({
+  storage: profilePhotoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for profile photos
+    files: 1 // Single file upload
+  },
+  fileFilter: (req, file, cb) => {
+    // Check file type
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed for profile photos!'));
+    }
+  }
+});
+
+// Middleware for profile photo upload
+const uploadProfilePhotoMiddleware = uploadProfilePhotoMulter.single('photo');
+
+// Add error handling wrapper for profile photo upload
+const uploadProfilePhotoWithErrorHandling = (req, res, next) => {
+  uploadProfilePhotoMiddleware(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      console.log('Profile photo Multer error:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'File too large. Maximum size is 5MB for profile photos.'
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: `Upload error: ${err.message}`
+      });
+    } else if (err) {
+      console.log('Profile photo upload error:', err);
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Profile photo upload failed'
+      });
+    }
+    next();
+  });
+};
+
 // Function to delete document from Cloudinary
 const deleteDocument = async (publicId) => {
   try {
@@ -117,6 +180,7 @@ const generateDocumentThumbnail = async (imageUrl, width = 300, height = 200) =>
 
 module.exports = {
   uploadDocumentWithErrorHandling,
+  uploadProfilePhotoWithErrorHandling,
   deleteDocument,
   getDocumentUrl,
   generateDocumentThumbnail

@@ -315,6 +315,53 @@ const DriverSchema = new mongoose.Schema({
       max: 100
     }
   },
+  penalties: [{
+    type: {
+      type: String,
+      enum: [
+        'cancellation_12h_before',
+        'cancellation_12h_within',
+        'cancellation_3h_within',
+        'cancellation_30min_after_acceptance',
+        'wrong_car_assigned',
+        'wrong_driver_assigned',
+        'cng_car_no_carrier',
+        'journey_not_completed_in_app',
+        'car_not_clean',
+        'car_not_good_condition',
+        'driver_misbehaved'
+      ],
+      required: true
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    reason: {
+      type: String,
+      required: true
+    },
+    bookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Booking',
+      required: false
+    },
+    appliedAt: {
+      type: Date,
+      default: Date.now
+    },
+    appliedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['active', 'waived', 'paid'],
+      default: 'active'
+    }
+  }],
   agreement: {
     isAccepted: {
       type: Boolean,
@@ -474,7 +521,7 @@ DriverSchema.methods.deductFromWallet = function(amount, description) {
   if (this.earnings.wallet.balance < amount) {
     throw new Error('Insufficient wallet balance');
   }
-  
+
   this.earnings.wallet.balance -= amount;
   this.earnings.wallet.transactions.push({
     type: 'debit',
@@ -483,6 +530,61 @@ DriverSchema.methods.deductFromWallet = function(amount, description) {
     date: new Date()
   });
   return this.save();
+};
+
+// Apply penalty to driver (SLA violation)
+DriverSchema.methods.applyPenalty = function(penaltyType, amount, reason, bookingId, appliedBy) {
+  // Record the penalty
+  this.penalties.push({
+    type: penaltyType,
+    amount: amount,
+    reason: reason,
+    bookingId: bookingId || null,
+    appliedBy: appliedBy,
+    appliedAt: new Date(),
+    status: 'active'
+  });
+
+  // Deduct from wallet if sufficient balance
+  try {
+    if (this.earnings.wallet.balance >= amount) {
+      this.earnings.wallet.balance -= amount;
+      this.earnings.wallet.transactions.push({
+        type: 'debit',
+        amount: amount,
+        description: `Penalty: ${reason}`,
+        date: new Date()
+      });
+      this.penalties[this.penalties.length - 1].status = 'paid';
+    }
+  } catch (error) {
+    // If insufficient balance, penalty remains active but unpaid
+    console.log(`Penalty applied but insufficient balance for driver ${this._id}`);
+  }
+
+  return this.save();
+};
+
+// Calculate cancellation penalty based on SLA rules
+DriverSchema.statics.calculateCancellationPenalty = function(booking, cancelledAt) {
+  const departureTime = new Date(`${booking.tripDetails.date}T${booking.tripDetails.time}`);
+  const timeDiff = departureTime - cancelledAt;
+  const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+  // SLA Rules for cancellation penalties
+  if (hoursDiff <= 0.5) {
+    // Within 30 minutes of acceptance
+    return { amount: 100, type: 'cancellation_30min_after_acceptance' };
+  } else if (hoursDiff <= 3) {
+    // Within 3 hours of departure
+    return { amount: 500, type: 'cancellation_3h_within' };
+  } else if (hoursDiff <= 12) {
+    // Within 12 hours of departure
+    return { amount: 300, type: 'cancellation_12h_within' };
+  } else {
+    // 12 hours before departure
+    return { amount: 300, type: 'cancellation_12h_before' };
+  }
 };
 
 // Toggle online status

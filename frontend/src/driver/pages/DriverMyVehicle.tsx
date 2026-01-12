@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
+import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import AddVehicleForm from "@/driver/components/AddVehicleForm";
 import { Home, MessageSquare, Car, User, Plus, Edit, Trash2, MapPin, Calendar, Fuel, Settings, CheckCircle, AlertCircle, Search, Filter, Upload, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,8 +54,8 @@ const VEHICLE_CONFIGS = {
 
 const DriverMyVehicle = () => {
   const navigate = useNavigate();
+  const { driver, isLoggedIn } = useDriverAuth();
   const [activeTab, setActiveTab] = useState("myvehicle");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,19 +82,15 @@ const DriverMyVehicle = () => {
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Check if driver is logged in
-        const driverToken = localStorage.getItem('driverToken');
-        if (!driverToken) {
+
+        if (!isLoggedIn) {
           navigate('/driver-auth');
           return;
         }
-        
-        setIsLoggedIn(true);
-        
+
         // Load driver's vehicles
         await loadVehicles();
-        
+
       } catch (err) {
         console.error('Error initializing driver module:', err);
         setError('Failed to load driver module. Please try refreshing the page.');
@@ -108,7 +105,7 @@ const DriverMyVehicle = () => {
     };
 
     initializeDriverModule();
-  }, [navigate]);
+  }, [navigate, isLoggedIn]);
 
   const loadVehicles = async () => {
     try {
@@ -357,10 +354,6 @@ const DriverMyVehicle = () => {
         </div>
       </div>
     );
-  }
-
-  if (!isLoggedIn) {
-    return null;
   }
 
   return (
@@ -721,8 +714,8 @@ const DriverMyVehicle = () => {
                     </div>
                     <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600 font-medium">Verification</span>
-                      <span className={`font-semibold ${viewingVehicle.isVerified ? 'text-green-600' : 'text-orange-600'}`}>
-                        {viewingVehicle.isVerified ? 'Verified' : 'Pending'}
+                      <span className={`font-semibold ${driver?.isVerified ? 'text-green-600' : 'text-orange-600'}`}>
+                        {driver?.isVerified ? 'Verified' : 'Pending'}
                       </span>
                     </div>
                     {viewingVehicle.vehicleLocation?.address && (

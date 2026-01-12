@@ -17,6 +17,15 @@ const VehicleSchema = new mongoose.Schema({
     required: [true, 'Vehicle brand is required'],
     trim: true
   },
+  // Fields for pricing mapping
+  vehicleType: {
+    type: String,
+    trim: true
+  },
+  vehicleModel: {
+    type: String,
+    trim: true
+  },
   fuelType: {
     type: String,
     enum: ['petrol', 'diesel', 'cng', 'electric', 'hybrid'],
@@ -404,17 +413,17 @@ const VehicleSchema = new mongoose.Schema({
 });
 
 // Virtual for vehicle display name
-VehicleSchema.virtual('displayName').get(function() {
+VehicleSchema.virtual('displayName').get(function () {
   return `${this.brand} (${this.type})`;
 });
 
 // Virtual for total documents
-VehicleSchema.virtual('totalDocuments').get(function() {
+VehicleSchema.virtual('totalDocuments').get(function () {
   return Object.keys(this.documents).length;
 });
 
 // Virtual for verified documents count
-VehicleSchema.virtual('verifiedDocumentsCount').get(function() {
+VehicleSchema.virtual('verifiedDocumentsCount').get(function () {
   let count = 0;
   Object.values(this.documents).forEach(doc => {
     if (doc && doc.isVerified) count++;
@@ -423,13 +432,13 @@ VehicleSchema.virtual('verifiedDocumentsCount').get(function() {
 });
 
 // Virtual for document verification percentage
-VehicleSchema.virtual('documentVerificationPercentage').get(function() {
+VehicleSchema.virtual('documentVerificationPercentage').get(function () {
   if (this.totalDocuments === 0) return 0;
   return Math.round((this.verifiedDocumentsCount / this.totalDocuments) * 100);
 });
 
 // Virtual for is fully verified
-VehicleSchema.virtual('isFullyVerified').get(function() {
+VehicleSchema.virtual('isFullyVerified').get(function () {
   return this.verifiedDocumentsCount === this.totalDocuments;
 });
 
@@ -442,7 +451,7 @@ VehicleSchema.index({ 'operatingArea.cities': 1 });
 VehicleSchema.index({ 'operatingArea.states': 1 });
 
 // Pre-save middleware to ensure only one primary image
-VehicleSchema.pre('save', function(next) {
+VehicleSchema.pre('save', function (next) {
   if (this.images && this.images.length > 0) {
     const primaryImages = this.images.filter(img => img.isPrimary);
     if (primaryImages.length > 1) {
@@ -460,7 +469,7 @@ VehicleSchema.pre('save', function(next) {
 });
 
 // Method to update current location
-VehicleSchema.methods.updateLocation = function(latitude, longitude, address) {
+VehicleSchema.methods.updateLocation = function (latitude, longitude, address) {
   this.currentLocation.coordinates = [longitude, latitude];
   this.currentLocation.address = address;
   this.currentLocation.lastUpdated = new Date();
@@ -468,7 +477,7 @@ VehicleSchema.methods.updateLocation = function(latitude, longitude, address) {
 };
 
 // Method to update vehicle base location
-VehicleSchema.methods.updateVehicleLocation = function(latitude, longitude, address, city, state) {
+VehicleSchema.methods.updateVehicleLocation = function (latitude, longitude, address, city, state) {
   this.vehicleLocation.coordinates = [longitude, latitude];
   this.vehicleLocation.address = address;
   this.vehicleLocation.city = city;
@@ -478,14 +487,14 @@ VehicleSchema.methods.updateVehicleLocation = function(latitude, longitude, addr
 };
 
 // Method to add rating
-VehicleSchema.methods.addRating = function(rating) {
+VehicleSchema.methods.addRating = function (rating) {
   if (rating < 1 || rating > 5) {
     throw new Error('Rating must be between 1 and 5');
   }
 
   this.ratings.count += 1;
   this.ratings.breakdown[rating] += 1;
-  
+
   // Calculate new average
   let total = 0;
   let count = 0;
@@ -493,62 +502,64 @@ VehicleSchema.methods.addRating = function(rating) {
     total += parseInt(star) * num;
     count += num;
   });
-  
+
   this.ratings.average = count > 0 ? total / count : 0;
   this.statistics.averageRating = this.ratings.average;
-  
+
   return this.save();
 };
 
 // Method to calculate fare using stored pricing
-VehicleSchema.methods.calculateFare = function(distance, tripType = 'one-way') {
+VehicleSchema.methods.calculateFare = function (distance, tripType = 'one-way') {
+  // Use the stored pricing data directly - no need to populate
   // Use the stored pricing data directly - no need to populate
   if (!this.pricing) {
     throw new Error('Vehicle pricing not available');
   }
-  
-  let fare = 0;
-  
-  // For auto, use auto price (per kilometer rate)
-  if (this.pricingReference.category === 'auto') {
-    if (tripType === 'one-way') {
-      fare = (this.pricing.autoPrice.oneWay || this.pricing.autoPrice.return || 0) * distance;
-    } else {
-      fare = (this.pricing.autoPrice.return || this.pricing.autoPrice.oneWay || 0) * distance;
-    }
-  } else {
-    // For car and bus, calculate distance-based pricing
-    const pricing = this.pricing.distancePricing[tripType] || this.pricing.distancePricing['one-way'];
-    
-    if (!pricing) {
-      throw new Error('Distance pricing not available for this trip type');
-    }
-    
-    let rate = pricing['300km'] || 0; // Default to highest distance rate
-    
-    if (distance <= 50) {
-      rate = pricing['50km'] || 0;
-    } else if (distance <= 100) {
-      rate = pricing['100km'] || 0;
-    } else if (distance <= 150) {
-      rate = pricing['150km'] || 0;
-    } else if (distance <= 200) {
-      rate = pricing['200km'] || 0;
-    } else if (distance <= 250) {
-      rate = pricing['250km'] || 0;
-    } else {
-      rate = pricing['300km'] || 0;
-    }
-    
-    fare = rate * distance;
-  }
-  
+
+  const ratePerKm = this.getRateForDistance(distance, tripType);
+  const fare = distance * ratePerKm;
+
   // Round to whole rupees (no decimal places)
   return Math.round(fare);
 };
 
+// Method to get rate per km based on distance from stored pricing
+VehicleSchema.methods.getRateForDistance = function (distance, tripType = 'one-way') {
+  if (!this.pricing) return 0;
+
+  // For auto
+  if (this.pricingReference.category === 'auto') {
+    if (tripType === 'one-way') {
+      return this.pricing.autoPrice.oneWay || this.pricing.autoPrice.return || 0;
+    } else {
+      return this.pricing.autoPrice.return || this.pricing.autoPrice.oneWay || 0;
+    }
+  }
+
+  // For car and bus
+  const pricing = this.pricing.distancePricing[tripType] || this.pricing.distancePricing['one-way'];
+
+  if (!pricing) return 0;
+
+  if (distance <= 50) {
+    return pricing['50km'] || 0;
+  } else if (distance <= 100) {
+    return pricing['100km'] || 0;
+  } else if (distance <= 150) {
+    return pricing['150km'] || 0;
+  } else if (distance <= 200) {
+    return pricing['200km'] || 0;
+  } else if (distance <= 250) {
+    return pricing['250km'] || 0;
+  } else {
+    // For distances > 250km, use the 300km rate (or highest available)
+    return pricing['300km'] || pricing['250km'] || 0;
+  }
+};
+
 // Method to mark vehicle as booked
-VehicleSchema.methods.markAsBooked = function(bookingId) {
+VehicleSchema.methods.markAsBooked = function (bookingId) {
   console.log(`🚗 Vehicle ${this._id} marked as booked for booking ${bookingId}`);
   this.booked = true;
   this.isAvailable = false;
@@ -559,7 +570,7 @@ VehicleSchema.methods.markAsBooked = function(bookingId) {
 };
 
 // Method to mark vehicle as available
-VehicleSchema.methods.markAsAvailable = function() {
+VehicleSchema.methods.markAsAvailable = function () {
   console.log(`🚗 Vehicle ${this._id} marked as available`);
   this.booked = false;
   this.isAvailable = true;
@@ -570,7 +581,7 @@ VehicleSchema.methods.markAsAvailable = function() {
 };
 
 // Method to mark vehicle as in trip
-VehicleSchema.methods.markAsInTrip = function() {
+VehicleSchema.methods.markAsInTrip = function () {
   console.log(`🚗 Vehicle ${this._id} marked as in trip`);
   this.booked = true;
   this.isAvailable = false;
@@ -580,7 +591,7 @@ VehicleSchema.methods.markAsInTrip = function() {
 };
 
 // Method to mark vehicle as offline
-VehicleSchema.methods.markAsOffline = function() {
+VehicleSchema.methods.markAsOffline = function () {
   this.isAvailable = false;
   this.bookingStatus = 'offline';
   this.lastStatusUpdate = new Date();
@@ -588,7 +599,7 @@ VehicleSchema.methods.markAsOffline = function() {
 };
 
 // Method to mark vehicle as under maintenance
-VehicleSchema.methods.markAsUnderMaintenance = function(reason = '') {
+VehicleSchema.methods.markAsUnderMaintenance = function (reason = '') {
   this.isAvailable = false;
   this.bookingStatus = 'maintenance';
   this.maintenance.isUnderMaintenance = true;
@@ -598,39 +609,39 @@ VehicleSchema.methods.markAsUnderMaintenance = function(reason = '') {
 };
 
 // Method to check if vehicle is available for booking
-VehicleSchema.methods.isAvailableForBooking = function(date, time) {
+VehicleSchema.methods.isAvailableForBooking = function (date, time) {
   if (!this.isAvailable || !this.isActive || !this.isVerified || this.approvalStatus !== 'approved' || this.booked) {
     return false;
   }
-  
+
   if (this.maintenance.isUnderMaintenance) {
     return false;
   }
-  
+
   if (this.bookingStatus !== 'available') {
     return false;
   }
-  
+
   // Check working days
   const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'lowercase' });
   if (!this.schedule.workingDays.includes(dayOfWeek)) {
     return false;
   }
-  
+
   // Check working hours
   const hour = parseInt(time.split(':')[0]);
   const startHour = parseInt(this.schedule.workingHours.start.split(':')[0]);
   const endHour = parseInt(this.schedule.workingHours.end.split(':')[0]);
-  
+
   if (hour < startHour || hour >= endHour) {
     return false;
   }
-  
+
   return true;
 };
 
 // Method to update statistics
-VehicleSchema.methods.updateStatistics = function(tripDistance, tripEarnings) {
+VehicleSchema.methods.updateStatistics = function (tripDistance, tripEarnings) {
   this.statistics.totalTrips += 1;
   this.statistics.totalDistance += tripDistance;
   this.statistics.totalEarnings += tripEarnings;
@@ -638,7 +649,7 @@ VehicleSchema.methods.updateStatistics = function(tripDistance, tripEarnings) {
 };
 
 // Method to approve vehicle
-VehicleSchema.methods.approveVehicle = function(adminId, notes = '') {
+VehicleSchema.methods.approveVehicle = function (adminId, notes = '') {
   this.approvalStatus = 'approved';
   this.isApproved = true;
   this.adminNotes = notes;
@@ -648,7 +659,7 @@ VehicleSchema.methods.approveVehicle = function(adminId, notes = '') {
 };
 
 // Method to reject vehicle
-VehicleSchema.methods.rejectVehicle = function(adminId, reason = '', notes = '') {
+VehicleSchema.methods.rejectVehicle = function (adminId, reason = '', notes = '') {
   this.approvalStatus = 'rejected';
   this.isApproved = false;
   this.adminNotes = notes;

@@ -23,6 +23,26 @@ interface Bus {
   image: string;
   isAc: boolean;
   isSleeper: boolean;
+  pricing?: {
+    distancePricing?: {
+      'one-way': {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+      return: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+    };
+  };
 }
 
 interface BusDetailsModalProps {
@@ -151,10 +171,21 @@ Your booking has been confirmed. You will receive a confirmation SMS shortly.`);
 
               {/* Pricing */}
               <div className="space-y-2">
-                <h4 className="font-semibold">Pricing</h4>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Starting from</span>
-                  <span className="text-3xl font-bold text-primary">₹{bus.fare}</span>
+                <h4 className="font-semibold">Pricing (per km)</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {bus.pricing?.distancePricing?.['one-way'] ? (
+                    Object.entries(bus.pricing.distancePricing['one-way']).map(([distance, price]: [string, any]) => (
+                      <div key={distance} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                        <span className="text-sm font-medium">{distance}</span>
+                        <span className="text-lg font-bold text-primary">₹{price}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center p-4">
+                      <span className="text-2xl font-bold text-primary">₹{bus.fare}</span>
+                      <p className="text-sm text-muted-foreground mt-1">Fixed pricing</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

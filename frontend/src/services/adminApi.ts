@@ -344,6 +344,64 @@ export const adminBookings = {
   completeRefund: async (id: string, notes?: string) => {
     const response = await adminApi.put(`/bookings/${id}/complete-refund`, { notes });
     return response.data;
+  },
+
+  // Penalty Management APIs
+  applyPenalty: async (driverId: string, penaltyData: {
+    type: string;
+    amount: number;
+    reason: string;
+    bookingId?: string;
+  }) => {
+    const response = await adminApi.post(`/drivers/${driverId}/penalty`, penaltyData);
+    return response.data;
+  },
+
+  getDriverPenalties: async (driverId: string, params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+
+    const response = await adminApi.get(`/drivers/${driverId}/penalties?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  waivePenalty: async (penaltyId: string, reason: string) => {
+    const response = await adminApi.put(`/penalties/${penaltyId}/waive`, { reason });
+    return response.data;
+  },
+
+  getAllPenalties: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    type?: string;
+    driver?: string;
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.driver) queryParams.append('driver', params.driver);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+
+    const response = await adminApi.get(`/penalties?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  getPenaltyStats: async (period?: string) => {
+    const params = period ? `?period=${period}` : '';
+    const response = await adminApi.get(`/penalties/stats${params}`);
+    return response.data;
   }
 };
 

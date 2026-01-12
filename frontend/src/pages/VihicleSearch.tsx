@@ -7,112 +7,29 @@ import UserBottomNavigation from '../components/UserBottomNavigation';
 import FilterSidebar from '../components/FilterSidebar';
 import { VehicleFilters } from '../components/FilterSidebar';
 import { Car, Users, Fuel, Star, Heart, MapPin, Calendar } from 'lucide-react';
+import VehicleApiService from '../services/vehicleApi';
+import VehiclePricingApiService from '../services/vehiclePricingApi';
+import { calculateFare, getConsistentVehiclePrice } from '../utils/pricingUtils';
 
-// Dummy car data
-const DUMMY_CARS = [
-  {
-    _id: '1',
-    brand: 'Toyota',
-    model: 'Innova Crysta',
-    seatingCapacity: 7,
-    fuelType: 'Diesel',
-    isAc: true,
-    rating: 4.8,
-    totalTrips: 152,
-    price: 2500,
-    image: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'SUV',
-      vehicleType: 'car',
-      vehicleModel: 'Innova Crysta'
-    }
-  },
-  {
-    _id: '2',
-    brand: 'Maruti',
-    model: 'Ertiga',
-    seatingCapacity: 7,
-    fuelType: 'Petrol',
-    isAc: true,
-    rating: 4.5,
-    totalTrips: 98,
-    price: 1800,
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'MUV',
-      vehicleType: 'car',
-      vehicleModel: 'Ertiga'
-    }
-  },
-  {
-    _id: '3',
-    brand: 'Honda',
-    model: 'City',
-    seatingCapacity: 4,
-    fuelType: 'Petrol',
-    isAc: true,
-    rating: 4.7,
-    totalTrips: 215,
-    price: 1500,
-    image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'Sedan',
-      vehicleType: 'car',
-      vehicleModel: 'City'
-    }
-  },
-  {
-    _id: '4',
-    brand: 'Hyundai',
-    model: 'Creta',
-    seatingCapacity: 5,
-    fuelType: 'Diesel',
-    isAc: true,
-    rating: 4.6,
-    totalTrips: 178,
-    price: 2200,
-    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'SUV',
-      vehicleType: 'car',
-      vehicleModel: 'Creta'
-    }
-  },
-  {
-    _id: '5',
-    brand: 'Maruti',
-    model: 'Swift Dzire',
-    seatingCapacity: 4,
-    fuelType: 'Petrol',
-    isAc: true,
-    rating: 4.4,
-    totalTrips: 134,
-    price: 1200,
-    image: 'https://images.unsplash.com/photo-1617654112368-307921291f42?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'Sedan',
-      vehicleType: 'car',
-      vehicleModel: 'Swift Dzire'
-    }
-  },
-  {
-    _id: '6',
-    brand: 'Mahindra',
-    model: 'Scorpio',
-    seatingCapacity: 7,
-    fuelType: 'Diesel',
-    isAc: true,
-    rating: 4.5,
-    totalTrips: 89,
-    price: 2800,
-    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&h=400&fit=crop',
-    pricingReference: {
-      category: 'SUV',
-      vehicleType: 'car',
-      vehicleModel: 'Scorpio'
-    }
-  }
-];
+// Create vehicle API service instance
+const vehicleApi = new VehicleApiService(
+  (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ||
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api'),
+  // getAuthHeaders function - vehicle search is public, no auth required
+  () => ({
+    'Content-Type': 'application/json'
+  })
+);
+
+// Create vehicle pricing API service instance
+const vehiclePricingApi = new VehiclePricingApiService(
+  (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ||
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api'),
+  // getAuthHeaders function - vehicle search is public, no auth required
+  () => ({
+    'Content-Type': 'application/json'
+  })
+);
 
 const VihicleSearch = () => {
   const isMobile = useIsMobile();
@@ -133,13 +50,123 @@ const VihicleSearch = () => {
     sortBy: ''
   });
 
-  // State to store vehicle data for filters
-  const [vehicleData, setVehicleData] = useState<any[]>(DUMMY_CARS);
-  const [filteredCars, setFilteredCars] = useState<any[]>(DUMMY_CARS);
-
   // Get search parameters from hero section
   const searchParams = location.state || {};
   const { from, to, pickupDate, pickupTime, serviceType, returnDate, fromData, toData } = searchParams;
+
+  // State for API data
+  const [vehicleData, setVehicleData] = useState<any[]>([]);
+  const [filteredCars, setFilteredCars] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State to store actual trip distance from Google Maps API
+  const [tripDistance, setTripDistance] = useState<number | null>(null);
+
+  // Function to load vehicles from API
+  const loadVehicles = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const searchParams: any = {
+        vehicleType: 'car',
+        passengers: 1,
+        page: 1,
+        limit: 50
+      };
+
+      // Add date if available
+      if (pickupDate) {
+        searchParams.date = pickupDate;
+        if (returnDate) {
+          searchParams.returnDate = returnDate;
+        }
+      }
+
+      // Add location data if available
+      if (from && to) {
+        searchParams.pickup = from;
+        searchParams.destination = to;
+      }
+
+      console.log('Searching vehicles with params:', searchParams);
+
+      const response = await vehicleApi.searchVehicles(searchParams);
+
+      if (response.success && response.data) {
+        // Transform API response to match UI expectations
+        const vehiclesArray = (response.data as any).docs || (response.data as any);
+        // Process vehicles asynchronously to calculate prices
+        const transformedVehicles = Array.isArray(vehiclesArray) ? await Promise.all(vehiclesArray.map(async (vehicle: any) => {
+          const price = await getVehiclePrice(vehicle, pickupDate, returnDate, tripDistance || undefined);
+          return {
+            _id: vehicle._id,
+            brand: vehicle.brand || 'Unknown',
+            model: vehicle.pricingReference?.vehicleModel || vehicle.model || 'Unknown',
+            seatingCapacity: vehicle.seatingCapacity || 4,
+            fuelType: vehicle.fuelType || 'Petrol',
+            isAc: vehicle.isAc || false,
+            rating: vehicle.driver?.rating || vehicle.rating?.average || 4.0,
+            totalTrips: vehicle.statistics?.totalTrips || vehicle.totalTrips || 0,
+            // Get price from pricing data using actual trip distance
+            price: price,
+            image: vehicle.images?.length > 0 ? vehicle.images.find((img: any) => img.isPrimary)?.url || vehicle.images[0].url : 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&h=400&fit=crop',
+            pricingReference: vehicle.pricingReference || {
+              category: 'car',
+              vehicleType: 'car',
+              vehicleModel: vehicle.model || 'Unknown'
+            },
+            // Keep original API data for additional functionality
+            driver: vehicle.driver,
+            pricing: vehicle.pricing,
+            isAvailable: vehicle.isAvailable
+          };
+        })) : [];
+
+        console.log('Loaded vehicles:', transformedVehicles.length);
+        setVehicleData(transformedVehicles);
+        setFilteredCars(transformedVehicles);
+      } else {
+        console.error('Failed to load vehicles:', response);
+        setError('Failed to load vehicles. Please try again.');
+        setVehicleData([]);
+        setFilteredCars([]);
+      }
+    } catch (error: any) {
+      console.error('Error loading vehicles:', error);
+      setError(error.message || 'Failed to load vehicles');
+      setVehicleData([]);
+      setFilteredCars([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pickupDate, returnDate, from, to, tripDistance]);
+
+  // Helper function to get vehicle price - now uses consistent pricing utility
+  const getVehiclePrice = async (vehicle: any, pickupDate: string, returnDate?: string, distance?: number): Promise<number> => {
+    return await getConsistentVehiclePrice(vehicle, pickupDate, returnDate, distance);
+  };
+
+  // Update vehicle prices when trip distance changes
+  useEffect(() => {
+    if (vehicleData.length > 0 && tripDistance !== null) {
+      console.log('🔄 Updating vehicle prices with new distance:', tripDistance);
+      const updatePrices = async () => {
+        const updatedVehicles = await Promise.all(vehicleData.map(async (vehicle) => {
+          const newPrice = await getVehiclePrice(vehicle, pickupDate, returnDate, tripDistance);
+          console.log('💰 Updated price for vehicle', vehicle._id, ':', newPrice);
+          return {
+            ...vehicle,
+            price: newPrice
+          };
+        }));
+        console.log('✅ Updated all vehicle prices, setting vehicleData...');
+        setVehicleData(updatedVehicles);
+      };
+      updatePrices();
+    }
+  }, [tripDistance, pickupDate, returnDate]);
 
   const toggleFilter = () => {
     setIsFilterOpen(!isFilterOpen);
@@ -149,8 +176,10 @@ const VihicleSearch = () => {
     setFilters(newFilters);
   };
 
-  // State to store actual trip distance from Google Maps API
-  const [tripDistance, setTripDistance] = useState<number | null>(null);
+  // Load vehicles when component mounts or search params change
+  useEffect(() => {
+    loadVehicles();
+  }, [loadVehicles]);
 
   // Fetch actual trip distance when location data is available
   useEffect(() => {
@@ -174,29 +203,29 @@ const VihicleSearch = () => {
     fetchDistance();
   }, [fromData, toData]);
 
-  // Apply filters to cars
+  // Apply filters to vehicles
   useEffect(() => {
-    let filtered = [...DUMMY_CARS];
+    let filtered = [...vehicleData];
 
     // Filter by seating capacity
     if (filters.seatingCapacity.length > 0) {
-      filtered = filtered.filter(car => filters.seatingCapacity.includes(car.seatingCapacity));
+      filtered = filtered.filter(vehicle => filters.seatingCapacity.includes(vehicle.seatingCapacity));
     }
 
     // Filter by fuel type
     if (filters.fuelType.length > 0) {
-      filtered = filtered.filter(car => filters.fuelType.includes(car.fuelType));
+      filtered = filtered.filter(vehicle => filters.fuelType.includes(vehicle.fuelType));
     }
 
     // Filter by brand
     if (filters.carBrand.length > 0) {
-      filtered = filtered.filter(car => filters.carBrand.includes(car.brand));
+      filtered = filtered.filter(vehicle => filters.carBrand.includes(vehicle.brand));
     }
 
     // Filter by AC
     if (filters.isAc.length > 0) {
-      filtered = filtered.filter(car => {
-        const hasAC = car.isAc;
+      filtered = filtered.filter(vehicle => {
+        const hasAC = vehicle.isAc;
         return filters.isAc.includes(hasAC ? 'AC' : 'Non-AC');
       });
     }
@@ -223,7 +252,7 @@ const VihicleSearch = () => {
     }
 
     setFilteredCars(filtered);
-  }, [filters]);
+  }, [filters, vehicleData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -264,57 +293,114 @@ const VihicleSearch = () => {
 
       {/* Results Count */}
       <div className="container mx-auto px-4 py-4">
-        <p className="text-gray-600 text-sm">
-          Showing <span className="font-semibold text-[#212c40]">{filteredCars.length}</span> cars
-        </p>
+        {isLoading ? (
+          <p className="text-gray-600 text-sm">Loading vehicles...</p>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-600 text-sm">{error}</p>
+            <button
+              onClick={loadVehicles}
+              className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <p className="text-gray-600 text-sm">
+            Showing <span className="font-semibold text-[#212c40]">{filteredCars.length}</span> vehicles
+          </p>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-2 sm:px-4 pb-24 md:pb-6">
-        {/* Mobile Layout */}
-        {isMobile ? (
-          <div className="space-y-4">
-            {/* Filter Sidebar for Mobile */}
-            <div className="mb-2">
-              <FilterSidebar
-                isOpen={isFilterOpen}
-                onToggle={toggleFilter}
-                selectedType={selectedType}
-                onFiltersChange={handleFiltersChange}
-                filters={filters}
-                vehicles={vehicleData}
-              />
+        {isLoading ? (
+          /* Loading State */
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f48432] mx-auto mb-4"></div>
+              <p className="text-gray-600">Finding available vehicles...</p>
             </div>
-            {/* Car Cards for Mobile */}
-            <div className="space-y-4">
-              {filteredCars.map((car) => (
-                <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} />
-              ))}
+          </div>
+        ) : error ? (
+          /* Error State */
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">
+                <Car className="w-12 h-12 mx-auto" />
+              </div>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <button
+                onClick={loadVehicles}
+                className="bg-[#f48432] text-white px-6 py-2 rounded-lg hover:bg-[#e67e22] transition-colors"
+              >
+                Retry
+              </button>
             </div>
           </div>
         ) : (
-          /* Desktop Layout */
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Filter Sidebar */}
-            <div className="lg:col-span-1">
-              <FilterSidebar
-                isOpen={isFilterOpen}
-                onToggle={toggleFilter}
-                selectedType={selectedType}
-                onFiltersChange={handleFiltersChange}
-                filters={filters}
-                vehicles={vehicleData}
-              />
-            </div>
-            {/* Car Cards Grid */}
-            <div className="lg:col-span-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredCars.map((car) => (
-                  <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} />
-                ))}
+          /* Vehicle Display */
+          <>
+            {/* Mobile Layout */}
+            {isMobile ? (
+              <div className="space-y-4">
+                {/* Filter Sidebar for Mobile */}
+                <div className="mb-2">
+                  <FilterSidebar
+                    isOpen={isFilterOpen}
+                    onToggle={toggleFilter}
+                    selectedType={selectedType}
+                    onFiltersChange={handleFiltersChange}
+                    filters={filters}
+                    vehicles={vehicleData}
+                  />
+                </div>
+                {/* Vehicle Cards for Mobile */}
+                <div className="space-y-4">
+                  {filteredCars.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No vehicles available matching your criteria</p>
+                    </div>
+                  ) : (
+                    filteredCars.map((car) => (
+                      <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} tripDistance={tripDistance} />
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            ) : (
+              /* Desktop Layout */
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Filter Sidebar */}
+                <div className="lg:col-span-1">
+                  <FilterSidebar
+                    isOpen={isFilterOpen}
+                    onToggle={toggleFilter}
+                    selectedType={selectedType}
+                    onFiltersChange={handleFiltersChange}
+                    filters={filters}
+                    vehicles={vehicleData}
+                  />
+                </div>
+                {/* Vehicle Cards Grid */}
+                <div className="lg:col-span-3">
+                  {filteredCars.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No vehicles available matching your criteria</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {                    filteredCars.map((car) => (
+                      <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} tripDistance={tripDistance} />
+                    ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
       <UserBottomNavigation />
@@ -323,7 +409,7 @@ const VihicleSearch = () => {
 };
 
 // Car Card Component
-const CarCard = ({ car, isMobile, searchParams }: { car: any; isMobile: boolean; searchParams: any }) => {
+const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMobile: boolean; searchParams: any; tripDistance: number | null }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
 
@@ -395,11 +481,28 @@ const CarCard = ({ car, isMobile, searchParams }: { car: any; isMobile: boolean;
         <div className="mt-auto pt-3 border-t border-gray-100">
           <div className="flex items-end justify-between mb-3">
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
-              <p className="text-xl font-bold text-[#212c40]">
-                ₹{car.price.toLocaleString('en-IN')}
-                <span className="text-xs text-gray-500 font-normal">/day</span>
-              </p>
+              <p className="text-xs text-gray-500 mb-0.5">Total Trip Price</p>
+              <div className="text-sm font-medium text-[#212c40] leading-tight">
+                {car.price === 0 || car.computedPricing?.pricingUnavailable ? (
+                  <div className="text-center">
+                    <p className="text-sm text-red-600 font-medium">Pricing Not Set</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Admin must set rates for {car.pricingReference?.vehicleModel || car.model}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xl font-bold text-[#212c40]">
+                      ₹{car.price?.toLocaleString('en-IN') || '0'}
+                    </p>
+                    {car.pricing?.distancePricing?.['one-way'] && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Based on {Math.round(tripDistance || 100)}km distance
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <button 

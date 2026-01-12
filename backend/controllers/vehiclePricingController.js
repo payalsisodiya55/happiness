@@ -6,69 +6,69 @@ const asyncHandler = require('../middleware/asyncHandler');
 // @access  Private (Admin only)
 const getAllVehiclePricing = asyncHandler(async (req, res) => {
   const { category, tripType, page = 1, limit = 50, all = false } = req.query;
-  
+
   const filter = { isActive: true };
   if (category) filter.category = category;
   if (tripType) filter.tripType = tripType;
-  
+
   // If all=true, return all records without pagination
   if (all === 'true') {
     const pricing = await VehiclePricing.find(filter).sort({ category: 1, vehicleType: 1, vehicleModel: 1 });
-    
+
     // Ensure all pricing records have the new distance tiers
     for (const record of pricing) {
       if (record.category !== 'auto' && record.distancePricing) {
-        const needsUpdate = !record.distancePricing['200km'] || 
-                           !record.distancePricing['250km'] || 
-                           !record.distancePricing['300km'];
-        
+        const needsUpdate = !record.distancePricing['200km'] ||
+          !record.distancePricing['250km'] ||
+          !record.distancePricing['300km'];
+
         if (needsUpdate) {
           // Populate missing tiers with 150km values as fallback
           record.distancePricing['200km'] = record.distancePricing['200km'] || record.distancePricing['150km'] || 0;
           record.distancePricing['250km'] = record.distancePricing['250km'] || record.distancePricing['150km'] || 0;
           record.distancePricing['300km'] = record.distancePricing['300km'] || record.distancePricing['150km'] || 0;
-          
+
           // Save the updated record
           await record.save();
         }
       }
     }
-    
+
     return res.status(200).json({
       success: true,
       data: pricing
     });
   }
-  
+
   const options = {
     page: parseInt(page),
     limit: parseInt(limit),
     sort: { category: 1, vehicleType: 1, vehicleModel: 1 }
   };
-  
+
   const pricing = await VehiclePricing.paginate(filter, options);
-  
+
   // Ensure all pricing records have the new distance tiers
   if (pricing.docs) {
     for (const record of pricing.docs) {
       if (record.category !== 'auto' && record.distancePricing) {
-        const needsUpdate = !record.distancePricing['200km'] || 
-                           !record.distancePricing['250km'] || 
-                           !record.distancePricing['300km'];
-        
+        const needsUpdate = !record.distancePricing['200km'] ||
+          !record.distancePricing['250km'] ||
+          !record.distancePricing['300km'];
+
         if (needsUpdate) {
           // Populate missing tiers with 150km values as fallback
           record.distancePricing['200km'] = record.distancePricing['200km'] || record.distancePricing['150km'] || 0;
           record.distancePricing['250km'] = record.distancePricing['250km'] || record.distancePricing['150km'] || 0;
           record.distancePricing['300km'] = record.distancePricing['300km'] || record.distancePricing['150km'] || 0;
-          
+
           // Save the updated record
           await record.save();
         }
       }
     }
   }
-  
+
   res.status(200).json({
     success: true,
     data: pricing
@@ -80,14 +80,14 @@ const getAllVehiclePricing = asyncHandler(async (req, res) => {
 // @access  Private (Admin only)
 const getVehiclePricingById = asyncHandler(async (req, res) => {
   const pricing = await VehiclePricing.findById(req.params.id);
-  
+
   if (!pricing) {
     return res.status(404).json({
       success: false,
       message: 'Vehicle pricing not found'
     });
   }
-  
+
   res.status(200).json({
     success: true,
     data: pricing
@@ -109,7 +109,7 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
     isActive = true,
     isDefault = false
   } = req.body;
-  
+
   console.log('🔍 Creating vehicle pricing with data:', {
     category,
     vehicleType,
@@ -121,11 +121,11 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
     isActive,
     isDefault
   });
-  
+
   // For auto category, check if pricing exists for the same fuel type and trip type
   // For car and bus, check if pricing exists for the same vehicle type, model and trip type
   let existingPricing;
-  
+
   if (category === 'auto') {
     // For auto, only check fuel type (vehicleModel) and trip type
     existingPricing = await VehiclePricing.findOne({
@@ -143,17 +143,17 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
       tripType
     });
   }
-  
+
   if (existingPricing) {
     console.log('❌ Pricing already exists:', existingPricing._id);
     return res.status(400).json({
       success: false,
-      message: category === 'auto' 
+      message: category === 'auto'
         ? `Pricing for ${vehicleModel} auto (${tripType}) already exists`
         : `Pricing for ${vehicleType} ${vehicleModel} (${tripType}) already exists`
     });
   }
-  
+
   // Validate auto price for auto category
   if (category === 'auto') {
     if (!autoPrice || autoPrice <= 0) {
@@ -165,16 +165,16 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
     }
     console.log('✅ Auto price validation passed:', autoPrice);
   }
-  
+
   // Validate distance pricing for car and bus categories
   if (category !== 'auto') {
-    if (!distancePricing || 
-        distancePricing['50km'] === undefined || 
-        distancePricing['100km'] === undefined || 
-        distancePricing['150km'] === undefined ||
-        distancePricing['200km'] === undefined || 
-        distancePricing['250km'] === undefined || 
-        distancePricing['300km'] === undefined) {
+    if (!distancePricing ||
+      distancePricing['50km'] === undefined ||
+      distancePricing['100km'] === undefined ||
+      distancePricing['150km'] === undefined ||
+      distancePricing['200km'] === undefined ||
+      distancePricing['250km'] === undefined ||
+      distancePricing['300km'] === undefined) {
       console.log('❌ Invalid distance pricing:', distancePricing);
       return res.status(400).json({
         success: false,
@@ -183,7 +183,7 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
     }
     console.log('✅ Distance pricing validation passed:', distancePricing);
   }
-  
+
   const pricingData = {
     category,
     vehicleType,
@@ -196,13 +196,13 @@ const createVehiclePricing = asyncHandler(async (req, res) => {
     isDefault,
     createdBy: req.admin.id
   };
-  
+
   console.log('✅ Creating pricing with validated data:', pricingData);
-  
+
   const pricing = await VehiclePricing.create(pricingData);
-  
+
   console.log('✅ Vehicle pricing created successfully:', pricing._id);
-  
+
   res.status(201).json({
     success: true,
     data: pricing,
@@ -220,7 +220,7 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
     notes,
     isActive
   } = req.body;
-  
+
   console.log('🔍 Updating vehicle pricing:', {
     id: req.params.id,
     autoPrice,
@@ -228,9 +228,9 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
     notes,
     isActive
   });
-  
+
   const pricing = await VehiclePricing.findById(req.params.id);
-  
+
   if (!pricing) {
     console.log('❌ Pricing not found:', req.params.id);
     return res.status(404).json({
@@ -238,7 +238,7 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
       message: 'Vehicle pricing not found'
     });
   }
-  
+
   console.log('✅ Found existing pricing:', {
     id: pricing._id,
     category: pricing.category,
@@ -246,7 +246,7 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
     vehicleModel: pricing.vehicleModel,
     tripType: pricing.tripType
   });
-  
+
   // Update fields
   if (autoPrice !== undefined) {
     // For auto category, validate auto price
@@ -264,7 +264,7 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
     // For car and bus categories, validate distance pricing
     if (pricing.category !== 'auto') {
       if (!distancePricing['50km'] || !distancePricing['100km'] || !distancePricing['150km'] ||
-          !distancePricing['200km'] || !distancePricing['250km'] || !distancePricing['300km']) {
+        !distancePricing['200km'] || !distancePricing['250km'] || !distancePricing['300km']) {
         console.log('❌ Invalid distance pricing for update:', distancePricing);
         return res.status(400).json({
           success: false,
@@ -283,14 +283,14 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
     console.log('🔄 Updating isActive from', pricing.isActive, 'to', isActive);
     pricing.isActive = isActive;
   }
-  
+
   pricing.updatedBy = req.admin.id;
-  
+
   console.log('✅ Saving updated pricing...');
   await pricing.save();
-  
+
   console.log('✅ Vehicle pricing updated successfully');
-  
+
   res.status(200).json({
     success: true,
     data: pricing,
@@ -303,19 +303,19 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
 // @access  Private (Admin only)
 const deleteVehiclePricing = asyncHandler(async (req, res) => {
   const pricing = await VehiclePricing.findById(req.params.id);
-  
+
   if (!pricing) {
     return res.status(404).json({
       success: false,
       message: 'Vehicle pricing not found'
     });
   }
-  
+
   // Soft delete by setting isActive to false
   pricing.isActive = false;
   pricing.updatedBy = req.admin.id;
   await pricing.save();
-  
+
   res.status(200).json({
     success: true,
     message: 'Vehicle pricing deleted successfully'
@@ -327,16 +327,16 @@ const deleteVehiclePricing = asyncHandler(async (req, res) => {
 // @access  Private (Admin only)
 const bulkUpdateVehiclePricing = asyncHandler(async (req, res) => {
   const { pricingData } = req.body;
-  
+
   if (!Array.isArray(pricingData)) {
     return res.status(400).json({
       success: false,
       message: 'pricingData must be an array'
     });
   }
-  
+
   const results = [];
-  
+
   for (const item of pricingData) {
     const {
       category,
@@ -349,11 +349,11 @@ const bulkUpdateVehiclePricing = asyncHandler(async (req, res) => {
       isActive = true,
       isDefault = false
     } = item;
-    
+
     try {
       // Check if pricing exists - handle auto differently
       let pricing;
-      
+
       if (category === 'auto') {
         // For auto, only check fuel type (vehicleModel) and trip type
         pricing = await VehiclePricing.findOne({
@@ -371,7 +371,7 @@ const bulkUpdateVehiclePricing = asyncHandler(async (req, res) => {
           tripType
         });
       }
-      
+
       if (pricing) {
         // Update existing
         if (autoPrice !== undefined) pricing.autoPrice = autoPrice;
@@ -402,7 +402,7 @@ const bulkUpdateVehiclePricing = asyncHandler(async (req, res) => {
       results.push({ ...item, action: 'error', error: error.message });
     }
   }
-  
+
   res.status(200).json({
     success: true,
     data: results,
@@ -415,16 +415,16 @@ const bulkUpdateVehiclePricing = asyncHandler(async (req, res) => {
 // @access  Public
 const getPricingForCalculation = asyncHandler(async (req, res) => {
   const { category, vehicleType, vehicleModel, tripType = 'one-way' } = req.query;
-  
+
   if (!category || !vehicleType) {
     return res.status(400).json({
       success: false,
       message: 'Category and vehicleType are required'
     });
   }
-  
+
   let pricing;
-  
+
   if (vehicleModel) {
     // Get specific model pricing
     pricing = await VehiclePricing.getPricing(category, vehicleType, vehicleModel, tripType);
@@ -432,17 +432,17 @@ const getPricingForCalculation = asyncHandler(async (req, res) => {
     // Get default pricing for vehicle type
     pricing = await VehiclePricing.getDefaultPricing(category, vehicleType, tripType);
   }
-  
+
   if (!pricing) {
     // Try to create default pricing for this combination
     try {
       const Admin = require('../models/Admin');
       const admin = await Admin.findOne({ isActive: true });
-      
+
       if (admin) {
         // Create default pricing based on category
         let defaultPricing = null;
-        
+
         if (category === 'auto') {
           defaultPricing = {
             category: 'auto',
@@ -483,7 +483,7 @@ const getPricingForCalculation = asyncHandler(async (req, res) => {
             notes: `Default ${vehicleModel || 'Standard'} bus pricing`
           };
         }
-        
+
         if (defaultPricing) {
           pricing = await VehiclePricing.create(defaultPricing);
           console.log(`✅ Created default pricing for ${category} ${vehicleType} ${vehicleModel || 'Standard'}`);
@@ -493,7 +493,7 @@ const getPricingForCalculation = asyncHandler(async (req, res) => {
       console.error('❌ Error creating default pricing:', createError);
     }
   }
-  
+
   if (!pricing) {
     return res.status(404).json({
       success: false,
@@ -507,24 +507,24 @@ const getPricingForCalculation = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Ensure pricing has all distance tiers for car and bus categories
   if (pricing.category !== 'auto' && pricing.distancePricing) {
-    const needsUpdate = !pricing.distancePricing['200km'] || 
-                       !pricing.distancePricing['250km'] || 
-                       !pricing.distancePricing['300km'];
-    
+    const needsUpdate = !pricing.distancePricing['200km'] ||
+      !pricing.distancePricing['250km'] ||
+      !pricing.distancePricing['300km'];
+
     if (needsUpdate) {
       // Populate missing tiers with 150km values as fallback
       pricing.distancePricing['200km'] = pricing.distancePricing['200km'] || pricing.distancePricing['150km'] || 0;
       pricing.distancePricing['250km'] = pricing.distancePricing['250km'] || pricing.distancePricing['150km'] || 0;
       pricing.distancePricing['300km'] = pricing.distancePricing['300km'] || pricing.distancePricing['150km'] || 0;
-      
+
       // Save the updated record
       await pricing.save();
     }
   }
-  
+
   res.status(200).json({
     success: true,
     data: pricing
@@ -542,36 +542,39 @@ const calculateFare = asyncHandler(async (req, res) => {
     tripType = 'one-way',
     distance
   } = req.body;
-  
+
   if (!category || !vehicleType || !distance) {
     return res.status(400).json({
       success: false,
       message: 'Category, vehicleType, and distance are required'
     });
   }
-  
+
   let pricing;
-  
+
   if (vehicleModel) {
     pricing = await VehiclePricing.getPricing(category, vehicleType, vehicleModel, tripType);
   } else {
     pricing = await VehiclePricing.getDefaultPricing(category, vehicleType, tripType);
   }
-  
+
   if (!pricing) {
     return res.status(404).json({
       success: false,
       message: 'No pricing found for the specified vehicle configuration'
     });
   }
-  
+
   // Calculate fare using the model's calculateFare method
   const totalFare = pricing.calculateFare(distance);
-  
+  const ratePerKm = pricing.getRateForDistance(distance);
+
   res.status(200).json({
     success: true,
     data: {
       totalFare,
+      ratePerKm,
+      baseFare: totalFare, // Base fare is now same as total fare (distance * rate)
       distancePricing: pricing.distancePricing,
       category: pricing.category
     }
@@ -583,10 +586,10 @@ const calculateFare = asyncHandler(async (req, res) => {
 // @access  Public
 const getPricingForVehicle = asyncHandler(async (req, res) => {
   const { vehicleId } = req.params;
-  
+
   // Import Vehicle model to avoid circular dependency
   const Vehicle = require('../models/Vehicle');
-  
+
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
     return res.status(404).json({
@@ -594,38 +597,38 @@ const getPricingForVehicle = asyncHandler(async (req, res) => {
       message: 'Vehicle not found'
     });
   }
-  
+
   const pricing = await VehiclePricing.getPricing(
     vehicle.pricingReference.category,
     vehicle.pricingReference.vehicleType,
     vehicle.pricingReference.vehicleModel,
     'one-way' // Default to one-way trip
   );
-  
+
   if (!pricing) {
     return res.status(404).json({
       success: false,
       message: 'No pricing found for this vehicle configuration'
     });
   }
-  
+
   // Ensure pricing has all distance tiers for car and bus categories
   if (pricing.category !== 'auto' && pricing.distancePricing) {
-    const needsUpdate = !pricing.distancePricing['200km'] || 
-                       !pricing.distancePricing['250km'] || 
-                       !pricing.distancePricing['300km'];
-    
+    const needsUpdate = !pricing.distancePricing['200km'] ||
+      !pricing.distancePricing['250km'] ||
+      !pricing.distancePricing['300km'];
+
     if (needsUpdate) {
       // Populate missing tiers with 150km values as fallback
       pricing.distancePricing['200km'] = pricing.distancePricing['200km'] || pricing.distancePricing['150km'] || 0;
       pricing.distancePricing['250km'] = pricing.distancePricing['250km'] || pricing.distancePricing['150km'] || 0;
       pricing.distancePricing['300km'] = pricing.distancePricing['300km'] || pricing.distancePricing['150km'] || 0;
-      
+
       // Save the updated record
       await pricing.save();
     }
   }
-  
+
   res.status(200).json({
     success: true,
     data: pricing
@@ -660,7 +663,7 @@ const getPricingCategories = asyncHandler(async (req, res) => {
     },
     { $sort: { _id: 1 } }
   ]);
-  
+
   res.status(200).json({
     success: true,
     data: categories

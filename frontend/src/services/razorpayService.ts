@@ -236,7 +236,7 @@ class RazorpayService {
         key: this.razorpayKey,
         amount: order.amount, // Amount in paise
         currency: order.currency,
-        name: 'Chalo Sawari',
+        name: 'Happiness',
         description: orderData.notes?.description || 'Vehicle Booking Payment',
         order_id: order.orderId,
         handler: (response) => onSuccess(response, order), // Pass order to handler

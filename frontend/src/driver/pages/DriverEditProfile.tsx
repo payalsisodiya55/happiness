@@ -22,7 +22,7 @@ const DriverEditProfile = () => {
     lastName: driver?.lastName || "",
     phone: driver?.phone || "",
     email: driver?.email || "",
-    profilePhoto: driver?.profilePhoto || "",
+    profilePhoto: driver?.profilePicture || "",
     address: {
       street: driver?.address?.street || "",
       city: driver?.address?.city || "",
@@ -73,13 +73,11 @@ const DriverEditProfile = () => {
     setIsUploadingPhoto(true);
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append('document', file);
-      // Using 'profile_photo' as assumed document type for avatar
-      formDataUpload.append('documentType', 'profile_photo');
+      formDataUpload.append('photo', file);
 
       const token = apiService.getAuthToken('driver');
-      const url = `${apiService.baseURL}/driver/upload-document`;
-      
+      const url = `${apiService.baseURL}/driver/upload-profile-photo`;
+
       const response = await fetch(url, {
         method: 'POST',
         body: formDataUpload,
@@ -95,7 +93,7 @@ const DriverEditProfile = () => {
       }
 
       if (data.success) {
-        setFormData(prev => ({ ...prev, profilePhoto: data.data.documentUrl }));
+        setFormData(prev => ({ ...prev, profilePhoto: data.data.photoUrl }));
         toast.success("Profile photo uploaded successfully");
       } else {
         throw new Error(data.message || 'Upload failed');

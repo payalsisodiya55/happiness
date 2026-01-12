@@ -18,8 +18,30 @@ interface Auto {
   isAc: boolean;
   amenities: string[];
   pricing?: {
-    baseFare: number;
-    perKmRate: number;
+    baseFare?: number;
+    perKmRate?: number;
+    autoPrice?: {
+      oneWay: number;
+      return: number;
+    };
+    distancePricing?: {
+      'one-way': {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+      return: {
+        '50km': number;
+        '100km': number;
+        '150km': number;
+        '200km': number;
+        '250km': number;
+        '300km': number;
+      };
+    };
   };
   images?: Array<{
     url: string;
@@ -194,10 +216,33 @@ Your auto booking has been confirmed. You will receive a confirmation SMS shortl
               {/* Pricing */}
               <div className="space-y-2">
                 <h4 className="font-semibold">Pricing</h4>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Starting from</span>
-                  <span className="text-3xl font-bold text-primary">₹{auto.fare}</span>
-                </div>
+                {auto.pricing?.autoPrice ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                      <span className="text-sm font-medium">One Way</span>
+                      <span className="text-lg font-bold text-primary">₹{auto.pricing.autoPrice.oneWay}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                      <span className="text-sm font-medium">Return</span>
+                      <span className="text-lg font-bold text-primary">₹{auto.pricing.autoPrice.return}</span>
+                    </div>
+                  </div>
+                ) : auto.pricing?.distancePricing?.['one-way'] ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <h5 className="col-span-2 font-medium text-sm">Per km rates:</h5>
+                    {Object.entries(auto.pricing.distancePricing['one-way']).map(([distance, price]: [string, any]) => (
+                      <div key={distance} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                        <span className="text-sm font-medium">{distance}</span>
+                        <span className="text-lg font-bold text-primary">₹{price}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center p-4">
+                    <span className="text-2xl font-bold text-primary">₹{auto.fare}</span>
+                    <p className="text-sm text-muted-foreground mt-1">Fixed pricing</p>
+                  </div>
+                )}
               </div>
 
               <Separator />

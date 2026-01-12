@@ -9,45 +9,62 @@ import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import driverApiService from "@/services/driverApi";
 import { toast } from "@/hooks/use-toast";
 
-// Dummy Transaction Data for UI dev
-const DUMMY_TRANSACTIONS = [
-  { id: 1, type: 'credit', amount: 850, description: 'Trip Payment - BK-2024-001', date: 'Today, 2:30 PM', status: 'completed' },
-  { id: 2, type: 'credit', amount: 420, description: 'Trip Payment - BK-2024-002', date: 'Yesterday, 5:15 PM', status: 'completed' },
-  { id: 3, type: 'debit', amount: 2000, description: 'Payout to Bank Account', date: 'Jan 4, 10:00 AM', status: 'completed' },
-  { id: 4, type: 'credit', amount: 1200, description: 'Trip Payment - BK-2024-003', date: 'Jan 3, 11:20 AM', status: 'completed' },
-  { id: 5, type: 'credit', amount: 150, description: 'Tip from Passenger', date: 'Jan 3, 11:25 AM', status: 'completed' },
-];
+// Real data only - no mock/dummy data
 
 const DriverWallet = () => {
   const navigate = useNavigate();
   const { driver } = useDriverAuth();
   const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState(DUMMY_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalWithdrawal, setTotalWithdrawal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching data
-    const fetchData = async () => {
+    const fetchWalletData = async () => {
       setIsLoading(true);
       try {
-        // In a real scenario, we'd fetch from API
-        // const data = await driverApiService.getWalletData();
-        // setBalance(data.balance);
-        
-        // Using driver data or dummy for now
-        setBalance(driver?.earnings?.wallet?.balance || 3450);
-        
-        // Simulate delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
+        // Get wallet balance and transactions from driver profile data
+        setBalance(driver?.earnings?.wallet?.balance || 0);
+        const walletTransactions = driver?.earnings?.wallet?.transactions || [];
+        setTransactions(walletTransactions);
+
+        // Calculate total income and withdrawal from transactions
+        let income = 0;
+        let withdrawal = 0;
+
+        walletTransactions.forEach(tx => {
+          if (tx.type === 'credit') {
+            income += tx.amount;
+          } else if (tx.type === 'debit') {
+            withdrawal += tx.amount;
+          }
+        });
+
+        setTotalIncome(income);
+        setTotalWithdrawal(withdrawal);
+
       } catch (error) {
         console.error("Error fetching wallet data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load wallet data. Please try again.",
+          variant: "destructive",
+        });
+        // Set empty data on error - no mock data fallback
+        setTransactions([]);
+        setTotalIncome(0);
+        setTotalWithdrawal(0);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    if (driver) {
+      fetchWalletData();
+    } else {
+      setIsLoading(false);
+    }
   }, [driver]);
 
   const handleWithdraw = () => {
@@ -131,7 +148,7 @@ const DriverWallet = () => {
                   <ArrowDownLeft className="w-6 h-6 text-green-600" />
                 </div>
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Income</p>
-                <p className="text-xl font-bold text-[#29354c] mt-1">₹4,250</p>
+                <p className="text-xl font-bold text-[#29354c] mt-1">₹{isLoading ? "..." : totalIncome.toLocaleString()}</p>
               </CardContent>
             </Card>
             <Card className="border-none shadow-lg rounded-2xl">
@@ -140,7 +157,7 @@ const DriverWallet = () => {
                   <ArrowUpRight className="w-6 h-6 text-red-600" />
                 </div>
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Withdraw</p>
-                <p className="text-xl font-bold text-[#29354c] mt-1">₹800</p>
+                <p className="text-xl font-bold text-[#29354c] mt-1">₹{isLoading ? "..." : totalWithdrawal.toLocaleString()}</p>
               </CardContent>
             </Card>
           </div>
@@ -169,40 +186,65 @@ const DriverWallet = () => {
                   </Card>
                 ))
               ) : (
-                transactions.map((tx) => (
-                  <div key={tx.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-                        tx.type === 'credit' ? 'bg-green-50' : 'bg-red-50'
-                      }`}>
-                        {tx.type === 'credit' ? (
-                          <ArrowDownLeft className={`w-6 h-6 ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`} />
-                        ) : (
-                          <ArrowUpRight className="w-6 h-6 text-red-600" />
-                        )}
+                transactions.map((tx, index) => {
+                  // Format date for display
+                  const formatDate = (dateString) => {
+                    try {
+                      const date = new Date(dateString);
+                      const now = new Date();
+                      const diffTime = Math.abs(now.getTime() - date.getTime());
+                      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                      if (diffDays === 0) {
+                        return 'Today';
+                      } else if (diffDays === 1) {
+                        return 'Yesterday';
+                      } else if (diffDays < 7) {
+                        return `${diffDays} days ago`;
+                      } else {
+                        return date.toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short'
+                        });
+                      }
+                    } catch (error) {
+                      return 'Unknown date';
+                    }
+                  };
+
+                  return (
+                    <div key={index} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                          tx.type === 'credit' ? 'bg-green-50' : 'bg-red-50'
+                        }`}>
+                          {tx.type === 'credit' ? (
+                            <ArrowDownLeft className={`w-6 h-6 ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`} />
+                          ) : (
+                            <ArrowUpRight className="w-6 h-6 text-red-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-[#29354c] text-sm line-clamp-1">{tx.description || 'Transaction'}</p>
+                          <p className="text-xs text-gray-500 flex items-center mt-1">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {formatDate(tx.date)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-[#29354c] text-sm line-clamp-1">{tx.description}</p>
-                        <p className="text-xs text-gray-500 flex items-center mt-1">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {tx.date}
+                      <div className="text-right shrink-0">
+                        <p className={`font-bold text-lg ${
+                          tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
                         </p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">
+                          completed
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className={`font-bold text-lg ${
-                        tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
-                      </p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        tx.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

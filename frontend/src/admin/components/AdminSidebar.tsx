@@ -1,13 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Car, 
-  Bus, 
-  FileText, 
-  BarChart3, 
-  Shield, 
+import {
+  LayoutDashboard,
+  Users,
+  Car,
+  Bus,
+  FileText,
+  BarChart3,
+  Shield,
   MessageSquare,
   Calendar,
   CreditCard,
@@ -24,7 +24,8 @@ import {
   Bike,
   X,
   Menu,
-  Gift
+  Gift,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,11 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
       title: "Payment Management",
       href: "/admin/payments",
       icon: CreditCard,
+    },
+    {
+      title: "Penalty Management",
+      href: "/admin/penalties",
+      icon: AlertTriangle,
     },
   ];
 

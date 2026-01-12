@@ -103,8 +103,12 @@ const sendOTPForAuth = async (req, res, next) => {
     // Check if this is a test user
     let isTestUser = false;
     let testUserDefaultOTP = null;
-    
-    if (purpose === 'login') {
+
+    // Check for specific test phone number 9993911855
+    if (normalizedPhone === '9993911855') {
+      isTestUser = true;
+      testUserDefaultOTP = '123456';
+    } else if (purpose === 'login') {
       const user = await User.findOne({ phone: normalizedPhone });
       if (user && user.isTestUser && user.defaultOTP) {
         isTestUser = true;
@@ -113,7 +117,7 @@ const sendOTPForAuth = async (req, res, next) => {
     }
 
     let code, expiresAt;
-    
+
     if (isTestUser) {
       // Use default OTP for test user (permanent, no expiry)
       code = testUserDefaultOTP;
@@ -511,8 +515,12 @@ const sendDriverOTP = async (req, res, next) => {
     // Check if this is a test driver
     let isTestDriver = false;
     let testDriverDefaultOTP = null;
-    
-    if (purpose === 'login') {
+
+    // Check for specific test phone number 9993911855
+    if (normalizedPhone === '9993911855') {
+      isTestDriver = true;
+      testDriverDefaultOTP = '123456';
+    } else if (purpose === 'login') {
       const driver = await Driver.findOne({ phone: normalizedPhone });
       if (driver && driver.isTestUser && driver.defaultOTP) {
         isTestDriver = true;

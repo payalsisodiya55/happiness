@@ -38,6 +38,11 @@ const {
   rejectCancellationRequest,
   initiateRefund,
   completeRefund,
+  applyPenalty,
+  getDriverPenalties,
+  waivePenalty,
+  getAllPenalties,
+  getPenaltyStats,
   getSystemAnalytics,
   getActivityLog,
   uploadDriverDocument,
@@ -312,6 +317,65 @@ router.put('/bookings/:id/complete-refund', [
   param('id').isMongoId().withMessage('Invalid booking ID'),
   body('notes').optional().isString().withMessage('Notes must be a string')
 ], validate, completeRefund);
+
+// Penalty Management Routes
+router.post('/drivers/:id/penalty', [
+  param('id').isMongoId().withMessage('Invalid driver ID'),
+  body('type').isIn([
+    'cancellation_12h_before',
+    'cancellation_12h_within',
+    'cancellation_3h_within',
+    'cancellation_30min_after_acceptance',
+    'wrong_car_assigned',
+    'wrong_driver_assigned',
+    'cng_car_no_carrier',
+    'journey_not_completed_in_app',
+    'car_not_clean',
+    'car_not_good_condition',
+    'driver_misbehaved'
+  ]).withMessage('Invalid penalty type'),
+  body('amount').optional().isNumeric().withMessage('Amount must be a number'),
+  body('reason').isString().notEmpty().withMessage('Reason is required'),
+  body('bookingId').optional().isMongoId().withMessage('Invalid booking ID')
+], validate, applyPenalty);
+
+router.get('/drivers/:id/penalties', [
+  param('id').isMongoId().withMessage('Invalid driver ID'),
+  query('page').optional().isNumeric().withMessage('Page must be a number'),
+  query('limit').optional().isNumeric().withMessage('Limit must be a number'),
+  query('status').optional().isIn(['active', 'waived', 'paid']).withMessage('Invalid status')
+], validate, getDriverPenalties);
+
+router.put('/penalties/:id/waive', [
+  param('id').isMongoId().withMessage('Invalid penalty ID'),
+  body('reason').isString().notEmpty().withMessage('Waive reason is required')
+], validate, waivePenalty);
+
+router.get('/penalties', [
+  query('page').optional().isNumeric().withMessage('Page must be a number'),
+  query('limit').optional().isNumeric().withMessage('Limit must be a number'),
+  query('status').optional().isIn(['active', 'waived', 'paid']).withMessage('Invalid status'),
+  query('type').optional().isIn([
+    'cancellation_12h_before',
+    'cancellation_12h_within',
+    'cancellation_3h_within',
+    'cancellation_30min_after_acceptance',
+    'wrong_car_assigned',
+    'wrong_driver_assigned',
+    'cng_car_no_carrier',
+    'journey_not_completed_in_app',
+    'car_not_clean',
+    'car_not_good_condition',
+    'driver_misbehaved'
+  ]).withMessage('Invalid penalty type'),
+  query('driver').optional().isMongoId().withMessage('Invalid driver ID'),
+  query('startDate').optional().isISO8601().withMessage('Invalid start date'),
+  query('endDate').optional().isISO8601().withMessage('Invalid end date')
+], validate, getAllPenalties);
+
+router.get('/penalties/stats', [
+  query('period').optional().isIn(['week', 'month', 'year']).withMessage('Invalid period')
+], validate, getPenaltyStats);
 
 // Activity log routes
 router.get('/activity-log', [

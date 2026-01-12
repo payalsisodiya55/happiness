@@ -99,7 +99,7 @@ if (process.env.NODE_ENV === 'development') {
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'Chalo Sawari Backend is running successfully!',
+    message: 'Happiness Backend is running successfully!',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
     version: '1.0.0'

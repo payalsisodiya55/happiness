@@ -24,12 +24,14 @@ const {
   getTripHistory,
   getTodayEarnings,
   acceptDriverAgreement,
-  uploadDocument
+  uploadDocument,
+  uploadProfilePhoto
 } = require('../controllers/driverController');
 const { protectDriver } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { uploadMultiple } = require('../utils/imageUpload');
-const { uploadDocumentWithErrorHandling } = require('../utils/driverDocumentUpload');
+const { uploadDocumentWithErrorHandling, uploadProfilePhotoWithErrorHandling } = require('../utils/driverDocumentUpload');
+const { uploadSingle } = require('../utils/imageUpload');
 
 const router = express.Router();
 
@@ -377,6 +379,9 @@ router.put('/documents', [
 
 // Document upload route
 router.post('/upload-document', uploadDocumentWithErrorHandling, uploadDocument);
+
+// Profile photo upload route
+router.post('/upload-profile-photo', uploadProfilePhotoWithErrorHandling, uploadProfilePhoto);
 
 // Wallet and withdrawal routes
 router.post('/withdraw', [

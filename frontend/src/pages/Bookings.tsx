@@ -77,24 +77,16 @@ const Bookings = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // USING SAMPLE DATA FOR UI TESTING
-      // console.log("Using sample data for bookings");
-      // setTimeout to simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBookings(sampleBookings);
-      setIsLoading(false);
-      
-      /* 
-      // Original API Call Logic - Commented out for UI testing
+
+      // Real API Call Logic
       const response = await apiService.getUserBookings();
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('Bookings API response:', response);
       }
-      
+
       if (response.success) {
-        // Handle both possible response structures
+        // Handle paginated response structure
         let bookingsData = [];
         if (response.data?.docs) {
           // New paginated structure
@@ -108,16 +100,17 @@ const Bookings = () => {
         } else {
           bookingsData = [];
         }
-        
+
         if (process.env.NODE_ENV === 'development') {
           console.log('Setting bookings data:', bookingsData);
           console.log('Sample booking cancellation data:', bookingsData[0]?.cancellation);
         }
         setBookings(bookingsData);
+        setIsLoading(false);
       } else {
         setError(response.error?.message || response.message || 'Failed to fetch bookings');
+        setIsLoading(false);
       }
-      */
     } catch (error) {
       console.error('Error fetching bookings:', error);
       setError(`Failed to fetch bookings: ${error.message}`);
@@ -147,11 +140,12 @@ const Bookings = () => {
   const getBookingDate = (booking) => {
     if (!booking) return null;
     // Try different possible date fields in order of preference
-    return booking.tripDetails?.date || 
-           booking.tripDetails?.pickup?.date || 
-           booking.date || 
-           booking.pickupDate || 
-           booking.departureDate;
+    return booking.tripDetails?.date ||
+           booking.tripDetails?.pickup?.date ||
+           booking.date ||
+           booking.pickupDate ||
+           booking.departureDate ||
+           booking.returnDate;
   };
 
   // Helper function to get pricing - use stored pricing from backend instead of recalculating
@@ -165,10 +159,10 @@ const Bookings = () => {
   const getBookingTime = (booking) => {
     if (!booking) return null;
     // Try different possible time fields in order of preference
-    return booking.tripDetails?.time || 
-           booking.tripDetails?.pickup?.time || 
-           booking.time || 
-           booking.pickupTime || 
+    return booking.tripDetails?.time ||
+           booking.tripDetails?.pickup?.time ||
+           booking.time ||
+           booking.pickupTime ||
            booking.departureTime;
   };
 
@@ -194,16 +188,27 @@ const Bookings = () => {
   const getReturnDate = (booking) => {
     if (!booking) return null;
     // Try multiple possible return date fields
-    return booking.tripDetails?.returnDate || 
+    return booking.tripDetails?.returnDate ||
+           booking.returnDate ||
            booking.tripDetails?.return?.date ||
            booking.tripDetails?.destination?.returnDate ||
-           booking.returnDate || 
            booking.destinationReturnDate ||
            booking.returnTripDate ||
            booking.roundTripReturnDate ||
            booking.tripDetails?.roundTrip?.returnDate ||
            booking.tripDetails?.roundTripReturnDate ||
            null;
+  };
+
+  // Helper function to format duration from minutes to hours and minutes
+  const formatDuration = (duration) => {
+    if (!duration || duration === 0) return '--';
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
   };
 
   // Helper function to get trip type
@@ -825,8 +830,7 @@ const Bookings = () => {
                   <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                      <p className="text-xs text-gray-400 uppercase font-semibold">Est. Duration</p>
                      <p className="text-lg font-bold text-[#212c40]">
-                        {selectedBooking.tripDetails?.duration || '--'}
-                        <span className="text-xs text-gray-500 font-normal ml-1">min</span>
+                        {formatDuration(selectedBooking.tripDetails?.duration)}
                      </p>
                   </div>
                </div>

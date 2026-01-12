@@ -307,6 +307,28 @@ const getDriverBookings = asyncHandler(async (req, res) => {
     Booking.countDocuments(query)
   ]);
 
+  // Add driver's earnings to each booking (after admin commission)
+  const bookingsWithEarnings = bookings.map(booking => {
+    const bookingObj = booking.toObject();
+    const totalAmount = bookingObj.pricing?.totalAmount || 0;
+    const paymentMethod = bookingObj.payment?.method;
+
+    // Calculate driver's earnings: deduct 20% for online payments (admin commission)
+    const driverEarnings = paymentMethod === 'razorpay'
+      ? Math.round(totalAmount * 0.8)  // 80% for online payments
+      : totalAmount;                    // 100% for cash payments
+
+    return {
+      ...bookingObj,
+      driverEarnings: {
+        amount: driverEarnings,
+        originalAmount: totalAmount,
+        commissionDeducted: paymentMethod === 'razorpay' ? Math.round(totalAmount * 0.2) : 0,
+        commissionPercentage: paymentMethod === 'razorpay' ? 20 : 0
+      }
+    };
+  });
+
   console.log('Debug - Driver fetching bookings:', {
     driverId: req.driver.id,
     driverName: req.driver.firstName,
@@ -318,7 +340,7 @@ const getDriverBookings = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      docs: bookings,
+      docs: bookingsWithEarnings,
       totalDocs: total,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -406,6 +428,58 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     booking.trip.actualDuration = actualDuration || booking.tripDetails.duration;
     booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
     if (driverNotes) booking.trip.driverNotes = driverNotes;
+
+    // Update payment status when trip is completed
+    let paymentJustCompleted = false;
+    if (booking.payment.method === 'razorpay') {
+      // Online payments are already completed
+      if (booking.payment.status !== 'completed') {
+        booking.payment.status = 'completed';
+        booking.payment.completedAt = new Date();
+        paymentJustCompleted = true;
+      }
+    } else if (booking.payment.method === 'cash') {
+      // For cash payments, check if it's partial payment
+      if (booking.payment.isPartialPayment) {
+        // For partial payments, payment is completed only when both online and cash are collected
+        if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
+            booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
+            booking.payment.status !== 'completed') {
+          booking.payment.status = 'completed';
+          booking.payment.completedAt = new Date();
+          paymentJustCompleted = true;
+        }
+        // If only one part is completed, keep payment as pending
+      } else {
+        // For regular cash payments, mark as completed when trip is done
+        if (booking.payment.status !== 'completed') {
+          booking.payment.status = 'completed';
+          booking.payment.completedAt = new Date();
+          paymentJustCompleted = true;
+        }
+      }
+    }
+
+    // Add earnings to driver's wallet if payment was just completed
+    if (paymentJustCompleted) {
+      try {
+        const Driver = require('../models/Driver');
+        const driver = await Driver.findById(booking.driver);
+        if (driver) {
+          // Calculate driver's earnings after commission
+          const totalAmount = booking.pricing?.totalAmount || 0;
+          const driverEarnings = booking.payment.method === 'razorpay'
+            ? Math.round(totalAmount * 0.8)  // 80% for online payments
+            : totalAmount;                    // 100% for cash payments
+
+          await driver.addEarnings(driverEarnings, `Trip completed - ${booking.bookingNumber}`);
+          console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+        }
+      } catch (error) {
+        console.error('❌ Error adding earnings to driver wallet:', error);
+        // Don't fail the status update if earnings update fails
+      }
+    }
   }
 
   await booking.save();
@@ -469,7 +543,7 @@ const completeTrip = asyncHandler(async (req, res) => {
 
   // Update booking status to completed
   booking.status = 'completed';
-  
+
   // Update trip details
   if (!booking.trip) booking.trip = {};
   booking.trip.endTime = new Date();
@@ -477,6 +551,58 @@ const completeTrip = asyncHandler(async (req, res) => {
   booking.trip.actualDuration = actualDuration || booking.tripDetails.duration;
   booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
   if (driverNotes) booking.trip.driverNotes = driverNotes;
+
+  // Update payment status when trip is completed
+  let paymentJustCompleted = false;
+  if (booking.payment.method === 'razorpay') {
+    // Online payments are already completed
+    if (booking.payment.status !== 'completed') {
+      booking.payment.status = 'completed';
+      booking.payment.completedAt = new Date();
+      paymentJustCompleted = true;
+    }
+  } else if (booking.payment.method === 'cash') {
+    // For cash payments, check if it's partial payment
+    if (booking.payment.isPartialPayment) {
+      // For partial payments, payment is completed only when both online and cash are collected
+      if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
+          booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
+          booking.payment.status !== 'completed') {
+        booking.payment.status = 'completed';
+        booking.payment.completedAt = new Date();
+        paymentJustCompleted = true;
+      }
+      // If only one part is completed, keep payment as pending
+    } else {
+      // For regular cash payments, mark as completed when trip is done
+      if (booking.payment.status !== 'completed') {
+        booking.payment.status = 'completed';
+        booking.payment.completedAt = new Date();
+        paymentJustCompleted = true;
+      }
+    }
+  }
+
+  // Add earnings to driver's wallet if payment was just completed
+  if (paymentJustCompleted) {
+    try {
+      const Driver = require('../models/Driver');
+      const driver = await Driver.findById(booking.driver);
+      if (driver) {
+        // Calculate driver's earnings after commission
+        const totalAmount = booking.pricing?.totalAmount || 0;
+        const driverEarnings = booking.payment.method === 'razorpay'
+          ? Math.round(totalAmount * 0.8)  // 80% for online payments
+          : totalAmount;                    // 100% for cash payments
+
+        await driver.addEarnings(driverEarnings, `Trip completed - ${booking.bookingNumber}`);
+        console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
+      }
+    } catch (error) {
+      console.error('❌ Error adding earnings to driver wallet:', error);
+      // Don't fail the status update if earnings update fails
+    }
+  }
 
   await booking.save();
 
@@ -1444,6 +1570,49 @@ const uploadDocument = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Upload driver profile photo
+// @route   POST /api/driver/upload-profile-photo
+// @access  Private (Driver)
+const uploadProfilePhoto = asyncHandler(async (req, res) => {
+  console.log('Upload profile photo request received:', {
+    file: req.file ? { originalname: req.file.originalname, size: req.file.size } : null,
+    driverId: req.driver?.id
+  });
+
+  const driverId = req.driver.id;
+
+  if (!req.file) {
+    console.log('No profile photo uploaded');
+    return res.status(400).json({
+      success: false,
+      message: 'No profile photo file uploaded'
+    });
+  }
+
+  const driver = await Driver.findById(driverId);
+  if (!driver) {
+    return res.status(404).json({
+      success: false,
+      message: 'Driver not found'
+    });
+  }
+
+  // Update the driver's profile picture
+  driver.profilePicture = req.file.path;
+  await driver.save();
+
+  console.log('Profile photo updated for driver:', driverId, 'URL:', req.file.path);
+
+  res.json({
+    success: true,
+    message: 'Profile photo uploaded successfully',
+    data: {
+      photoUrl: req.file.path,
+      driverId: driverId
+    }
+  });
+});
+
 module.exports = {
   getDriverProfile,
   updateDriverProfile,
@@ -1468,5 +1637,6 @@ module.exports = {
   getActiveTrips,
   getTripHistory,
   acceptDriverAgreement,
-  uploadDocument
+  uploadDocument,
+  uploadProfilePhoto
 };

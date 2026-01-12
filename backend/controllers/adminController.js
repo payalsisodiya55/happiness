@@ -707,7 +707,8 @@ const getAllDrivers = asyncHandler(async (req, res) => {
       query.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { phone: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
       ];
     }
     
@@ -771,8 +772,21 @@ const getAllDrivers = asyncHandler(async (req, res) => {
         
         const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
         
+        // Calculate the status based on driver fields
+        let computedStatus = 'pending';
+        if (driver.isVerified) {
+          computedStatus = 'verified';
+        } else if (driver.isActive) {
+          computedStatus = 'active';
+        } else if (!driver.isApproved) {
+          computedStatus = 'pending';
+        } else if (!driver.isActive) {
+          computedStatus = 'suspended';
+        }
+
         return {
           ...driver.toObject(),
+          status: computedStatus,
           totalRides: totalTrips,
           totalEarnings: totalEarnings,
           rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
@@ -834,8 +848,21 @@ const getDriverById = asyncHandler(async (req, res) => {
   
   const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
 
+  // Calculate the status based on driver fields
+  let computedStatus = 'pending';
+  if (driver.isVerified) {
+    computedStatus = 'verified';
+  } else if (driver.isActive) {
+    computedStatus = 'active';
+  } else if (!driver.isApproved) {
+    computedStatus = 'pending';
+  } else if (!driver.isActive) {
+    computedStatus = 'suspended';
+  }
+
   const driverWithStats = {
     ...driver.toObject(),
+    status: computedStatus,
     totalRides: totalTrips,
     totalEarnings: totalEarnings,
     rating: Math.round(averageRating * 10) / 10,
@@ -856,7 +883,7 @@ const updateDriverStatus = asyncHandler(async (req, res) => {
 
   // Map status to actual Driver model fields
   let updateFields = {};
-  
+
   switch (status) {
     case 'active':
       updateFields.isActive = true;
@@ -890,13 +917,28 @@ const updateDriverStatus = asyncHandler(async (req, res) => {
     });
   }
 
+  // Calculate the status based on driver fields
+  let computedStatus = 'pending';
+  if (driver.isVerified) {
+    computedStatus = 'verified';
+  } else if (driver.isActive) {
+    computedStatus = 'active';
+  } else if (!driver.isApproved) {
+    computedStatus = 'pending';
+  } else if (!driver.isActive) {
+    computedStatus = 'suspended';
+  }
+
   // Log activity
   const admin = await Admin.findById(req.admin.id);
   await admin.logActivity('driver_status_update', `Driver ${driver.firstName} ${driver.lastName} status updated to ${status}`, req.ip, req.get('User-Agent'));
 
   res.json({
     success: true,
-    data: driver
+    data: {
+      ...driver.toObject(),
+      status: computedStatus
+    }
   });
 });
 
@@ -1832,6 +1874,232 @@ const getBookingPaymentDetails = asyncHandler(async (req, res) => {
 // @desc    Get system analytics
 // @route   GET /api/admin/analytics
 // @access  Private (Admin)
+// @desc    Apply penalty to driver
+// @route   POST /api/admin/drivers/:id/penalty
+// @access  Private (Admin)
+const applyPenalty = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { type, amount, reason, bookingId } = req.body;
+
+  const driver = await Driver.findById(id);
+  if (!driver) {
+    return res.status(404).json({
+      success: false,
+      message: 'Driver not found'
+    });
+  }
+
+  const PenaltyCalculator = require('../utils/penaltyCalculator');
+
+  // Validate penalty type
+  if (!PenaltyCalculator.canApplyPenalty(type, { driver, bookingId })) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid penalty type or conditions not met'
+    });
+  }
+
+  try {
+    const result = await PenaltyCalculator.applyPenaltyToDriver(id, {
+      type,
+      amount: amount || PenaltyCalculator.getPenaltyAmount(type),
+      reason: reason || PenaltyCalculator.getPenaltyReason(type),
+      bookingId,
+      appliedBy: req.admin.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Penalty applied successfully',
+      data: {
+        penalty: result.penalty,
+        driverWalletBalance: result.driver.earnings.wallet.balance
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// @desc    Get driver penalties
+// @route   GET /api/admin/drivers/:id/penalties
+// @access  Private (Admin)
+const getDriverPenalties = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { page = 1, limit = 10, status } = req.query;
+
+  const driver = await Driver.findById(id);
+  if (!driver) {
+    return res.status(404).json({
+      success: false,
+      message: 'Driver not found'
+    });
+  }
+
+  const query = { driver: id };
+  if (status) query.status = status;
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { createdAt: -1 },
+    populate: [
+      { path: 'appliedBy', select: 'firstName lastName' },
+      { path: 'waivedBy', select: 'firstName lastName' },
+      { path: 'booking', select: 'bookingNumber tripDetails.pricing' }
+    ]
+  };
+
+  const penalties = await Penalty.paginate(query, options);
+
+  res.json({
+    success: true,
+    data: penalties
+  });
+});
+
+// @desc    Waive penalty
+// @route   PUT /api/admin/penalties/:id/waive
+// @access  Private (Admin)
+const waivePenalty = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const penalty = await Penalty.findById(id);
+  if (!penalty) {
+    return res.status(404).json({
+      success: false,
+      message: 'Penalty not found'
+    });
+  }
+
+  await penalty.waivePenalty(req.admin.id, reason);
+
+  res.json({
+    success: true,
+    message: 'Penalty waived successfully',
+    data: penalty
+  });
+});
+
+// @desc    Get all penalties
+// @route   GET /api/admin/penalties
+// @access  Private (Admin)
+const getAllPenalties = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    type,
+    driver,
+    startDate,
+    endDate
+  } = req.query;
+
+  let query = {};
+
+  if (status) query.status = status;
+  if (type) query.type = type;
+  if (driver) query.driver = driver;
+
+  if (startDate && endDate) {
+    query.createdAt = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate)
+    };
+  }
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { createdAt: -1 },
+    populate: [
+      { path: 'driver', select: 'firstName lastName phone' },
+      { path: 'appliedBy', select: 'firstName lastName' },
+      { path: 'waivedBy', select: 'firstName lastName' },
+      { path: 'booking', select: 'bookingNumber tripDetails.pricing' }
+    ]
+  };
+
+  const penalties = await Penalty.paginate(query, options);
+
+  res.json({
+    success: true,
+    data: penalties
+  });
+});
+
+// @desc    Get penalty statistics
+// @route   GET /api/admin/penalties/stats
+// @access  Private (Admin)
+const getPenaltyStats = asyncHandler(async (req, res) => {
+  const { period = 'month' } = req.query;
+
+  let dateFilter = {};
+  const now = new Date();
+
+  if (period === 'week') {
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    dateFilter = { createdAt: { $gte: weekAgo } };
+  } else if (period === 'month') {
+    const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
+    dateFilter = { createdAt: { $gte: monthAgo } };
+  } else if (period === 'year') {
+    const yearAgo = new Date(now.getFullYear(), 0, 1);
+    dateFilter = { createdAt: { $gte: yearAgo } };
+  }
+
+  const stats = await Penalty.aggregate([
+    { $match: dateFilter },
+    {
+      $group: {
+        _id: null,
+        totalPenalties: { $sum: 1 },
+        totalAmount: { $sum: '$amount' },
+        activePenalties: {
+          $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
+        },
+        paidPenalties: {
+          $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] }
+        },
+        waivedPenalties: {
+          $sum: { $cond: [{ $eq: ['$status', 'waived'] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  const penaltyTypeStats = await Penalty.aggregate([
+    { $match: dateFilter },
+    {
+      $group: {
+        _id: '$type',
+        count: { $sum: 1 },
+        totalAmount: { $sum: '$amount' }
+      }
+    },
+    { $sort: { count: -1 } }
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      period,
+      summary: stats[0] || {
+        totalPenalties: 0,
+        totalAmount: 0,
+        activePenalties: 0,
+        paidPenalties: 0,
+        waivedPenalties: 0
+      },
+      byType: penaltyTypeStats
+    }
+  });
+});
+
 const getSystemAnalytics = asyncHandler(async (req, res) => {
   const { period = 'month' } = req.query;
   
@@ -2578,6 +2846,11 @@ module.exports = {
   rejectCancellationRequest,
   initiateRefund,
   completeRefund,
+  applyPenalty,
+  getDriverPenalties,
+  waivePenalty,
+  getAllPenalties,
+  getPenaltyStats,
   getSystemAnalytics,
   getActivityLog,
   uploadDriverDocument,

@@ -4,6 +4,19 @@ import { ArrowLeft, Star, Shield, Award, Phone, MessageSquare, MapPin, Calendar,
 import { useIsMobile } from '../hooks/use-mobile';
 import { useUserAuth } from '../contexts/UserAuthContext';
 import TopNavigation from '../components/TopNavigation';
+import { calculateFare, getConsistentVehiclePrice } from '../utils/pricingUtils';
+import { googleMapsService } from '../services/googleMapsService';
+import VehicleApiService from '../services/vehicleApi';
+
+// Create vehicle API service instance
+const vehicleApi = new VehicleApiService(
+  (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ||
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api'),
+  // getAuthHeaders function - vehicle search is public, no auth required
+  () => ({
+    'Content-Type': 'application/json'
+  })
+);
 
 const CarDetails = () => {
   const { state } = useLocation();
@@ -11,36 +24,122 @@ const CarDetails = () => {
   const isMobile = useIsMobile();
   const { isAuthenticated } = useUserAuth();
   const { id } = useParams();
+  const { car: initialCar, searchParams } = state;
 
-  // Fallback or redirection if no state provided
+  // State declarations - we have initial data, no loading needed
+  const [car, setCar] = useState<any>(initialCar);
+  const [calculatedPrice, setCalculatedPrice] = useState<number>(initialCar?.price || 0);
+  const [tripDistance, setTripDistance] = useState<number | null>(null);
+
+  // Fallback or redirection if no initial car data
   useEffect(() => {
-    if (!state?.car) {
-      // In a real app, you might fetch data by ID here
+    if (!initialCar) {
       navigate('/vihicle-search');
     }
-  }, [state, navigate]);
+  }, [initialCar, navigate]);
 
-  if (!state?.car) return null;
+  if (!initialCar) return null;
 
-  const { car, searchParams } = state;
+  // Fetch fresh vehicle data from API (only if needed for updated pricing)
+  useEffect(() => {
+    const fetchVehicleData = async () => {
+      if (!id) return;
+
+      // Only fetch if we need fresh computedPricing data
+      if (!car.computedPricing || !car.computedPricing.distancePricing) {
+        try {
+          const response = await vehicleApi.getVehicleById(id);
+
+        if (response.success && response.data) {
+          // Only update if we got better computedPricing data
+          if (response.data.computedPricing && response.data.computedPricing.distancePricing &&
+              (!car.computedPricing || !car.computedPricing.distancePricing)) {
+            setCar(response.data);
+            // Price will be recalculated automatically by the price calculation effect
+          }
+        }
+        } catch (error) {
+          // Silent fail - we already have data to work with
+          console.error('Error fetching fresh vehicle data:', error);
+        }
+      }
+    };
+
+    // Delay the API call slightly to prioritize initial rendering
+    const timeoutId = setTimeout(fetchVehicleData, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [id, car.computedPricing]);
+
+  // Calculate price based on trip distance
+  useEffect(() => {
+    const calculatePrice = async () => {
+      if (searchParams?.fromData && searchParams?.toData) {
+        try {
+          // Get distance from search params
+          const distanceResult = await googleMapsService.getDistanceAndDuration(
+            {
+              latitude: searchParams.fromData.lat,
+              longitude: searchParams.fromData.lng
+            },
+            {
+              latitude: searchParams.toData.lat,
+              longitude: searchParams.toData.lng
+            }
+          );
+
+          if (distanceResult && distanceResult.distance) {
+            setTripDistance(distanceResult.distance);
+
+            // Calculate price using consistent VehiclePricing API
+            const price = await getConsistentVehiclePrice(
+              car,
+              searchParams.pickupDate,
+              searchParams.returnDate,
+              distanceResult.distance
+            );
+              setCalculatedPrice(price);
+          } else {
+            setCalculatedPrice(car.price || 0);
+          }
+        } catch (error) {
+          console.error('Error calculating distance and price:', error);
+          setCalculatedPrice(car.price || 0);
+        }
+      } else {
+        setCalculatedPrice(car.price || 0);
+      }
+    };
+
+    calculatePrice();
+  }, [car, searchParams]);
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
-      navigate('/auth', { state: { returnUrl: '/booking-summary', car, searchParams } });
+      navigate('/auth', { state: { returnUrl: '/booking-summary', car: { ...car, calculatedPrice, tripDistance }, searchParams } });
       return;
     }
-    navigate('/booking-summary', { state: { car, searchParams } });
+    navigate('/booking-summary', { state: { car: { ...car, calculatedPrice, tripDistance }, searchParams } });
   };
 
-  // Mock driver data (since it wasn't in the original car object)
-  const driver = {
-    name: "Rajesh Kumar",
-    rating: 4.9,
-    trips: 1240,
-    experience: "5 Years",
+  // Extract real driver data from vehicle (populated from backend)
+  const driver = car.driver ? {
+    name: `${car.driver.firstName || ''} ${car.driver.lastName || ''}`.trim() || 'Driver',
+    rating: car.driver.rating || 4.5,
+    trips: car.totalTrips || car.statistics?.totalTrips || 0, // Use vehicle trip data since driver trip count isn't populated
+    experience: '2+ Years', // Default since not populated
+    image: car.driver.profilePicture || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop", // Use driver's profile picture
+    languages: ["Hindi", "English"], // Default since not populated
+    joined: "2024" // Default since createdAt not populated
+  } : {
+    // Fallback driver data if driver info not available
+    name: "Verified Driver",
+    rating: 4.5,
+    trips: car.totalTrips || car.statistics?.totalTrips || 0,
+    experience: "2+ Years",
     image: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop",
     languages: ["Hindi", "English"],
-    joined: "2021"
+    joined: "2024"
   };
 
   // Mock Additional Images for gallery
@@ -174,8 +273,10 @@ const CarDetails = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-gray-500 text-sm">Per Day</p>
-                  <p className="text-2xl font-bold text-[#212c40]">₹{car.price}</p>
+                  <p className="text-gray-500 text-sm">
+                    {tripDistance ? `For ${tripDistance.toFixed(1)} km` : 'Total Price'}
+                  </p>
+                  <p className="text-2xl font-bold text-[#212c40]">₹{calculatedPrice.toLocaleString('en-IN')}</p>
                 </div>
               </div>
 
@@ -199,10 +300,107 @@ const CarDetails = () => {
               </div>
 
               <div className="border-t pt-6">
+                <h3 className="font-semibold text-gray-800 mb-3">Pricing Details</h3>
+                {/* Show computedPricing if available */}
+                {car.computedPricing && car.computedPricing.distancePricing && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Distance-based Pricing</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {car.computedPricing.distancePricing['50km'] && (
+                        <div className="flex justify-between">
+                          <span>50 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['50km']}</span>
+                        </div>
+                      )}
+                      {car.computedPricing.distancePricing['100km'] && (
+                        <div className="flex justify-between">
+                          <span>100 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['100km']}</span>
+                        </div>
+                      )}
+                      {car.computedPricing.distancePricing['150km'] && (
+                        <div className="flex justify-between">
+                          <span>150 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['150km']}</span>
+                        </div>
+                      )}
+                      {car.computedPricing.distancePricing['200km'] && (
+                        <div className="flex justify-between">
+                          <span>200 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['200km']}</span>
+                        </div>
+                      )}
+                      {car.computedPricing.distancePricing['250km'] && (
+                        <div className="flex justify-between">
+                          <span>250 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['250km']}</span>
+                        </div>
+                      )}
+                      {car.computedPricing.distancePricing['300km'] && (
+                        <div className="flex justify-between">
+                          <span>300 km:</span>
+                          <span className="font-semibold text-green-600">₹{car.computedPricing.distancePricing['300km']}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">* Prices are per kilometer for one-way trips</p>
+                  </div>
+                )}
+
+                {/* Fallback to old pricing structure for backward compatibility */}
+                {(!car.computedPricing || !car.computedPricing.distancePricing) && car.pricing && car.pricing.distancePricing && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Distance-based Pricing (Legacy)</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {car.pricing.distancePricing['one-way'] && (
+                        <>
+                          {car.pricing.distancePricing['one-way']['50km'] && (
+                            <div className="flex justify-between">
+                              <span>50 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['one-way']['50km']}</span>
+                            </div>
+                          )}
+                          {car.pricing.distancePricing['one-way']['100km'] && (
+                            <div className="flex justify-between">
+                              <span>100 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['one-way']['100km']}</span>
+                            </div>
+                          )}
+                          {car.pricing.distancePricing['one-way']['150km'] && (
+                            <div className="flex justify-between">
+                              <span>150 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['150km']}</span>
+                            </div>
+                          )}
+                          {car.pricing.distancePricing['one-way']['200km'] && (
+                            <div className="flex justify-between">
+                              <span>200 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['one-way']['200km']}</span>
+                            </div>
+                          )}
+                          {car.pricing.distancePricing['one-way']['250km'] && (
+                            <div className="flex justify-between">
+                              <span>250 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['one-way']['250km']}</span>
+                            </div>
+                          )}
+                          {car.pricing.distancePricing['one-way']['300km'] && (
+                            <div className="flex justify-between">
+                              <span>300 km:</span>
+                              <span className="font-semibold text-green-600">₹{car.pricing.distancePricing['one-way']['300km']}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">* Prices are per kilometer for one-way trips (Legacy pricing)</p>
+                  </div>
+                )}
+
                 <h3 className="font-semibold text-gray-800 mb-3">Vehicle Description</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  Experience a comfortable ride with our premium {car.brand} {car.model}. 
-                  Perfect for family trips and outstation travel. Well-maintained interiors, 
+                  Experience a comfortable ride with our premium {car.brand} {car.model}.
+                  Perfect for family trips and outstation travel. Well-maintained interiors,
                   ample legroom, and verified drivers ensure a safe journey.
                 </p>
               </div>
@@ -267,8 +465,10 @@ const CarDetails = () => {
             {/* Booking Summary Box */}
             <div className="bg-white p-6 md:rounded-2xl shadow-sm border border-gray-100 hidden md:block">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">Total Price</span>
-                <span className="text-2xl font-bold text-[#212c40]">₹{car.price}</span>
+                <span className="text-gray-600">
+                  {tripDistance ? `Price for ${tripDistance.toFixed(1)} km` : 'Total Price'}
+                </span>
+                <span className="text-2xl font-bold text-[#212c40]">₹{calculatedPrice.toLocaleString('en-IN')}</span>
               </div>
               <button 
                 onClick={handleBookNow}
@@ -285,8 +485,10 @@ const CarDetails = () => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40">
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="text-xs text-gray-500">Total Price</div>
-            <div className="text-xl font-bold text-[#212c40]">₹{car.price}</div>
+            <div className="text-xs text-gray-500">
+              {tripDistance ? `${tripDistance.toFixed(1)} km` : 'Total Price'}
+            </div>
+            <div className="text-xl font-bold text-[#212c40]">₹{calculatedPrice.toLocaleString('en-IN')}</div>
           </div>
           <button 
             onClick={handleBookNow}

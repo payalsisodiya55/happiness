@@ -595,6 +595,69 @@ const AdminVehicleManagement = () => {
                 </div>
               </div>
 
+              {/* Pricing Information */}
+              {selectedVehicle.pricing && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900">Pricing Information</h3>
+                  <div className="space-y-4">
+                    {/* Auto pricing */}
+                    {selectedVehicle.pricingReference?.category === 'auto' && selectedVehicle.pricing.autoPrice && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600 mb-2 block">Auto Pricing (Fixed Rate)</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <div className="text-sm text-gray-600">One-way</div>
+                            <div className="text-lg font-bold text-blue-600">₹{selectedVehicle.pricing.autoPrice['one-way'] || 0}</div>
+                          </div>
+                          <div className="p-3 bg-green-50 rounded-lg">
+                            <div className="text-sm text-gray-600">Return</div>
+                            <div className="text-lg font-bold text-green-600">₹{selectedVehicle.pricing.autoPrice.return || 0}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Distance-based pricing */}
+                    {selectedVehicle.pricing.distancePricing && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600 mb-2 block">Distance-based Pricing (per km)</Label>
+                        <div className="space-y-2">
+                          {/* One-way pricing */}
+                          {selectedVehicle.pricing.distancePricing['one-way'] && (
+                            <div>
+                              <div className="text-sm font-medium text-blue-600 mb-2">One-way Trip</div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {Object.entries(selectedVehicle.pricing.distancePricing['one-way']).map(([distance, price]) => (
+                                  <div key={`one-way-${distance}`} className="p-2 bg-blue-50 rounded text-center">
+                                    <div className="text-xs text-gray-600">{distance.replace('km', ' km')}</div>
+                                    <div className="font-bold text-blue-600">₹{price}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Return pricing */}
+                          {selectedVehicle.pricing.distancePricing.return && (
+                            <div className="mt-4">
+                              <div className="text-sm font-medium text-green-600 mb-2">Return Trip</div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {Object.entries(selectedVehicle.pricing.distancePricing.return).map(([distance, price]) => (
+                                  <div key={`return-${distance}`} className="p-2 bg-green-50 rounded text-center">
+                                    <div className="text-xs text-gray-600">{distance.replace('km', ' km')}</div>
+                                    <div className="font-bold text-green-600">₹{price}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Status Information */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Status Information</h3>

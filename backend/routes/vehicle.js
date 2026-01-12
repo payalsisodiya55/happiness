@@ -9,6 +9,10 @@ const {
   removeVehicleImage,
   searchVehicles,
   getVehicleById,
+  getVehicleConfigurationsForPricing,
+  getPricingBrands,
+  getPricingTypesForBrand,
+  getPricingModelsForBrandAndType,
   getVehicleTypes,
   getNearbyVehicles,
   getVehiclesByLocation,
@@ -24,7 +28,7 @@ const {
   getVehicleStatus,
   updateVehicleBaseLocation
 } = require('../controllers/vehicleController');
-const { protectDriver } = require('../middleware/auth');
+const { protectDriver, protectAdmin } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { uploadMultiple, uploadDocumentsWithErrorHandling } = require('../utils/imageUpload');
 
@@ -256,11 +260,11 @@ router.post('/:id/maintenance', [
 router.post('/approve-all-pending', async (req, res) => {
   try {
     const Vehicle = require('../models/Vehicle');
-    
+
     const result = await Vehicle.updateMany(
       { approvalStatus: 'pending' },
-      { 
-        $set: { 
+      {
+        $set: {
           approvalStatus: 'approved',
           isApproved: true,
           approvedAt: new Date(),
@@ -268,7 +272,7 @@ router.post('/approve-all-pending', async (req, res) => {
         }
       }
     );
-    
+
     res.json({
       success: true,
       message: `Successfully approved ${result.modifiedCount} pending vehicles`,
@@ -282,5 +286,13 @@ router.post('/approve-all-pending', async (req, res) => {
     });
   }
 });
+
+// Admin routes
+router.get('/admin/configurations-for-pricing', protectAdmin, getVehicleConfigurationsForPricing);
+
+// Public routes for driver vehicle form (pricing data for dropdowns)
+router.get('/pricing/brands', getPricingBrands);
+router.get('/pricing/types/:brand', getPricingTypesForBrand);
+router.get('/pricing/models/:brand/:type', getPricingModelsForBrandAndType);
 
 module.exports = router;

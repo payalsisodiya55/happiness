@@ -5,6 +5,7 @@ import VehicleApiService from '../services/vehicleApi';
 import VehicleDetailsModal from './VehicleDetailsModal';
 import Checkout from './Checkout';
 import { calculateDistance, getPricingDisplay, formatPrice, LocationData } from '../lib/distanceUtils';
+import { calculateFare } from '../utils/pricingUtils';
 import { VehicleFilters } from './FilterSidebar';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 
@@ -699,10 +700,15 @@ const CarCard = ({ car, searchParams, onViewDetails, onBookNow, tripDistance }: 
   const primaryImage = getPrimaryImage();
 
   const getPriceDisplay = () => {
-    if (!car.pricing) {
+    if (!car.pricing || car.computedPricing?.pricingUnavailable) {
       return (
-        <div className="text-lg text-red-600 font-medium">
-          Pricing Unavailable
+        <div className="text-center">
+          <div className="text-sm text-red-600 font-medium">
+            Pricing Not Set
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Admin must set rates for {car.pricingReference?.vehicleModel || car.model}
+          </div>
         </div>
       );
     }
@@ -726,23 +732,20 @@ const CarCard = ({ car, searchParams, onViewDetails, onBookNow, tripDistance }: 
       );
     }
 
-    // For car vehicles, show distance-based pricing
+    // For car vehicles, show distance-based pricing tiers
     if (car.pricing.distancePricing) {
-      // Determine trip type - handle both "oneWay" and "one-way" formats
-      let tripType = 'one-way';
+      // Determine trip type - backend uses camelCase keys
+      let tripTypeKey = 'oneWay'; // Backend uses camelCase
       if (searchParams?.serviceType === 'roundTrip') {
-        tripType = 'return';
-      } else if (searchParams?.serviceType === 'oneWay') {
-        tripType = 'one-way';
+        tripTypeKey = 'return';
       }
 
-      // Try multiple possible trip type keys
-      let pricing = car.pricing.distancePricing[tripType];
+      // Get pricing from backend structure (uses camelCase keys)
+      let pricing = car.pricing.distancePricing[tripTypeKey];
+
       if (!pricing) {
         // Fallback to other possible keys
         pricing = car.pricing.distancePricing['oneWay'] ||
-          car.pricing.distancePricing['one-way'] ||
-          car.pricing.distancePricing['oneway'] ||
           car.pricing.distancePricing['return'] ||
           Object.values(car.pricing.distancePricing)[0]; // Use first available
       }
@@ -755,99 +758,78 @@ const CarCard = ({ car, searchParams, onViewDetails, onBookNow, tripDistance }: 
         );
       }
 
-      // Check if we have search parameters to calculate distance
+      // Show all pricing tiers like: 50 km – ₹12, 100 km – ₹10, etc.
+      const pricingTiers = [
+        { distance: '50km', label: '50 km' },
+        { distance: '100km', label: '100 km' },
+        { distance: '150km', label: '150 km' },
+        { distance: '200km', label: '200 km' },
+        { distance: '250km', label: '250 km' },
+        { distance: '300km', label: '300 km' }
+      ];
+
+      const availableTiers = pricingTiers.filter(tier => pricing[tier.distance]);
+
+      if (availableTiers.length === 0) {
+        return (
+          <div className="text-lg text-red-600 font-medium">
+            No pricing tiers available
+          </div>
+        );
+      }
+
+      // Check if we have search parameters to calculate distance and show calculated price
       if (searchParams?.fromData && searchParams?.toData) {
         // Use provided trip distance (from Google Maps API) if available, otherwise fallback to local calculation
         const distance = tripDistance || calculateDistance(searchParams.fromData, searchParams.toData);
 
-        // Find the best available rate per km
-        let ratePerKm = 0;
-        let rateLabel = '';
+        // Convert backend tripTypeKey to frontend format for calculateFare
+        const tripTypeForCalc = tripTypeKey === 'oneWay' ? 'one-way' : tripTypeKey;
 
-        // Try to find the appropriate rate based on distance using new 6-tier structure
-        // Handle both old 3-tier and new 6-tier pricing structures
-        if (distance <= 50 && pricing['50km']) {
-          ratePerKm = pricing['50km'];
-          rateLabel = '50km rate';
-        } else if (distance <= 100 && pricing['100km']) {
-          ratePerKm = pricing['100km'];
-          rateLabel = '100km rate';
-        } else if (distance <= 150 && pricing['150km']) {
-          ratePerKm = pricing['150km'];
-          rateLabel = '150km rate';
-        } else if (distance <= 200 && pricing['200km']) {
-          ratePerKm = pricing['200km'];
-          rateLabel = '200km rate';
-        } else if (distance <= 250 && pricing['250km']) {
-          ratePerKm = pricing['250km'];
-          rateLabel = '250km rate';
-        } else if (pricing['300km']) {
-          ratePerKm = pricing['300km'];
-          rateLabel = '300km rate';
-        } else if (pricing['250km']) {
-          ratePerKm = pricing['250km'];
-          rateLabel = '250km rate';
-        } else if (pricing['200km']) {
-          ratePerKm = pricing['200km'];
-          rateLabel = '200km rate';
-        } else if (pricing['150km']) {
-          ratePerKm = pricing['150km'];
-          rateLabel = '150km rate';
-        } else if (pricing['100km']) {
-          ratePerKm = pricing['100km'];
-          rateLabel = '100km rate';
-        } else if (pricing['50km']) {
-          ratePerKm = pricing['50km'];
-          rateLabel = '50km rate';
-        }
+        // Map vehicle pricing data to VehiclePricing interface format
+        const vehiclePricingData = {
+          category: car.pricingReference?.category || 'car',
+          vehicleType: car.pricingReference?.vehicleType || '',
+          vehicleModel: car.pricingReference?.vehicleModel || '',
+          tripType: tripTypeForCalc,
+          distancePricing: pricing // This contains the pricing tiers like {'50km': 12, '100km': 10, ...}
+        };
 
-        if (ratePerKm > 0) {
-          // Calculate total price: distance × rate per km
-          const totalPrice = Math.round(ratePerKm * distance); // Round to whole rupees
+        // Calculate total fare using proper tiered pricing
+        const totalFare = calculateFare(distance, vehiclePricingData, tripTypeForCalc);
+        const roundedFare = Math.round(totalFare);
 
-          return (
-            <div className="text-2xl font-bold text-green-600">
-              ₹{totalPrice.toLocaleString()}
-              <div className="text-sm font-normal text-gray-500">
-                {distance.toFixed(1)} km trip (₹{ratePerKm}/km)
-              </div>
+        return (
+          <div>
+            <div className="text-2xl font-bold text-green-600 mb-2">
+              ₹{roundedFare.toLocaleString()}
             </div>
-          );
-        }
-      } else {
-        // Missing coordinates - show helpful message
-        return (
-          <div className="text-lg text-amber-600 font-medium">
-            Select locations to see distance-based pricing
-          </div>
-        );
-      }
-
-      // Fallback: show best available rate per km
-      let bestRate = 0;
-      let rateLabel = 'Base rate';
-
-      if (pricing['50km']) {
-        bestRate = pricing['50km'];
-        rateLabel = '50km rate';
-      } else if (pricing['100km']) {
-        bestRate = pricing['100km'];
-        rateLabel = '100km rate';
-      } else if (pricing['150km']) {
-        bestRate = pricing['150km'];
-        rateLabel = '150km rate';
-      }
-
-      if (bestRate > 0) {
-        return (
-          <div className="text-2xl font-bold text-green-600">
-            ₹{bestRate.toLocaleString()}
-            <div className="text-sm font-normal text-gray-600">
-              {rateLabel} per km
+            <div className="text-xs text-gray-500 mb-2">
+              For {distance.toFixed(1)} km trip
+            </div>
+            <div className="text-xs text-gray-600 space-y-1">
+              {availableTiers.slice(0, 3).map(tier => (
+                <div key={tier.distance} className="flex justify-between">
+                  <span>{tier.label}:</span>
+                  <span className="font-medium">₹{pricing[tier.distance]}</span>
+                </div>
+              ))}
             </div>
           </div>
         );
       }
+
+      // Show pricing tiers when no specific trip distance is calculated
+      return (
+        <div className="text-sm text-gray-600 space-y-1">
+          {availableTiers.slice(0, 4).map(tier => (
+            <div key={tier.distance} className="flex justify-between">
+              <span>{tier.label}:</span>
+              <span className="font-medium text-green-600">₹{pricing[tier.distance]}</span>
+            </div>
+          ))}
+        </div>
+      );
     }
 
     return (

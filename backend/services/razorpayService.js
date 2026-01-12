@@ -7,18 +7,32 @@ if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
   console.error('Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your .env file');
 }
 
-// Initialize Razorpay instance
-let razorpay;
-try {
-  razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-  console.log('✅ Razorpay service initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Razorpay service:', error.message);
-  razorpay = null;
-}
+// Razorpay instance - lazy initialized
+let razorpay = null;
+
+const getRazorpayInstance = () => {
+  if (!razorpay) {
+    try {
+      console.log('🔄 Lazy initializing Razorpay service...');
+
+      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        console.error('❌ Razorpay environment variables not configured');
+        throw new Error('Razorpay environment variables not configured');
+      }
+
+      razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+      });
+      console.log('✅ Razorpay service initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize Razorpay service:', error.message);
+      razorpay = null;
+      throw error;
+    }
+  }
+  return razorpay;
+};
 
 class RazorpayService {
   /**
@@ -27,19 +41,24 @@ class RazorpayService {
   static isConfigured() {
     const hasKeyId = !!process.env.RAZORPAY_KEY_ID;
     const hasKeySecret = !!process.env.RAZORPAY_KEY_SECRET;
-    const hasInstance = !!razorpay;
-    
-    if (!hasKeyId || !hasKeySecret || !hasInstance) {
+
+    if (!hasKeyId || !hasKeySecret) {
       console.error('Razorpay configuration issues:', {
         hasKeyId,
         hasKeySecret,
-        hasInstance,
         keyIdLength: process.env.RAZORPAY_KEY_ID ? process.env.RAZORPAY_KEY_ID.length : 0,
         keySecretLength: process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.length : 0
       });
+      return false;
     }
-    
-    return hasKeyId && hasKeySecret && hasInstance;
+
+    try {
+      getRazorpayInstance();
+      return true;
+    } catch (error) {
+      console.error('Razorpay instance creation failed:', error.message);
+      return false;
+    }
   }
 
   /**
@@ -75,7 +94,7 @@ class RazorpayService {
         amountInPaise: amountInPaise
       });
       
-      const order = await razorpay.orders.create(options);
+      const order = await getRazorpayInstance().orders.create(options);
       console.log('Razorpay order created successfully:', order.id);
       
       return {
@@ -162,7 +181,7 @@ class RazorpayService {
         amountInRupees: amount / 100
       });
 
-      const payment = await razorpay.payments.capture(paymentId, captureData);
+      const payment = await getRazorpayInstance().payments.capture(paymentId, captureData);
       return {
         success: true,
         paymentId: payment.id,
@@ -193,7 +212,7 @@ class RazorpayService {
       }
       
       console.log('Fetching payment details for ID:', paymentId);
-      const payment = await razorpay.payments.fetch(paymentId);
+      const payment = await getRazorpayInstance().payments.fetch(paymentId);
       console.log('Payment details fetched successfully:', payment.id);
       
       return {
@@ -259,7 +278,7 @@ class RazorpayService {
         },
       };
 
-      const refund = await razorpay.payments.refund(paymentId, refundData);
+      const refund = await getRazorpayInstance().payments.refund(paymentId, refundData);
       
       console.log('Razorpay refund successful:', {
         refundId: refund.id,
@@ -309,7 +328,7 @@ class RazorpayService {
       if (!this.isConfigured()) {
         throw new Error('Razorpay service not configured. Please check environment variables.');
       }
-      const refund = await razorpay.refunds.fetch(refundId);
+      const refund = await getRazorpayInstance().refunds.fetch(refundId);
       return {
         success: true,
         refundId: refund.id,
@@ -338,7 +357,7 @@ class RazorpayService {
       if (!this.isConfigured()) {
         throw new Error('Razorpay service not configured. Please check environment variables.');
       }
-      const refunds = await razorpay.payments.fetchAllRefunds(paymentId);
+      const refunds = await getRazorpayInstance().payments.fetchAllRefunds(paymentId);
       return {
         success: true,
         refunds: refunds.items.map(refund => ({

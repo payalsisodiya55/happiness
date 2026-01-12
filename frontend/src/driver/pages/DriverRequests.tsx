@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import apiService from "@/services/api.js";
 import { toast } from "@/hooks/use-toast";
-import { calculateDistance } from "@/lib/distanceUtils";
 
 interface BookingRequest {
   _id: string;
@@ -56,113 +55,67 @@ interface BookingRequest {
       cashPaymentStatus: string;
     };
   };
+  driverEarnings?: {
+    amount: number;
+    originalAmount: number;
+    commissionDeducted: number;
+    commissionPercentage: number;
+  };
 }
 
-const DUMMY_BOOKINGS: BookingRequest[] = [
-  {
-    _id: "dummy1",
-    bookingNumber: "BK-2024-001",
-    user: {
-      firstName: "Rahul",
-      lastName: "Sharma",
-      phone: "+91 98765 43210"
-    },
-    vehicle: {
-      type: "car",
-      brand: "Maruti Suzuki",
-      model: "Swift Dzire",
-      color: "White"
-    },
-    tripDetails: {
-      pickup: { address: "Terminal 2, Mumbai International Airport" },
-      destination: { address: "Oberoi Trident, Nariman Point, Mumbai" },
-      date: new Date().toISOString(),
-      time: "14:30",
-      passengers: 2,
-      distance: 24.5,
-      tripType: "one-way"
-    },
-    pricing: {
-      totalAmount: 850,
-      ratePerKm: 18
-    },
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    payment: {
-      method: "cash",
-      status: "pending",
-      isPartialPayment: false
-    }
-  },
-  {
-    _id: "dummy2",
-    bookingNumber: "BK-2024-002",
-    user: {
-      firstName: "Priya",
-      lastName: "Verma",
-      phone: "+91 98765 43211"
-    },
-    vehicle: {
-      type: "car",
-      brand: "Toyota",
-      model: "Innova Crysta",
-      color: "Silver"
-    },
-    tripDetails: {
-      pickup: { address: "Hinjewadi Phase 1, Pune" },
-      destination: { address: "Pune Railway Station" },
-      date: new Date(Date.now() + 86400000).toISOString(),
-      time: "09:00",
-      passengers: 4,
-      distance: 18.2,
-      tripType: "one-way"
-    },
-    pricing: {
-      totalAmount: 1200,
-      ratePerKm: 22
-    },
-    status: "accepted",
-    createdAt: new Date().toISOString(),
-    payment: {
-      method: "online",
-      status: "paid",
-      isPartialPayment: true,
-      partialPaymentDetails: {
-        onlineAmount: 500,
-        cashAmount: 700,
-        onlinePaymentStatus: "paid",
-        cashPaymentStatus: "pending"
-      }
-    }
-  }
-];
 
 const DriverRequests = () => {
   const navigate = useNavigate();
 
-  // Helper function to get pricing - use stored booking price instead of recalculating
+  // Helper function to get pricing - use driver's earnings from backend
   const getBookingPricing = (booking) => {
-    // Use the stored booking price instead of recalculating
-    // This ensures consistency with the original booking amount
+    // Use driverEarnings if available (calculated by backend), otherwise fallback to frontend calculation
+    if (booking.driverEarnings) {
+      return {
+        ...booking.pricing,
+        totalAmount: booking.driverEarnings.amount,  // Driver's actual earnings
+        originalAmount: booking.driverEarnings.originalAmount,   // Original booking amount
+        ratePerKm: booking.pricing?.ratePerKm || 0,
+        distance: booking.tripDetails?.distance || 0,
+        tripType: booking.tripDetails?.tripType || 'one-way',
+        paymentMethod: booking.payment?.method,
+        isCommissionDeducted: booking.driverEarnings.commissionPercentage > 0,
+        commissionDeducted: booking.driverEarnings.commissionDeducted
+      };
+    }
+
+    // Fallback: calculate on frontend if backend data not available
+    const baseAmount = booking.pricing?.totalAmount || 0;
+    const paymentMethod = booking.payment?.method;
+    const driverEarnings = paymentMethod === 'razorpay'
+      ? Math.round(baseAmount * 0.8)  // 80% for online payments
+      : baseAmount;                    // 100% for cash payments
+
     if (booking.pricing && booking.pricing.totalAmount) {
       return {
         ...booking.pricing,
-        totalAmount: booking.pricing.totalAmount,
+        totalAmount: driverEarnings,  // Driver's actual earnings
+        originalAmount: baseAmount,   // Original booking amount
         ratePerKm: booking.pricing.ratePerKm || 0,
         distance: booking.tripDetails?.distance || 0,
-        tripType: booking.tripDetails?.tripType || 'one-way'
+        tripType: booking.tripDetails?.tripType || 'one-way',
+        paymentMethod: paymentMethod,
+        isCommissionDeducted: paymentMethod === 'razorpay'
       };
     }
-    
+
     // Fallback: return safe default if no pricing data
     return {
-      totalAmount: 0,
+      totalAmount: driverEarnings,
+      originalAmount: baseAmount,
       ratePerKm: 0,
       distance: booking.tripDetails?.distance || 0,
-      tripType: booking.tripDetails?.tripType || 'one-way'
+      tripType: booking.tripDetails?.tripType || 'one-way',
+      paymentMethod: paymentMethod,
+      isCommissionDeducted: paymentMethod === 'razorpay'
     };
   };
-  const { driver, isLoggedIn } = useDriverAuth();
+  const { driver, isLoggedIn, refreshDriverData } = useDriverAuth();
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
@@ -177,17 +130,15 @@ const DriverRequests = () => {
     try {
       setLoading(true);
       const data = await apiService.getDriverBookings();
-      // Combine API data with dummy data for display purposes if API returns empty
       const apiBookings = data?.data?.docs || [];
-      setBookings(apiBookings.length > 0 ? apiBookings : DUMMY_BOOKINGS);
+      setBookings(apiBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      // Fallback to dummy data on error for UI preview
-      setBookings(DUMMY_BOOKINGS);
+      setBookings([]);
       toast({
-        title: "Notice",
-        description: "Showing demo data due to connection issue",
-        variant: "default",
+        title: "Error",
+        description: "Failed to load booking requests. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -210,6 +161,9 @@ const DriverRequests = () => {
         title: "Success",
         description: `Booking ${newStatus} successfully`,
       });
+
+      // Refresh driver data to update wallet balance and transactions
+      await refreshDriverData();
 
       // Refresh bookings to get updated data
       fetchDriverBookings();
@@ -251,6 +205,9 @@ const DriverRequests = () => {
         title: "Success",
         description: "Cash payment marked as collected successfully",
       });
+
+      // Refresh driver data to update wallet balance and transactions
+      await refreshDriverData();
 
       // Refresh bookings to get updated data
       fetchDriverBookings();
@@ -442,6 +399,14 @@ const DriverRequests = () => {
                         <h2 className="text-3xl font-bold text-[#29354c] mt-1">
                           ₹{getBookingPricing(booking).totalAmount.toLocaleString()}
                         </h2>
+                         {/* Show commission deduction info for online payments */}
+                        {getBookingPricing(booking).isCommissionDeducted && (
+                          <div className="mt-1">
+                            <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 font-normal text-xs">
+                              20% admin commission deducted
+                            </Badge>
+                          </div>
+                        )}
                          {/* Show partial payment info for bus/car with cash method */}
                         {booking.payment?.isPartialPayment && (
                           <div className="mt-1 flex items-center gap-2 text-xs">

@@ -154,7 +154,12 @@ const createVehicle = asyncHandler(async (req, res) => {
   const vehicleData = {
     driver: req.driver.id,
     type,
+    type,
     brand,
+    model: req.body.model || finalPricingReference.vehicleModel,
+    vehicleType: finalPricingReference.vehicleType,
+    vehicleModel: finalPricingReference.vehicleModel,
+    fuelType,
     fuelType,
     seatingCapacity: parseInt(seatingCapacity),
     isAc,
@@ -325,8 +330,17 @@ const updateVehicle = asyncHandler(async (req, res) => {
     });
   }
 
-  // If pricingReference is being updated, validate it and update pricing
+  // Ensure model is updated if passed or if pricingReference changed
+  if (req.body.model) {
+    // model is already in req.body
+  } else if (req.body.pricingReference && req.body.pricingReference.vehicleModel) {
+    req.body.model = req.body.pricingReference.vehicleModel;
+  }
+
+  // Update new explicit fields if pricingReference is changing
   if (req.body.pricingReference) {
+    req.body.vehicleType = req.body.pricingReference.vehicleType;
+    req.body.vehicleModel = req.body.pricingReference.vehicleModel;
     const { pricingReference } = req.body;
 
     if (!pricingReference.category || !pricingReference.vehicleType || !pricingReference.vehicleModel) {
@@ -832,9 +846,167 @@ const searchVehicles = asyncHandler(async (req, res) => {
     console.log(`🔍 After return date filtering: ${availableVehicles.length} vehicles available for both dates`);
   }
 
+  // Calculate trip details (distance and duration) if coordinates are provided
+  let tripDistance = 0;
+  let tripDuration = 0;
+
+  if (pickup && destination && pickup.latitude && destination.latitude) {
+    try {
+      // Use Google Maps Service to calculate actual distance
+      const googleMapsService = require('../services/googleMapsService');
+      const routeData = await googleMapsService.getDistanceAndDuration(pickup, destination);
+
+      tripDistance = routeData.distance;
+      tripDuration = routeData.duration;
+      console.log(`📏 Calculated trip distance: ${tripDistance} km, duration: ${tripDuration} min`);
+    } catch (error) {
+      console.error('❌ Error calculates distance:', error);
+      // Fallback: Calculate straight line distance (haversine) as rough estimate
+      // This is a backup only if Google Maps fails
+      const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+        var R = 6371; // Radius of the earth in km
+        var dLat = (lat2 - lat1) * (Math.PI / 180);
+        var dLon = (lon2 - lon1) * (Math.PI / 180);
+        var a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = R * c; // Distance in km
+        return d;
+      }
+      tripDistance = getDistanceFromLatLonInKm(
+        parseFloat(pickup.latitude), parseFloat(pickup.longitude),
+        parseFloat(destination.latitude), parseFloat(destination.longitude)
+      );
+      // Add 20% buffer for road distance vs straight line
+      tripDistance = Math.round(tripDistance * 1.2 * 10) / 10;
+      console.log(`📏 Calculated fallback distance: ${tripDistance} km`);
+    }
+  }
+
+  // Fetch fresh pricing for all distinctive models found in the search results
+  // This ensures we always use the latest Admin-configured pricing even if vehicle.pricing is stale
+  const VehiclePricing = require('../models/VehiclePricing');
+
+  // Extract unique models to minimize DB queries
+  const distinctModels = [...new Set(availableVehicles.map(v => v.pricingReference?.vehicleModel).filter(Boolean))];
+  console.log(`🔍 [DEBUG] Distinct models found in search results:`, distinctModels);
+
+  let pricingMap = {};
+
+  try {
+    // 1. Fetch specific model pricing
+    if (distinctModels.length > 0) {
+      const modelPricingDocs = await VehiclePricing.find({
+        vehicleModel: { $in: distinctModels },
+        isActive: true
+      });
+
+      console.log(`🔍 [DEBUG] Found ${modelPricingDocs.length} pricing docs from DB for these models.`);
+
+      modelPricingDocs.forEach(p => {
+        // Create key: "ModelName_TripType" or simpler nesting
+        if (!pricingMap[p.vehicleModel]) pricingMap[p.vehicleModel] = {};
+        pricingMap[p.vehicleModel][p.tripType] = p;
+        console.log(`🔍 [DEBUG] Mapped pricing for ${p.vehicleModel} (${p.tripType}):`, p.distancePricing ? 'Has DistancePricing' : 'No DistancePricing');
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching fresh pricing:", err);
+  }
+
   // Clean response - vehicles already have pricing populated from the robust system
   // No need to compute or fetch pricing - it's already stored in vehicle.pricing
   const cleanVehicles = availableVehicles.map(vehicle => {
+    // Calculate precise rate and fare based on the calculated distance
+    let ratePerKm = 0;
+    let calculatedPrice = 0;
+
+    // Determine the trip type
+    const tripType = req.query.returnDate ? 'return' : 'one-way';
+
+    // ATTEMPT TO USE FRESH PRICING FIRST
+    let activePricing = null;
+    const model = vehicle.pricingReference?.vehicleModel;
+
+    console.log(`🔍 [DEBUG] Processing vehicle ${vehicle._id}, Model: ${model || 'N/A'}`);
+
+    if (model && pricingMap[model]) {
+      // Try to find pricing for the specific trip type, fallback to one-way if return not found?
+      // Usually stick to requested trip type.
+      activePricing = pricingMap[model][tripType];
+
+      // If return trip requested but no return pricing, maybe fallback or use one-way x 2 logic?
+      // For now, if no specific return pricing, try one-way.
+      if (!activePricing && tripType === 'return') {
+        console.log(`🔍 [DEBUG] No return pricing for ${model}, falling back to one-way.`);
+        activePricing = pricingMap[model]['one-way'];
+      }
+
+      if (activePricing) console.log(`✅ [DEBUG] Found fresh activePricing for ${model}`);
+      else console.log(`❌ [DEBUG] Pricing not found in map for ${model} / ${tripType}`);
+    } else {
+      console.log(`❌ [DEBUG] Model ${model} not in pricingMap keys: ${Object.keys(pricingMap)}`);
+    }
+
+    // Override vehicle.pricing with fresh activePricing if found
+    const pricingToUse = activePricing || vehicle.pricing;
+
+    if (tripDistance > 0) {
+      // Use the model's helper method if possible, or fallback to logic
+      // Since 'pricingToUse' might be a plain object (from lean query result) or mixed, 
+      // we can't reliably call methods on it if it's not a mongoose doc instance attached to vehicle.
+      // So we use the logic manually or attach to vehicle temporarily.
+
+      if (activePricing) {
+        // We found fresh pricing! Use it.
+        // Re-instantiate a temporary pricing doc or just use logic manually to be safe.
+        // Or duplicate the getRateForDistance logic here for the 'pricingToUse' object.
+
+        if (pricingToUse.category === 'auto') {
+          ratePerKm = (tripType === 'one-way' ? pricingToUse.autoPrice : (pricingToUse.autoPrice || pricingToUse.autoPrice)) || 0; // Schema diff
+          // Auto schema: autoPrice number (old) or object? 
+          // Wait, VehiclePricing schema: autoPrice is Number. 
+          // Vehicle schema: pricing.autoPrice is object {oneWay, return}.
+          // We need to be careful about Schema divergence.
+          // VehiclePricing.js (Step 27): autoPrice is Number.
+          // Vehicle.js (Step 65): uses this.pricing.autoPrice.oneWay... 
+          // Ah, confusion. Let's look at VehiclePricing.calculateFare logic (Step 62).
+          // VehiclePricing: this.autoPrice * distance. SIMPLE.
+
+          if (vehicle.pricingReference.category === 'auto') {
+            ratePerKm = pricingToUse.autoPrice || 0;
+          }
+        } else {
+          // Car/Bus
+          if (pricingToUse.perKmRate && pricingToUse.perKmRate > 0) {
+            ratePerKm = pricingToUse.perKmRate;
+          } else {
+            const dPricing = pricingToUse.distancePricing;
+            if (dPricing) {
+              if (tripDistance <= 50) ratePerKm = dPricing['50km'];
+              else if (tripDistance <= 100) ratePerKm = dPricing['100km'];
+              else if (tripDistance <= 150) ratePerKm = dPricing['150km'];
+              else if (tripDistance <= 200) ratePerKm = dPricing['200km'];
+              else if (tripDistance <= 250) ratePerKm = dPricing['250km'];
+              else ratePerKm = dPricing['300km'] || dPricing['250km'];
+            }
+          }
+        }
+        calculatedPrice = Math.round(tripDistance * ratePerKm);
+
+        // Update vehicle.pricing for the response to be consistent
+        vehicle.pricing = activePricing;
+      } else {
+        // Fallback to existing logic on vehicle doc if no fresh pricing found
+        if (vehicle.getRateForDistance) {
+          ratePerKm = vehicle.getRateForDistance(tripDistance, tripType);
+          calculatedPrice = Math.round(tripDistance * ratePerKm);
+        }
+      }
+    }
+
     // Return clean vehicle object with only necessary fields
     return {
       _id: vehicle._id,
@@ -869,7 +1041,11 @@ const searchVehicles = asyncHandler(async (req, res) => {
       } : null,
       // Pricing information - directly from the robust pricing system
       pricing: vehicle.pricing || null,
-      pricingReference: vehicle.pricingReference || null
+      pricingReference: vehicle.pricingReference || null,
+      // Add calculated fields for frontend
+      ratePerKm,
+      calculatedPrice,
+      tripDistance
     };
   });
 
@@ -895,7 +1071,7 @@ const getVehicleById = asyncHandler(async (req, res) => {
   const vehicle = await Vehicle.findById(req.params.id)
     .populate({
       path: 'driver',
-      select: 'firstName lastName rating phone isOnline status'
+      select: 'firstName lastName rating phone isOnline status profilePicture'
     });
 
   if (!vehicle) {
@@ -903,6 +1079,174 @@ const getVehicleById = asyncHandler(async (req, res) => {
       success: false,
       message: 'Vehicle not found'
     });
+  }
+
+  // Populate computed pricing for the vehicle
+  const VehiclePricing = require('../models/VehiclePricing');
+
+  try {
+    let pricing = null;
+    let tripType = 'one-way'; // Default to one-way pricing
+
+    if (vehicle.pricingReference) {
+      console.log(`🔍 Fetching pricing for vehicle ${vehicle._id} using pricingReference:`, vehicle.pricingReference);
+
+      // Try to get pricing using pricingReference
+      console.log(`🔍 Searching for pricing with:`, {
+        category: vehicle.pricingReference.category,
+        vehicleType: vehicle.pricingReference.vehicleType,
+        vehicleModel: vehicle.pricingReference.vehicleModel,
+        tripType: tripType,
+        isActive: true
+      });
+
+      pricing = await VehiclePricing.getPricing(
+        vehicle.pricingReference.category,
+        vehicle.pricingReference.vehicleType,
+        vehicle.pricingReference.vehicleModel,
+        tripType
+      );
+
+      if (pricing) {
+        console.log(`✅ Found pricing using pricingReference for vehicle ${vehicle._id}:`, {
+          category: pricing.category,
+          vehicleType: pricing.vehicleType,
+          vehicleModel: pricing.vehicleModel,
+          tripType: pricing.tripType,
+          distancePricing: pricing.distancePricing
+        });
+      } else {
+        console.log(`❌ No pricing found using pricingReference for vehicle ${vehicle._id}`);
+
+        // Try to find ANY pricing for this vehicle model to debug
+        const anyPricing = await VehiclePricing.find({
+          vehicleModel: vehicle.pricingReference.vehicleModel,
+          isActive: true
+        });
+
+        console.log(`🔍 Found ${anyPricing.length} pricing records for model ${vehicle.pricingReference.vehicleModel}:`);
+        anyPricing.forEach(p => {
+          console.log(`  - ${p.tripType}: ${JSON.stringify(p.distancePricing)}`);
+        });
+
+        // Try to get default pricing for the vehicle type
+        pricing = await VehiclePricing.getDefaultPricing(
+          vehicle.pricingReference.category,
+          vehicle.pricingReference.vehicleType,
+          tripType
+        );
+
+        if (pricing) {
+          console.log(`✅ Found default pricing for vehicle ${vehicle._id}:`, {
+            category: pricing.category,
+            vehicleType: pricing.vehicleType,
+            vehicleModel: pricing.vehicleModel
+          });
+        } else {
+          console.log(`❌ No default pricing found for vehicle ${vehicle._id}`);
+        }
+      }
+    } else {
+      console.log(`❌ Vehicle ${vehicle._id} has no pricingReference`);
+
+      // Try to get any available pricing for this vehicle category
+      pricing = await VehiclePricing.findOne({
+        category: vehicle.type,
+        isActive: true
+      });
+
+      if (pricing) {
+        console.log(`✅ Found fallback pricing for vehicle ${vehicle._id} category ${vehicle.type}`);
+      } else {
+        console.log(`❌ No fallback pricing found for vehicle ${vehicle._id} category ${vehicle.type}`);
+      }
+    }
+
+    // If we found pricing, add computed pricing to the vehicle
+    if (pricing) {
+      // Add computed pricing to the vehicle object
+      vehicle.computedPricing = {
+        category: pricing.category,
+        vehicleType: pricing.vehicleType,
+        vehicleModel: pricing.vehicleModel,
+        tripType: pricing.tripType
+      };
+
+      // Set pricing data based on category
+      if (pricing.category === 'auto') {
+        vehicle.computedPricing.autoPrice = pricing.autoPrice;
+        vehicle.computedPricing.basePrice = pricing.autoPrice;
+      } else {
+        vehicle.computedPricing.distancePricing = pricing.distancePricing;
+        vehicle.computedPricing.basePrice = pricing.distancePricing['50km'] || pricing.distancePricing['100km'] || pricing.distancePricing['150km'] || pricing.distancePricing['200km'] || pricing.distancePricing['250km'] || pricing.distancePricing['300km'] || 0;
+      }
+
+      // Also update the vehicle's pricing field with the latest pricing data
+      if (pricing.category === 'auto') {
+        vehicle.pricing.autoPrice = {
+          oneWay: pricing.autoPrice,
+          return: pricing.autoPrice
+        };
+      } else {
+        // Get return trip pricing as well
+        const returnPricing = await VehiclePricing.getPricing(
+          pricing.category,
+          pricing.vehicleType,
+          pricing.vehicleModel,
+          'return'
+        );
+
+        vehicle.pricing.distancePricing = {
+          oneWay: pricing.distancePricing,
+          return: returnPricing ? returnPricing.distancePricing : pricing.distancePricing
+        };
+      }
+      vehicle.pricing.lastUpdated = new Date();
+
+      console.log(`✅ Added computed pricing for vehicle ${vehicle._id}:`, vehicle.computedPricing);
+    } else {
+      // NO FALLBACK - Only use EXACT admin-set pricing
+      console.log(`❌ No admin pricing found for vehicle ${vehicle._id} (${vehicle.pricingReference?.vehicleModel})`);
+
+      // Set pricing as unavailable - don't use hardcoded defaults
+      vehicle.computedPricing = {
+        category: vehicle.type,
+        basePrice: 0,
+        distancePricing: null,
+        pricingUnavailable: true,
+        message: `Admin must set pricing for ${vehicle.pricingReference?.vehicleModel || 'this model'}`
+      };
+
+      // Clear any existing pricing data
+      vehicle.pricing = {
+        lastUpdated: new Date(),
+        unavailable: true,
+        message: `No admin pricing set for ${vehicle.pricingReference?.vehicleModel || 'this model'}`
+      };
+
+      console.log(`⚠️ Pricing UNAVAILABLE for vehicle ${vehicle._id} - admin must set exact rates first`);
+    }
+
+  } catch (pricingError) {
+    console.error(`❌ Error fetching pricing for vehicle ${req.params.id}:`, pricingError);
+
+    // NO FALLBACK - Only use admin-set pricing
+    vehicle.computedPricing = {
+      category: vehicle.type,
+      basePrice: 0,
+      distancePricing: null,
+      pricingUnavailable: true,
+      error: true,
+      message: `Error loading pricing: ${pricingError.message}`
+    };
+
+    vehicle.pricing = {
+      lastUpdated: new Date(),
+      unavailable: true,
+      error: true
+    };
+
+    console.log(`⚠️ Using error fallback pricing for vehicle ${vehicle._id}:`, vehicle.computedPricing);
   }
 
   res.json({
@@ -2042,6 +2386,159 @@ const getVehicleCar = asyncHandler(async (req, res) => {
 // @desc    Get vehicle types
 // @route   GET /api/vehicles/types
 // @access  Public
+// Get available vehicle configurations for pricing (admin use)
+const getVehicleConfigurationsForPricing = asyncHandler(async (req, res) => {
+  const configurations = await Vehicle.aggregate([
+    {
+      $match: {
+        isActive: true,
+        isApproved: true,
+        approvalStatus: 'approved'
+      }
+    },
+    {
+      $group: {
+        _id: {
+          category: '$type',
+          vehicleType: '$pricingReference.vehicleType',
+          vehicleModel: '$pricingReference.vehicleModel'
+        },
+        count: { $sum: 1 },
+        brands: { $addToSet: '$brand' }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          category: '$_id.category',
+          vehicleType: '$_id.vehicleType'
+        },
+        models: {
+          $push: {
+            model: '$_id.vehicleModel',
+            count: '$count',
+            brands: '$brands'
+          }
+        },
+        totalCount: { $sum: '$count' }
+      }
+    },
+    {
+      $group: {
+        _id: '$_id.category',
+        types: {
+          $push: {
+            type: '$_id.vehicleType',
+            models: '$models',
+            totalCount: '$totalCount'
+          }
+        },
+        categoryCount: { $sum: '$totalCount' }
+      }
+    },
+    {
+      $project: {
+        category: '$_id',
+        types: 1,
+        categoryCount: 1,
+        _id: 0
+      }
+    },
+    { $sort: { categoryCount: -1 } }
+  ]);
+
+  res.json({
+    success: true,
+    data: configurations
+  });
+});
+
+// Get all brands from pricing system for driver form
+const getPricingBrands = asyncHandler(async (req, res) => {
+  const brands = await VehiclePricing.distinct('vehicleModel', {
+    isActive: true,
+    category: 'car' // Only car brands for now
+  });
+
+  // Extract unique brands from vehicle models (assuming model names contain brand)
+  const uniqueBrands = [...new Set(
+    brands.map(model => {
+      // Simple brand extraction logic - can be improved based on naming patterns
+      const commonBrands = ['Maruti Suzuki', 'Hyundai', 'Honda', 'Tata', 'Mahindra', 'Kia', 'Toyota', 'Renault', 'Volkswagen', 'Ford', 'Skoda', 'MG', 'Nissan', 'Jeep', 'Audi', 'BMW', 'Mercedes-Benz', 'Jaguar', 'Land Rover', 'Volvo', 'Lexus'];
+
+      for (const brand of commonBrands) {
+        if (model.toLowerCase().includes(brand.toLowerCase().replace(' ', '').replace('-', ''))) {
+          return brand;
+        }
+      }
+
+      // Fallback: take first word or first few characters
+      return model.split(' ')[0];
+    }).filter(Boolean)
+  )].sort();
+
+  res.json({
+    success: true,
+    data: uniqueBrands
+  });
+});
+
+// Get vehicle types for a specific brand from pricing system
+const getPricingTypesForBrand = asyncHandler(async (req, res) => {
+  const { brand } = req.params;
+
+  if (!brand) {
+    return res.status(400).json({
+      success: false,
+      message: 'Brand parameter is required'
+    });
+  }
+
+  // Find all models that contain the brand name
+  const models = await VehiclePricing.find({
+    isActive: true,
+    category: 'car',
+    vehicleModel: { $regex: brand, $options: 'i' }
+  }).distinct('tripType');
+
+  // Get unique vehicle types from pricing data
+  const pricingData = await VehiclePricing.find({
+    isActive: true,
+    category: 'car',
+    vehicleModel: { $regex: brand, $options: 'i' }
+  }).distinct('vehicleType');
+
+  res.json({
+    success: true,
+    data: pricingData.sort()
+  });
+});
+
+// Get vehicle models for a specific brand and type from pricing system
+const getPricingModelsForBrandAndType = asyncHandler(async (req, res) => {
+  const { brand, type } = req.params;
+
+  if (!brand || !type) {
+    return res.status(400).json({
+      success: false,
+      message: 'Brand and type parameters are required'
+    });
+  }
+
+  // Find all models for this brand and type
+  const models = await VehiclePricing.find({
+    isActive: true,
+    category: 'car',
+    vehicleModel: { $regex: brand, $options: 'i' },
+    vehicleType: type
+  }).distinct('vehicleModel');
+
+  res.json({
+    success: true,
+    data: models.sort()
+  });
+});
+
 const getVehicleTypes = asyncHandler(async (req, res) => {
   const vehicleTypes = await Vehicle.aggregate([
     {
@@ -2578,7 +3075,9 @@ const estimateFare = asyncHandler(async (req, res) => {
     // Use the new calculateFare method from the Vehicle model
     let totalFare;
     try {
-      totalFare = await vehicle.calculateFare(distance, false, false, 0);
+      // Get trip type from request body or default to 'one-way'
+      const tripType = req.body.tripType || 'one-way';
+      totalFare = await vehicle.calculateFare(distance, tripType);
     } catch (fareError) {
       console.error('Error calculating vehicle fare:', fareError);
       throw fareError;
@@ -2616,7 +3115,8 @@ const estimateFare = asyncHandler(async (req, res) => {
     const distance = calculateDistance(pickup, destination);
     const estimatedDuration = distance * 2; // rough estimate
 
-    let totalFare = await vehicle.calculateFare(distance, false, false, 0);
+    const tripType = req.body.tripType || 'one-way';
+    let totalFare = await vehicle.calculateFare(distance, tripType);
     const taxes = totalFare * 0.18;
     const finalTotal = totalFare + taxes;
 
@@ -3007,6 +3507,10 @@ module.exports = {
   removeVehicleImage,
   searchVehicles,
   getVehicleById,
+  getVehicleConfigurationsForPricing,
+  getPricingBrands,
+  getPricingTypesForBrand,
+  getPricingModelsForBrandAndType,
   getVehicleTypes,
   getNearbyVehicles,
   getVehiclesByLocation,

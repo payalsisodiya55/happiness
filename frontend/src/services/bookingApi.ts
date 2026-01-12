@@ -21,6 +21,8 @@ interface BookingData {
   passengers: number;
   paymentMethod: 'cash' | 'razorpay';
   specialRequests?: string;
+  totalAmount?: number; // Pre-calculated total amount from frontend
+  advanceAmount?: number; // Advance payment amount for online payments
 }
 
 class BookingApiService {

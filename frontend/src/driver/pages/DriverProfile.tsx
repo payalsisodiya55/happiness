@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye } from "lucide-react";
+import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,10 +24,12 @@ const DriverProfile = () => {
   const [notifications, setNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [earningsData, setEarningsData] = useState<any>(null);
   const [statsData, setStatsData] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{type: string, url: string} | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Format address for display
   const formatAddress = (address: any) => {
@@ -103,6 +105,76 @@ const DriverProfile = () => {
   const handleUpdateDocument = (documentType: 'vehicleRC' | 'insurance') => {
     const inputId = documentType === 'vehicleRC' ? 'rcUpload' : 'insuranceUpload';
     document.getElementById(inputId)?.click();
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      // 1. Upload photo to server
+      const formDataUpload = new FormData();
+      formDataUpload.append('document', file);
+      formDataUpload.append('documentType', 'profile_photo');
+
+      const token = apiService.getAuthToken('driver');
+      const uploadUrl = `${apiService.baseURL}/driver/upload-document`;
+      
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formDataUpload,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.message || 'Upload failed');
+      }
+
+      if (uploadData.success) {
+        const photoUrl = uploadData.data.documentUrl;
+        
+        // 2. Update driver profile with new photo URL
+        const updateResponse = await apiService.updateDriverProfile({
+          profilePhoto: photoUrl
+        });
+
+        if (updateResponse.success) {
+           // 3. Update local context
+           updateDriverData(updateResponse.data);
+           toast.success("Profile photo updated successfully");
+        } else {
+           throw new Error(updateResponse.error?.message || "Failed to update profile photo");
+        }
+      } else {
+        throw new Error(uploadData.message || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Photo upload error:', error);
+      toast.error(error.message || "Failed to upload photo");
+    } finally {
+      setIsUploadingPhoto(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>, documentType: 'vehicleRC' | 'insurance') => {
@@ -217,9 +289,6 @@ const DriverProfile = () => {
           <div className="container mx-auto px-4 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-                  <User className="w-6 h-6 text-white" />
-                </div>
                 <div>
                   <h1 className="text-2xl font-bold">My Profile</h1>
                   <p className="text-gray-300 text-sm">Manage your account settings</p>
@@ -257,11 +326,24 @@ const DriverProfile = () => {
         <div className="container mx-auto px-4 -mt-20 relative z-50">
           <Card className="mb-0 border-none shadow-lg rounded-xl overflow-hidden bg-white">
             <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-4">
+              <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+                
+                {/* Profile Photo Section (Functional) */}
+                <div className="relative">
+                   <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-100 flex items-center justify-center">
+                     {driver.profilePicture ? (
+                       <img src={driver.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                     ) : (
+                       <User className="w-10 h-10 text-gray-400" />
+                     )}
+                   </div>
+                </div>
+
                 <div className="flex-1 text-center md:text-left">
                   <h2 className="text-xl md:text-2xl font-bold text-gray-800">{driverName}</h2>
                   <p className="text-gray-600 text-sm md:text-base">Professional Driver</p>
                 </div>
+                
                 <Button 
                   className="w-full md:w-auto bg-[#f48432] hover:bg-[#e07528] text-white transition-all duration-300"
                   onClick={() => navigate('/driver/profile/edit')}
@@ -542,12 +624,24 @@ const DriverProfile = () => {
                 className="data-[state=checked]:bg-[#f48432]"
               />
             </div>
+            <Separator />
+            <div 
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={() => navigate('/driver/profile/legal')}
+            >
+              <div className="flex items-center space-x-3 flex-1">
+                <FileText className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm md:text-base">Legal & Documents</p>
+                  <p className="text-xs md:text-sm text-gray-500">Terms, Privacy Policy, SLA, etc.</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </div>
           </CardContent>
         </Card>
-      </div>
-
-
-
+       </div>
+       
        {/* Earnings Details Dialog */}
        <Dialog open={showEarningsDialog} onOpenChange={setShowEarningsDialog}>
          <DialogContent className="max-w-lg">

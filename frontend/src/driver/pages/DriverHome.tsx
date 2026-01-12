@@ -12,6 +12,7 @@ import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import driverApiService from "@/services/driverApi";
 
 import { toast } from "@/hooks/use-toast";
+import happinessLogo from "@/assets/Happiness-logo-removebg-preview.png";
 
 const DriverHome = () => {
   const navigate = useNavigate();
@@ -172,7 +173,9 @@ const DriverHome = () => {
   }
 
   // Show agreement form if driver hasn't accepted it yet
-  if (!hasAcceptedAgreement) {
+  // IMPORTANT: Only show this if we actually have the driver object loaded.
+  // This prevents the agreement form from flashing briefly while driver data matches local auth state but hasn't fully loaded from API.
+  if (driver && !hasAcceptedAgreement) {
     return (
       <DriverAgreementForm 
         onAgreementAccepted={handleAgreementAccepted}
@@ -201,10 +204,13 @@ const DriverHome = () => {
                   <span className="text-gray-300 text-[10px] font-medium">{isOnline ? 'Online' : 'Offline'} • Indore, Madison Pradesh</span>
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-full border border-[#f48432] p-0.5 relative">
+              <div 
+                className="w-10 h-10 rounded-full border border-[#f48432] p-0.5 relative cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => navigate('/driver/profile')}
+              >
                 <div className="w-full h-full rounded-full bg-gray-300 overflow-hidden">
                   <img 
-                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
+                    src={driver?.profilePicture || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
                     alt="Profile" 
                     className="w-full h-full object-cover" 
                   />

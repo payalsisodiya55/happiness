@@ -61,7 +61,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
       if (response.success) {
         toast({
           title: "Agreement Accepted!",
-          description: "Welcome to Chalo Sawaari. You can now access your dashboard.",
+          description: "Welcome to Happiness. You can now access your dashboard.",
           variant: "default",
         });
         
@@ -94,13 +94,13 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-lg border border-gray-200">
         <CardHeader className="text-center pb-4">
           <div className="flex justify-center mb-4">
-            <FileText className="w-12 h-12 text-blue-600" />
+            <FileText className="w-12 h-12 text-[#f48432]" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-800">
+          <CardTitle className="text-2xl font-bold text-[#29354c]">
             Driver / Owner Agreement Form
           </CardTitle>
           <CardDescription className="text-lg">
@@ -124,7 +124,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="rcValid"
                   checked={agreements.rcValid}
                   onCheckedChange={(checked) => handleAgreementChange('rcValid', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="rcValid" className="text-sm text-gray-700 cursor-pointer">
                   I declare that my vehicle's Registration Certificate (RC) is valid.
@@ -136,7 +136,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="insuranceValid"
                   checked={agreements.insuranceValid}
                   onCheckedChange={(checked) => handleAgreementChange('insuranceValid', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="insuranceValid" className="text-sm text-gray-700 cursor-pointer">
                   My vehicle has a valid and active Insurance Policy.
@@ -148,7 +148,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="roadTaxValid"
                   checked={agreements.roadTaxValid}
                   onCheckedChange={(checked) => handleAgreementChange('roadTaxValid', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="roadTaxValid" className="text-sm text-gray-700 cursor-pointer">
                   All applicable Road Tax, Fitness Certificate, and Permits are valid.
@@ -160,7 +160,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="drivingLicenseValid"
                   checked={agreements.drivingLicenseValid}
                   onCheckedChange={(checked) => handleAgreementChange('drivingLicenseValid', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="drivingLicenseValid" className="text-sm text-gray-700 cursor-pointer">
                   The Driver holds a valid Driving License.
@@ -172,7 +172,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="legalResponsibility"
                   checked={agreements.legalResponsibility}
                   onCheckedChange={(checked) => handleAgreementChange('legalResponsibility', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="legalResponsibility" className="text-sm text-gray-700 cursor-pointer">
                   I accept that any legal, RTO, traffic, accident, penalty, or dispute is my responsibility only (Owner/Driver).
@@ -184,10 +184,10 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="platformLiability"
                   checked={agreements.platformLiability}
                   onCheckedChange={(checked) => handleAgreementChange('platformLiability', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="platformLiability" className="text-sm text-gray-700 cursor-pointer">
-                  I agree that "Chalo Sawaari" has no liability or involvement in any such matters.
+                  I agree that "Happiness" has no liability or involvement in any such matters.
                 </label>
               </div>
 
@@ -196,7 +196,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
                   id="serviceResponsibility"
                   checked={agreements.serviceResponsibility}
                   onCheckedChange={(checked) => handleAgreementChange('serviceResponsibility', checked as boolean)}
-                  className="mt-1"
+                  className="mt-1 data-[state=checked]:bg-[#29354c] data-[state=checked]:border-[#29354c]"
                 />
                 <label htmlFor="serviceResponsibility" className="text-sm text-gray-700 cursor-pointer">
                   I take full responsibility for providing the committed service to the customer.
@@ -212,7 +212,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
               The entire responsibility for the vehicle, driver, permits, insurance, and compliance lies with the Owner/Driver.
             </p>
             <p className="text-sm text-red-700">
-              Chalo Sawaari (the platform) has no responsibility, liability, or involvement in any disputes, accidents, penalties, or legal matters.
+              Happiness (the platform) has no responsibility, liability, or involvement in any disputes, accidents, penalties, or legal matters.
             </p>
           </div>
 
@@ -233,7 +233,7 @@ const DriverAgreementForm: React.FC<DriverAgreementFormProps> = ({
             <Button
               onClick={handleSubmit}
               disabled={!allAgreementsAccepted || isSubmitting}
-              className="w-full max-w-md bg-blue-600 text-white hover:bg-blue-700 h-12 rounded-lg"
+              className="w-full max-w-md bg-[#29354c] text-white hover:bg-[#1e2a3b] h-12 rounded-lg"
             >
               {isSubmitting ? (
                 <>

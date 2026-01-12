@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { List, Clock, MapPin, Calendar, User, Home, HelpCircle, X, Car, CreditCard, Phone, Mail, Loader2, Download, Receipt, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Link } from "react-router-dom";
 import TopNavigation from "@/components/TopNavigation";
 import UserBottomNavigation from "@/components/UserBottomNavigation";
@@ -428,96 +430,118 @@ const Bookings = () => {
     );
   };
 
-  const downloadReceipt = async (booking) => {
+  const downloadReceipt = (booking) => {
     try {
       setIsDownloading(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('userToken') || localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/bookings/${booking._id}/receipt`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const doc = new jsPDF();
+      
+      // Brand Colors
+      const brandBlue = "#29354c";
+      const brandOrange = "#f48432";
+      
+      // --- Header ---
+      doc.setFillColor(brandBlue);
+      doc.rect(0, 0, 210, 40, "F");
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("Happiness", 14, 25);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Travel Receipt", 196, 25, { align: "right" });
+      
+      // --- Basic Info ---
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      let y = 55;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("BOOKING DETAILS", 14, y);
+      y += 8;
+      
+      autoTable(doc, {
+        startY: y,
+        theme: 'grid',
+        headStyles: { fillColor: brandBlue, textColor: 255 },
+        bodyStyles: { textColor: 50 },
+        styles: { fontSize: 10, cellPadding: 3 },
+        margin: { left: 14, right: 14 },
+        columns: [
+          { header: 'Description', dataKey: 'label' },
+          { header: 'Details', dataKey: 'value' },
+        ],
+        body: [
+          { label: 'Booking ID', value: booking.bookingNumber },
+          { label: 'Status', value: booking.status.toUpperCase() },
+          { label: 'Date', value: formatDate(getBookingDate(booking)) },
+          { label: 'Pickup', value: getPickupAddress(booking) },
+          { label: 'Destination', value: getDestinationAddress(booking) },
+          { label: 'Total Distance', value: `${isRoundTrip(booking) ? (booking.tripDetails?.distance * 2).toFixed(1) : booking.tripDetails?.distance || 0} km` },
+          { label: 'Est. Duration', value: formatDuration(booking.tripDetails?.duration) },
+        ],
       });
+      
+      y = (doc as any).lastAutoTable.finalY + 15;
+      
+      // --- Vehicle & Driver ---
+      doc.text("VEHICLE & DRIVER", 14, y);
+      y += 8;
+      
+      autoTable(doc, {
+        startY: y,
+        theme: 'grid',
+        headStyles: { fillColor: brandBlue },
+        margin: { left: 14, right: 14 },
+        body: [
+          ['Vehicle Type', booking.vehicle?.type || 'N/A', 'Driver Name', `${booking.driver?.firstName || ''} ${booking.driver?.lastName || ''}`],
+          ['Vehicle Model', `${booking.vehicle?.brand || ''} ${booking.vehicle?.model || ''}`, 'Driver Phone', booking.driver?.phone || 'N/A'],
+          ['Registration', booking.vehicle?.registrationNumber || 'N/A', 'Rating', `${booking.driver?.rating || 'N/A'} ★`],
+        ],
+      });
+       
+      y = (doc as any).lastAutoTable.finalY + 15;
+      
+      // --- Payment & Pricing ---
+      doc.text("PAYMENT & PRICING", 14, y);
+      y += 8;
+      
+      const pricing = getBookingPricing(booking);
+      autoTable(doc, {
+        startY: y,
+        theme: 'striped',
+        headStyles: { fillColor: brandOrange, textColor: 255 },
+        columnStyles: { 0: { fontStyle: 'bold' }, 1: { halign: 'right' } },
+        margin: { left: 14, right: 14 },
+        body: [
+          ['Rate per km', `INR ${pricing.ratePerKm}`],
+          ['Total Distance', `${isRoundTrip(booking) ? (booking.tripDetails?.distance * 2).toFixed(1) : booking.tripDetails?.distance} km`],
+          ['Payment Method', (booking.payment?.method || 'Cash').toUpperCase()],
+          ['Payment Status', (booking.payment?.status || 'Pending').toUpperCase()],
+          ['Total Amount', `INR ${pricing.totalAmount}`],
+        ],
+      });
+      
+      // Footer
+      const pageHeight = doc.internal.pageSize.height || 297;
+      doc.setFillColor(245, 245, 245);
+      doc.rect(0, pageHeight - 20, 210, 20, "F");
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Thank you for choosing Happiness. Safe travels!", 105, pageHeight - 10, { align: "center" });
 
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `receipt_${booking.bookingNumber}`;
-        
-        if (contentType && contentType.includes('application/pdf')) {
-          // Handle PDF download
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', filename);
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          toast({
-            title: "PDF Receipt Downloaded",
-            description: "Your booking receipt has been downloaded successfully.",
-          });
-        } else if (contentType && contentType.includes('text/html')) {
-          // Handle HTML download
-          const htmlContent = await response.text();
-          const blob = new Blob([htmlContent], { type: 'text/html' });
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', filename);
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          toast({
-            title: "HTML Receipt Downloaded",
-            description: "Your booking receipt has been downloaded. Open it in a browser and print.",
-          });
-        } else {
-          // Fallback for unknown content type
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', filename);
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          toast({
-            title: "Receipt Downloaded",
-            description: "Your booking receipt has been downloaded.",
-          });
-        }
-        } else {
-          let errorMessage = "Failed to download receipt";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (parseError) {
-            // If response is not JSON, use status text
-            errorMessage = response.statusText || errorMessage;
-          }
-          
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        }
+      doc.save(`Receipt_${booking.bookingNumber}.pdf`);
+      
+      toast({
+        title: "Receipt Downloaded",
+        description: "Your booking receipt has been generated successfully.",
+      });
     } catch (error) {
-      console.error('Error downloading receipt:', error);
+      console.error('Error generating receipt:', error);
       toast({
         title: "Error",
-        description: "Failed to download receipt. Please try again.",
+        description: "Failed to generate receipt PDF.",
         variant: "destructive",
       });
     } finally {

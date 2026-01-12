@@ -151,14 +151,37 @@ export const getConsistentVehiclePrice = async (
       console.log(`✅ [CONSISTENT] Found VehiclePricing for model ${vehicle.model}:`, vehiclePricing);
       console.log(`🚗 [CONSISTENT] vehiclepricings.vehicleModel:`, vehiclePricing.vehicleModel);
 
-      // Use simple calculation: distance × base_rate, then add GST only on base fare
-      const baseRate = vehiclePricing.distancePricing['50km'] || 102;
+      // Select the appropriate rate based on distance tiers
+      let baseRate = 0;
+      let matchedTier = '';
+
+      if (tripDistance > 250 && vehiclePricing.distancePricing['300km']) {
+        baseRate = vehiclePricing.distancePricing['300km'];
+        matchedTier = '300km';
+      } else if (tripDistance > 200 && vehiclePricing.distancePricing['250km']) {
+        baseRate = vehiclePricing.distancePricing['250km'];
+        matchedTier = '250km';
+      } else if (tripDistance > 150 && vehiclePricing.distancePricing['200km']) {
+        baseRate = vehiclePricing.distancePricing['200km'];
+        matchedTier = '200km';
+      } else if (tripDistance > 100 && vehiclePricing.distancePricing['150km']) {
+        baseRate = vehiclePricing.distancePricing['150km'];
+        matchedTier = '150km';
+      } else if (tripDistance > 50 && vehiclePricing.distancePricing['100km']) {
+        baseRate = vehiclePricing.distancePricing['100km'];
+        matchedTier = '100km';
+      } else {
+        baseRate = vehiclePricing.distancePricing['50km'] || 102; // Default/Fallback
+        matchedTier = '50km';
+      }
+
+      // Calculate final price: distance * rate + GST
       const baseFare = tripDistance * baseRate;
       const gstAmount = Math.round(baseFare * 0.05);
-      const totalPrice = baseFare + gstAmount; // Base fare + GST (fuel charges not included)
+      const totalPrice = baseFare + gstAmount;
 
-      console.log(`💰 [CONSISTENT] Simple calculation: ${baseRate}/km × ${tripDistance}km = ₹${totalPrice}`);
-      console.log(`📊 [CONSISTENT] Using base rate ${baseRate}/km for all distances`);
+      console.log(`💰 [CONSISTENT] Tier calculation: Used ${matchedTier} rate = ₹${baseRate}/km`);
+      console.log(`📊 [CONSISTENT] ${baseRate}/km × ${tripDistance}km = ₹${baseFare} (Base) + ₹${gstAmount} (GST) = ₹${totalPrice}`);
 
       return totalPrice > 0 ? totalPrice : 2500;
     }

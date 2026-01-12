@@ -6,7 +6,7 @@ import TopNavigation from '../components/TopNavigation';
 import UserBottomNavigation from '../components/UserBottomNavigation';
 import FilterSidebar from '../components/FilterSidebar';
 import { VehicleFilters } from '../components/FilterSidebar';
-import { Car, Users, Fuel, Star, Heart, MapPin, Calendar } from 'lucide-react';
+import { Car, Users, Fuel, Star, Heart, MapPin, Calendar, ArrowLeft } from 'lucide-react';
 import VehicleApiService from '../services/vehicleApi';
 import VehiclePricingApiService from '../services/vehiclePricingApi';
 import { calculateFare, getConsistentVehiclePrice } from '../utils/pricingUtils';
@@ -34,6 +34,7 @@ const vehiclePricingApi = new VehiclePricingApiService(
 const VihicleSearch = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isFilterOpen, setIsFilterOpen] = useState(!isMobile);
   const selectedType = 'car';
   const [filters, setFilters] = useState<VehicleFilters>({
@@ -347,9 +348,18 @@ const VihicleSearch = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                Available Cars
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <button 
+                  onClick={() => navigate(-1)} 
+                  className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-white"
+                  aria-label="Go back"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <h1 className="text-2xl md:text-3xl font-bold text-white">
+                  Available Cars
+                </h1>
+              </div>
               {from && to && (
                 <div className="flex items-center gap-2 text-gray-200">
                   <MapPin className="w-4 h-4 text-[#f48432]" />
@@ -522,11 +532,8 @@ const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMo
             className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} 
           />
         </button>
-        {/* Rating Badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-md">
-          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold text-gray-800 text-sm">{car.rating}</span>
-        </div>
+
+
       </div>
 
       {/* Content Section */}

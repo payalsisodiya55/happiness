@@ -16,7 +16,8 @@ import {
   Bell,
   Camera,
   Edit3,
-  FileText
+  FileText,
+  Heart
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -99,6 +100,13 @@ const Profile = () => {
       icon: Shield,
       description: "Account security settings",
       path: "/profile/privacy"
+    },
+    {
+      id: 7,
+      title: "Favorites",
+      icon: Heart,
+      description: "View your favorite cars",
+      path: "/favorites"
     },
     {
       id: 4,

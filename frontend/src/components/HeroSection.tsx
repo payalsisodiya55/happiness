@@ -8,9 +8,11 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { useToast } from '@/components/ui/use-toast';
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const timeRef = useRef<HTMLInputElement>(null);
   const [tripType, setTripType] = useState<'oneWay' | 'roundTrip' | 'local'>('oneWay');
   const [date, setDate] = useState<Date>();
@@ -25,6 +27,7 @@ const HeroSection = () => {
   const textRef = useRef<HTMLDivElement>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isTextVisible, setIsTextVisible] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   // Store full location objects (with lat/lng)
   const [fromLocationData, setFromLocationData] = useState<any>(null);
@@ -67,6 +70,46 @@ const HeroSection = () => {
   }, []);
 
   const handleSearch = () => {
+    const newErrors: {[key: string]: string} = {};
+    let isValid = true;
+
+    // Validation
+    if (!fromLocation) {
+      newErrors.fromLocation = "Required field";
+      isValid = false;
+    }
+
+    if (tripType !== 'local' && !toLocation) {
+      newErrors.toLocation = "Required field";
+      isValid = false;
+    }
+
+    if (!date) {
+      newErrors.date = "Required field";
+      isValid = false;
+    }
+
+    if (!time) {
+      newErrors.time = "Required field";
+      isValid = false;
+    }
+
+    if (tripType === 'roundTrip' && !returnDate) {
+      newErrors.returnDate = "Required field";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+
+    if (!isValid) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in all required fields marked in red.",
+      });
+      return;
+    }
+
     // Navigate to /vihicle-search with state
     navigate('/vihicle-search', {
       state: {
@@ -117,7 +160,7 @@ const HeroSection = () => {
               {/* Tabs */}
               <div className="flex border-b border-white/20 bg-black/40 rounded-t-lg">
                 <button
-                  onClick={() => setTripType('oneWay')}
+                  onClick={() => { setTripType('oneWay'); setErrors({}); }}
                   className={cn(
                     "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300",
                     tripType === 'oneWay'
@@ -128,7 +171,7 @@ const HeroSection = () => {
                   One Way Trip
                 </button>
                 <button
-                  onClick={() => setTripType('roundTrip')}
+                  onClick={() => { setTripType('roundTrip'); setErrors({}); }}
                   className={cn(
                     "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300 border-l border-r border-white/20",
                     tripType === 'roundTrip'
@@ -139,7 +182,7 @@ const HeroSection = () => {
                   Round Trip
                 </button>
                 <button
-                  onClick={() => setTripType('local')}
+                  onClick={() => { setTripType('local'); setErrors({}); }}
                   className={cn(
                     "flex-1 py-4 text-sm font-semibold tracking-wide transition-all duration-300",
                     tripType === 'local'
@@ -158,32 +201,40 @@ const HeroSection = () => {
               )}>
                 
                 {/* Pickup Location */}
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Address</label>
                   <LocationAutocomplete
                     value={fromLocation}
-                    onChange={setFromLocation}
+                    onChange={(val) => { setFromLocation(val); if(errors.fromLocation) setErrors({...errors, fromLocation: ''}); }}
                     onLocationSelect={setFromLocationData}
                     placeholder="Enter City, Airport, or Address"
                     variant="minimal"
-                    className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto"
+                    className={cn(
+                      "w-full bg-transparent border-0 border-b rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 px-0 py-2 h-auto",
+                      errors.fromLocation ? "border-red-500" : "border-white/30 focus:border-white"
+                    )}
                     icon={null} 
                   />
+                  {errors.fromLocation && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.fromLocation}</span>}
                 </div>
 
                 {/* Dropoff Location (Conditional) */}
                 {(tripType === 'oneWay' || tripType === 'roundTrip') && (
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Drop Off Address</label>
                      <LocationAutocomplete
                       value={toLocation}
-                      onChange={setToLocation}
+                      onChange={(val) => { setToLocation(val); if(errors.toLocation) setErrors({...errors, toLocation: ''}); }}
                       onLocationSelect={setToLocationData}
                       placeholder="Enter City, Airport, or Address"
                       variant="minimal"
-                      className="w-full bg-transparent border-0 border-b border-white/30 rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 focus:border-white px-0 py-2 h-auto"
+                      className={cn(
+                        "w-full bg-transparent border-0 border-b rounded-none text-white text-base placeholder:text-white/40 focus:ring-0 px-0 py-2 h-auto",
+                        errors.toLocation ? "border-red-500" : "border-white/30 focus:border-white"
+                      )}
                       icon={null}
                     />
+                     {errors.toLocation && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.toLocation}</span>}
                   </div>
                 )}
 
@@ -213,25 +264,27 @@ const HeroSection = () => {
                 )}>
                   
                   {/* Pick Up Date */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                      <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Date</label>
+                     {errors.date && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.date}</span>}
                      <Popover>
                       <PopoverTrigger asChild>
                         <button
                           className={cn(
-                            "w-full bg-transparent border-0 border-b border-white/30 rounded-none text-left text-base focus:ring-0 focus:border-white px-0 py-2 h-auto transition-colors flex justify-between items-center group",
-                            !date ? "text-white/40" : "text-white"
+                            "w-full bg-transparent border-0 border-b rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto transition-colors flex justify-between items-center group",
+                            !date ? "text-white/40" : "text-white",
+                            errors.date ? "border-red-500" : "border-white/30 focus:border-white"
                           )}
                         >
                           <span className="truncate">{date ? format(date, "PPP") : "Select Date"}</span>
-                          <CalendarIcon className="w-4 h-4 text-white/50 group-hover:text-white transition-colors flex-shrink-0 ml-2" />
+                          <CalendarIcon className={cn("w-4 h-4 transition-colors flex-shrink-0 ml-2", errors.date ? "text-red-500" : "text-white/50 group-hover:text-white")} />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
                         <Calendar
                           mode="single"
                           selected={date}
-                          onSelect={setDate}
+                          onSelect={(d) => { setDate(d); if(errors.date) setErrors({...errors, date: ''}); }}
                           initialFocus
                           className="bg-white rounded-md"
                         />
@@ -241,25 +294,27 @@ const HeroSection = () => {
 
                   {/* Pick Up Time (For One Way & Local default position) or Return Date (For Round Trip) */}
                    {tripType === 'roundTrip' ? (
-                      <div className="space-y-1">
+                      <div className="space-y-1 relative">
                          <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Return Date</label>
+                         {errors.returnDate && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.returnDate}</span>}
                          <Popover>
                           <PopoverTrigger asChild>
                             <button
                               className={cn(
-                                "w-full bg-transparent border-0 border-b border-white/30 rounded-none text-left text-base focus:ring-0 focus:border-white px-0 py-2 h-auto transition-colors flex justify-between items-center group",
-                                !returnDate ? "text-white/40" : "text-white"
+                                "w-full bg-transparent border-0 border-b rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto transition-colors flex justify-between items-center group",
+                                !returnDate ? "text-white/40" : "text-white",
+                                errors.returnDate ? "border-red-500" : "border-white/30 focus:border-white"
                               )}
                             >
                               <span className="truncate">{returnDate ? format(returnDate, "PPP") : "Select Date"}</span>
-                              <CalendarIcon className="w-4 h-4 text-white/50 group-hover:text-white transition-colors flex-shrink-0 ml-2" />
+                              <CalendarIcon className={cn("w-4 h-4 transition-colors flex-shrink-0 ml-2", errors.returnDate ? "text-red-500" : "text-white/50 group-hover:text-white")} />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
                             <Calendar
                               mode="single"
                               selected={returnDate}
-                              onSelect={setReturnDate}
+                              onSelect={(d) => { setReturnDate(d); if(errors.returnDate) setErrors({...errors, returnDate: ''}); }}
                               initialFocus
                               className="bg-white rounded-md"
                             />
@@ -267,20 +322,24 @@ const HeroSection = () => {
                         </Popover>
                       </div>
                    ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-1 relative">
                          <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
-                         <div className="relative border-b border-white/30 hover:border-white transition-colors py-2 group">
+                         {errors.time && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.time}</span>}
+                         <div className={cn(
+                             "relative border-b transition-colors py-2 group",
+                             errors.time ? "border-red-500" : "border-white/30 hover:border-white"
+                         )}>
                             <input
                               type="time"
                               value={time}
-                              onChange={(e) => setTime(e.target.value)}
+                              onChange={(e) => { setTime(e.target.value); if(errors.time) setErrors({...errors, time: ''}); }}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
                             <div className="flex justify-between items-center text-white text-base">
                               <span className={!time ? "text-white/40" : "text-white"}>
                                 {time || "--:--"}
                               </span>
-                              <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
+                              <Clock className={cn("w-4 h-4 transition-colors", errors.time ? "text-red-500" : "text-white/50 group-hover:text-white")} />
                             </div>
                          </div>
                       </div>
@@ -289,20 +348,24 @@ const HeroSection = () => {
 
                 {/* Extra Row for Round Trip Time */}
                 {tripType === 'roundTrip' && (
-                  <div className="w-full space-y-1">
+                  <div className="w-full space-y-1 relative">
                      <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
-                     <div className="relative border-b border-white/30 hover:border-white transition-colors py-2 group">
+                     {errors.time && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.time}</span>}
+                     <div className={cn(
+                         "relative border-b transition-colors py-2 group",
+                         errors.time ? "border-red-500" : "border-white/30 hover:border-white"
+                     )}>
                         <input
                           type="time"
                           value={time}
-                          onChange={(e) => setTime(e.target.value)}
+                          onChange={(e) => { setTime(e.target.value); if(errors.time) setErrors({...errors, time: ''}); }}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div className="flex justify-between items-center text-white text-base">
                           <span className={!time ? "text-white/40" : "text-white"}>
                             {time || "--:--"}
                           </span>
-                          <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
+                          <Clock className={cn("w-4 h-4 transition-colors", errors.time ? "text-red-500" : "text-white/50 group-hover:text-white")} />
                         </div>
                      </div>
                   </div>

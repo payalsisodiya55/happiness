@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/admin/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,6 +82,7 @@ interface VehicleConfigs {
 }
 const AdminPriceManagement = () => {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, isLoading } = useAdminAuth();
   
   // Immediate authentication check
@@ -382,6 +383,11 @@ const AdminPriceManagement = () => {
     });
     setEditingPricingId(pricing._id || null);
     setIsAddingPricing(true);
+    
+    // Scroll to the form section
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   // View pricing details
@@ -556,7 +562,7 @@ const AdminPriceManagement = () => {
 
           {/* Add/Edit Pricing Form - Mobile Optimized */}
           {isAddingPricing && (
-            <Card className="mb-4 md:mb-6 shadow-sm">
+            <Card ref={formRef} className="mb-4 md:mb-6 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg sm:text-xl">
                   {editingPricingId ? 'Edit Vehicle Pricing' : 'Add New Vehicle Pricing'}

@@ -27,6 +27,7 @@ import Notifications from "./pages/profile/Notifications";
 import PrivacySecurity from "./pages/profile/PrivacySecurity";
 import Settings from "./pages/profile/Settings";
 
+import FavoritesPage from "./pages/FavoritesPage";
 import NotFound from "./pages/NotFound";
 import DriverAuth from "./driver/pages/DriverAuth";
 import DriverHome from "./driver/pages/DriverHome";
@@ -127,7 +128,9 @@ const App = () => (
                 <Route path="/profile/personal-info" element={<ProtectedUserRoute><PersonalInfo /></ProtectedUserRoute>} />
                 <Route path="/profile/notifications" element={<ProtectedUserRoute><Notifications /></ProtectedUserRoute>} />
                 <Route path="/profile/privacy" element={<ProtectedUserRoute><PrivacySecurity /></ProtectedUserRoute>} />
+
                 <Route path="/profile/settings" element={<ProtectedUserRoute><Settings /></ProtectedUserRoute>} />
+                <Route path="/favorites" element={<ProtectedUserRoute><FavoritesPage /></ProtectedUserRoute>} />
 
                 {/* Driver Module Routes */}
                 <Route path="/driver-auth" element={<DriverAuth />} />

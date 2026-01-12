@@ -102,12 +102,13 @@ const VihicleSearch = () => {
           // Round distance to 1 decimal place to match display
           const roundedDistance = tripDistance ? Math.round(tripDistance * 10) / 10 : undefined;
           const price = await getVehiclePrice(vehicle, pickupDate, returnDate, roundedDistance);
+          console.log('🚗 Vehicle fuel type:', vehicle.brand, vehicle.model, 'fuel:', vehicle.fuelType);
           return {
             _id: vehicle._id,
             brand: vehicle.brand || 'Unknown',
             model: vehicle.pricingReference?.vehicleModel || vehicle.model || 'Unknown',
             seatingCapacity: vehicle.seatingCapacity || 4,
-            fuelType: vehicle.fuelType || 'Petrol',
+            fuelType: vehicle.fuelType || 'petrol',
             isAc: vehicle.isAc || false,
             rating: vehicle.driver?.rating || vehicle.rating?.average || 4.0,
             totalTrips: vehicle.statistics?.totalTrips || vehicle.totalTrips || 0,
@@ -207,18 +208,48 @@ const VihicleSearch = () => {
     fetchDistance();
   }, [fromData, toData]);
 
-  // Apply filters to vehicles
+    // Apply filters to vehicles
   useEffect(() => {
     let filtered = [...vehicleData];
 
+    console.log('🔍 Applying filters:', filters);
+    console.log('📊 Original vehicles count:', vehicleData.length);
+    console.log('🚗 Sample vehicle fuel types:', vehicleData.slice(0, 3).map(v => ({brand: v.brand, fuel: v.fuelType})));
+
     // Filter by seating capacity
     if (filters.seatingCapacity.length > 0) {
-      filtered = filtered.filter(vehicle => filters.seatingCapacity.includes(vehicle.seatingCapacity));
+      console.log('🎯 Filtering by seating capacity:', filters.seatingCapacity);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(vehicle => {
+        // Handle both string and number comparisons
+        const vehicleCapacity = vehicle.seatingCapacity;
+        const matches = filters.seatingCapacity.some(capacity => {
+          const filterCapacity = typeof capacity === 'string' ? parseInt(capacity) : capacity;
+          return vehicleCapacity === filterCapacity;
+        });
+        if (matches) {
+          console.log('✅ Vehicle matches:', vehicle.brand, vehicle.model, 'capacity:', vehicleCapacity);
+        }
+        return matches;
+      });
+      console.log('📈 Seating capacity filter: before', beforeCount, 'after', filtered.length);
     }
 
     // Filter by fuel type
     if (filters.fuelType.length > 0) {
-      filtered = filtered.filter(vehicle => filters.fuelType.includes(vehicle.fuelType));
+      console.log('🔍 Filtering by fuel type:', filters.fuelType);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(vehicle => {
+        const vehicleFuel = (vehicle.fuelType || '').toLowerCase();
+        const matches = filters.fuelType.some(filterFuel =>
+          filterFuel.toLowerCase() === vehicleFuel
+        );
+        if (matches) {
+          console.log('✅ Fuel match:', vehicle.brand, vehicle.model, 'fuel:', vehicle.fuelType);
+        }
+        return matches;
+      });
+      console.log('⛽ Fuel type filter: before', beforeCount, 'after', filtered.length);
     }
 
     // Filter by brand
@@ -232,6 +263,53 @@ const VihicleSearch = () => {
         const hasAC = vehicle.isAc;
         return filters.isAc.includes(hasAC ? 'AC' : 'Non-AC');
       });
+    }
+
+    // Filter by price range
+    if (filters.priceRange.min > 0 || filters.priceRange.max < 10000) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.price >= filters.priceRange.min && vehicle.price <= filters.priceRange.max
+      );
+    }
+
+    // Filter by sleeper option (only buses have sleeper)
+    if (filters.isSleeper.length > 0) {
+      filtered = filtered.filter(vehicle => {
+        const isSleeper = vehicle.pricingReference?.category === 'bus';
+        return filters.isSleeper.includes(isSleeper ? 'Sleeper' : 'Non-Sleeper');
+      });
+    }
+
+    // Filter by car model
+    if (filters.carModel.length > 0) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.pricingReference?.category === 'car' &&
+        filters.carModel.includes(vehicle.model)
+      );
+    }
+
+    // Filter by bus brand
+    if (filters.busBrand.length > 0) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.pricingReference?.category === 'bus' &&
+        filters.busBrand.includes(vehicle.brand)
+      );
+    }
+
+    // Filter by bus model
+    if (filters.busModel.length > 0) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.pricingReference?.category === 'bus' &&
+        filters.busModel.includes(vehicle.model)
+      );
+    }
+
+    // Filter by auto type
+    if (filters.autoType.length > 0) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.pricingReference?.category === 'auto' &&
+        filters.autoType.includes(vehicle.pricingReference?.vehicleType || 'auto')
+      );
     }
 
     // Sort
@@ -469,7 +547,7 @@ const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMo
           </div>
           <div className="flex items-center gap-1.5">
             <Fuel className="w-3.5 h-3.5 text-[#f48432] flex-shrink-0" />
-            <span className="text-xs text-gray-700">{car.fuelType}</span>
+            <span className="text-xs text-gray-700 capitalize">{car.fuelType}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Car className="w-3.5 h-3.5 text-[#f48432] flex-shrink-0" />

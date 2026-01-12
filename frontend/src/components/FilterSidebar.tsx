@@ -62,6 +62,7 @@ export const FilterSidebar = ({
     price: false,
     vehicleType: false,
     features: false,
+    autoOptions: false,
     seating: false,
   });
 
@@ -97,18 +98,29 @@ export const FilterSidebar = ({
     const fuelTypes = [...new Set(vehicles.map(v => v.fuelType).filter(Boolean))];
     const seatingCapacities = [...new Set(vehicles.map(v => v.seatingCapacity).filter(Boolean))].sort((a, b) => a - b);
 
+    // Separate filters for different vehicle types
+    const busBrands = [...new Set(vehicles.filter(v => v.pricingReference?.category === 'bus').map(v => v.brand).filter(Boolean))];
+    const busModels = [...new Set(vehicles.filter(v => v.pricingReference?.category === 'bus').map(v => v.pricingReference?.vehicleModel).filter(Boolean))];
+    const autoTypes = [...new Set(vehicles.filter(v => v.pricingReference?.category === 'auto').map(v => v.pricingReference?.vehicleType).filter(Boolean))];
+
     console.log('🔍 FilterSidebar: Available filters:', {
       brands,
       models,
       fuelTypes,
-      seatingCapacities
+      seatingCapacities,
+      busBrands,
+      busModels,
+      autoTypes
     });
 
     return {
       brands,
       models,
       fuelTypes,
-      seatingCapacities
+      seatingCapacities,
+      busBrands,
+      busModels,
+      autoTypes
     };
   }, [vehicles]);
 
@@ -415,18 +427,40 @@ export const FilterSidebar = ({
             <div className="space-y-2">
               <Label className="text-sm font-medium text-[#212c40]">Fuel Type</Label>
               <div className="space-y-2">
-                {availableFilters.fuelTypes?.map((fuel) => (
+                {['petrol', 'diesel', 'cng', 'electric'].map((fuel) => (
                   <div key={fuel} className="flex items-center space-x-3">
                     <Checkbox
                       id={`fuel-${fuel}`}
                       checked={filters.fuelType.includes(fuel)}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleArrayFilterChange('fuelType', fuel, checked as boolean)
                       }
                       className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
                     />
                     <Label htmlFor={`fuel-${fuel}`} className="text-sm text-[#212c40] cursor-pointer capitalize">
                       {fuel}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sleeper Option */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-[#212c40]">Sleeper</Label>
+              <div className="space-y-2">
+                {['Sleeper', 'Non-Sleeper'].map((option) => (
+                  <div key={option} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`sleeper-${option}`}
+                      checked={filters.isSleeper.includes(option)}
+                      onCheckedChange={(checked) =>
+                        handleArrayFilterChange('isSleeper', option, checked as boolean)
+                      }
+                      className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
+                    />
+                    <Label htmlFor={`sleeper-${option}`} className="text-sm text-[#212c40] cursor-pointer">
+                      {option}
                     </Label>
                   </div>
                 ))}
@@ -483,6 +517,33 @@ export const FilterSidebar = ({
                 </div>
               </div>
             </div>
+        </FilterSection>
+
+        {/* Auto Filters */}
+        <FilterSection title="AUTO OPTIONS" sectionKey="autoOptions">
+          <div className="space-y-3">
+            {/* Auto Types */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-[#212c40]">Auto Type</Label>
+              <div className="space-y-2">
+                {availableFilters.autoTypes?.map((type) => (
+                  <div key={type} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`auto-type-${type}`}
+                      checked={filters.autoType.includes(type)}
+                      onCheckedChange={(checked) =>
+                        handleArrayFilterChange('autoType', type, checked as boolean)
+                      }
+                      className="border-[#212c40]/40 data-[state=checked]:bg-[#f48432] data-[state=checked]:border-[#f48432]"
+                    />
+                    <Label htmlFor={`auto-type-${type}`} className="text-sm text-[#212c40] cursor-pointer capitalize">
+                      {type}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </FilterSection>
 
         {/* Sort Options */}
@@ -611,7 +672,7 @@ export const FilterSidebar = ({
                 <div className="mb-6">
                   <Label className="text-sm font-semibold text-[#212c40] mb-3 block">Fuel Type</Label>
                   <div className="flex flex-wrap gap-2">
-                    {availableFilters.fuelTypes?.slice(0, 4).map((fuel) => (
+                    {['petrol', 'diesel', 'cng', 'electric'].map((fuel) => (
                       <button
                         key={fuel}
                         onClick={() => {

@@ -325,30 +325,30 @@ const DriverProfile = () => {
         {/* Profile Header Card - Sticky & Overlapping */}
         <div className="container mx-auto px-4 -mt-20 relative z-50">
           <Card className="mb-0 border-none shadow-lg rounded-xl overflow-hidden bg-white">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4">
                 
                 {/* Profile Photo Section (Functional) */}
                 <div className="relative">
-                   <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-100 flex items-center justify-center">
+                   <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-100 flex items-center justify-center">
                      {driver.profilePicture ? (
                        <img src={driver.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                      ) : (
-                       <User className="w-10 h-10 text-gray-400" />
+                       <User className="w-8 h-8 text-gray-400" />
                      )}
                    </div>
                 </div>
 
                 <div className="flex-1 text-center md:text-left">
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">{driverName}</h2>
-                  <p className="text-gray-600 text-sm md:text-base">Professional Driver</p>
+                  <h2 className="text-lg md:text-xl font-bold text-gray-800">{driverName}</h2>
+                  <p className="text-gray-500 text-xs md:text-sm">Professional Driver</p>
                 </div>
                 
                 <Button 
-                  className="w-full md:w-auto bg-[#f48432] hover:bg-[#e07528] text-white transition-all duration-300"
+                  className="w-full md:w-auto h-9 text-sm bg-[#f48432] hover:bg-[#e07528] text-white transition-all duration-300"
                   onClick={() => navigate('/driver/profile/edit')}
                 >
-                  <Edit className="w-4 h-4 mr-2" />
+                  <Edit className="w-3.5 h-3.5 mr-2" />
                   Edit Profile
                 </Button>
               </div>

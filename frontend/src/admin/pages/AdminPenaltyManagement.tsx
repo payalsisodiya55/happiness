@@ -64,7 +64,7 @@ interface PenaltyStats {
 
 const AdminPenaltyManagement = () => {
   const navigate = useNavigate();
-  const { admin } = useAdminAuth();
+  // const { admin } = useAdminAuth(); // specific admin details not needed for this view
 
   // State management
   const [penalties, setPenalties] = useState<Penalty[]>([]);
@@ -107,91 +107,178 @@ const AdminPenaltyManagement = () => {
     'driver_misbehaved': 'Driver misbehaved'
   };
 
-  // Fetch penalties
+  // Mock Data
+  const MOCK_STATS: PenaltyStats = {
+    summary: {
+      totalPenalties: 128,
+      totalAmount: 45600,
+      activePenalties: 12,
+      paidPenalties: 98,
+      waivedPenalties: 18
+    },
+    byType: [
+      { _id: 'cancellation_12h_before', count: 45, totalAmount: 22500 },
+      { _id: 'wrong_car_assigned', count: 12, totalAmount: 6000 }
+    ]
+  };
+
+  const MOCK_PENALTIES: Penalty[] = [
+    {
+      _id: "p1",
+      driver: {
+        _id: "d1",
+        firstName: "Rajesh",
+        lastName: "Kumar",
+        phone: "+91 98765 43210"
+      },
+      type: "cancellation_12h_within",
+      amount: 500,
+      reason: "Cancelled trip suddenly due to personal vehicle issue",
+      booking: {
+        _id: "b1",
+        bookingNumber: "BK-2024-001"
+      },
+      status: 'active',
+      appliedAt: "2024-03-10T14:30:00Z"
+    },
+    {
+      _id: "p2",
+      driver: {
+        _id: "d2",
+        firstName: "Suresh",
+        lastName: "Singh",
+        phone: "+91 98765 43211"
+      },
+      type: "car_not_clean",
+      amount: 200,
+      reason: "Customer reported dirty interiors",
+      booking: {
+        _id: "b2",
+        bookingNumber: "BK-2024-045"
+      },
+      status: 'paid',
+      appliedAt: "2024-03-08T09:15:00Z"
+    },
+    {
+      _id: "p3",
+      driver: {
+        _id: "d3",
+        firstName: "Amit",
+        lastName: "Verma",
+        phone: "+91 98765 43212"
+      },
+      type: "driver_misbehaved",
+      amount: 1000,
+      reason: "Rude behavior reported by passenger",
+      status: 'active',
+      appliedAt: "2024-03-12T16:45:00Z"
+    },
+    {
+      _id: "p4",
+      driver: {
+        _id: "d4",
+        firstName: "Vikram",
+        lastName: "Malhotra",
+        phone: "+91 98765 43213"
+      },
+      type: "wrong_car_assigned",
+      amount: 500,
+      reason: "Brought WagonR instead of Dzire",
+      booking: {
+        _id: "b4",
+        bookingNumber: "BK-2024-089"
+      },
+      status: 'waived',
+      appliedAt: "2024-03-05T11:20:00Z",
+      waivedAt: "2024-03-06T10:00:00Z"
+    },
+    {
+      _id: "p5",
+      driver: {
+        _id: "d5",
+        firstName: "Rahul",
+        lastName: "Sharma",
+        phone: "+91 98765 43214"
+      },
+      type: "cancellation_30min_after_acceptance",
+      amount: 300,
+      reason: "Cancelled after accepting the ride",
+      status: 'paid',
+      appliedAt: "2024-03-11T08:30:00Z"
+    }
+  ];
+
+  // Fetch penalties (Mock)
   const fetchPenalties = async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      let filtered = [...MOCK_PENALTIES];
+      
+      if (statusFilter !== "all") {
+        filtered = filtered.filter(p => p.status === statusFilter);
+      }
+      
+      if (typeFilter !== "all") {
+        filtered = filtered.filter(p => p.type === typeFilter);
+      }
 
-      if (statusFilter !== "all") params.status = statusFilter;
-      if (typeFilter !== "all") params.type = typeFilter;
+      if (searchTerm) {
+        const lowerTerm = searchTerm.toLowerCase();
+        filtered = filtered.filter(p => 
+          p.driver.firstName.toLowerCase().includes(lowerTerm) || 
+          p.driver.lastName.toLowerCase().includes(lowerTerm) ||
+          p.reason.toLowerCase().includes(lowerTerm)
+        );
+      }
 
-      const response = await adminApi.getAllPenalties(params);
-      setPenalties(response.data.docs);
+      setPenalties(filtered);
     } catch (error) {
       console.error("Error fetching penalties:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load penalties",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch penalty statistics
+  // Fetch penalty statistics (Mock)
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-      const response = await adminApi.getPenaltyStats();
-      setStats(response.data);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setStats(MOCK_STATS);
     } catch (error) {
       console.error("Error fetching penalty stats:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load penalty statistics",
-        variant: "destructive",
-      });
     } finally {
       setStatsLoading(false);
     }
   };
 
-  // Find driver by email
+  // Find driver by email (Mock or keep API if needed, but safe to mock for now to avoid errors if backend empty)
   const findDriverByEmail = async (email: string) => {
-    try {
-      const response = await adminDrivers.getAll({
-        search: email,
-        limit: 10
-      });
-
-      // Find exact email match
-      const driver = response.data.docs.find((d: any) =>
-        d.email?.toLowerCase() === email.toLowerCase()
-      );
-
-      return driver || null;
-    } catch (error) {
-      console.error("Error finding driver:", error);
-      return null;
+    // For mock purposes, just return a dummy driver if any email is provided
+    if (email) {
+      return {
+        _id: "d_mock",
+        firstName: "Mock",
+        lastName: "Driver",
+        phone: "+91 99999 88888",
+        email: email
+      };
     }
+    return null;
   };
 
-  // Apply penalty
+  // Apply penalty (Mock)
   const handleApplyPenalty = async () => {
     try {
-      // First find the driver by email
-      const driver = await findDriverByEmail(applyForm.driverEmail);
-      if (!driver) {
-        toast({
-          title: "Error",
-          description: "Driver not found with this email address",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await adminApi.applyPenalty(driver._id, {
-        type: applyForm.type,
-        amount: parseFloat(applyForm.amount),
-        reason: applyForm.reason,
-        bookingId: applyForm.bookingId || undefined
-      });
+      if (!applyForm.driverEmail) return;
 
       toast({
         title: "Success",
-        description: `Penalty applied successfully to ${driver.firstName} ${driver.lastName}`,
+        description: `Penalty applied successfully (Mock)`,
       });
 
       setShowApplyDialog(false);
@@ -204,28 +291,26 @@ const AdminPenaltyManagement = () => {
         reason: "",
         bookingId: ""
       });
-
+      
+      // Refresh list
       fetchPenalties();
-      fetchStats();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to apply penalty",
+        description: "Failed to apply penalty",
         variant: "destructive",
       });
     }
   };
 
-  // Waive penalty
+  // Waive penalty (Mock)
   const handleWaivePenalty = async () => {
     if (!selectedPenalty) return;
 
     try {
-      await adminApi.waivePenalty(selectedPenalty._id, waiveReason);
-
       toast({
         title: "Success",
-        description: "Penalty waived successfully",
+        description: "Penalty waived successfully (Mock)",
       });
 
       setShowWaiveDialog(false);
@@ -233,11 +318,10 @@ const AdminPenaltyManagement = () => {
       setWaiveReason("");
 
       fetchPenalties();
-      fetchStats();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to waive penalty",
+        description: "Failed to waive penalty",
         variant: "destructive",
       });
     }
@@ -283,7 +367,7 @@ const AdminPenaltyManagement = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Penalty Management</h1>
+            <h1 className="text-2xl font-bold text-[#212c40]">Penalty Management</h1>
             <p className="text-gray-600">Manage SLA violations and penalties</p>
           </div>
           <div className="flex gap-2">
@@ -293,7 +377,7 @@ const AdminPenaltyManagement = () => {
             </Button>
             <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-[#f48432] hover:bg-[#e07528] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Apply Penalty
                 </Button>
@@ -490,7 +574,6 @@ const AdminPenaltyManagement = () => {
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Applied Date</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -516,22 +599,6 @@ const AdminPenaltyManagement = () => {
                         </TableCell>
                         <TableCell>
                           {formatDate(penalty.appliedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {penalty.status === 'active' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedPenalty(penalty);
-                                  setShowWaiveDialog(true);
-                                }}
-                              >
-                                Waive
-                              </Button>
-                            )}
-                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

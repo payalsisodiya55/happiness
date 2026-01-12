@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Star, Shield, Award, Phone, MessageSquare, MapPin, Calendar, Clock, Disc, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Star, Shield, Award, Phone, MessageSquare, MapPin, Calendar, Clock, Disc, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useUserAuth } from '../contexts/UserAuthContext';
 import TopNavigation from '../components/TopNavigation';
@@ -30,6 +30,83 @@ const CarDetails = () => {
   const [car, setCar] = useState<any>(initialCar);
   const [calculatedPrice, setCalculatedPrice] = useState<number>(initialCar?.price || 0);
   const [tripDistance, setTripDistance] = useState<number | null>(null);
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+
+  // FAQ Data
+  const faqItems = [
+    {
+      question: "How much before departure, I have to book the cab?",
+      answer: "Although you can book the cab up to 1–2 hours prior to departure time, we suggest booking 1 day in advance to avoid last-minute rush."
+    },
+    {
+      question: "I want to book cab without paying any advance amount. I will pay on boarding the cab?",
+      answer: "Sorry, it is not possible. You need to pay a small 15–20% amount in advance to book the cab on Happiness Car Rental."
+    },
+    {
+      question: "Can we pickup additional passengers on the way in one way trip?",
+      answer: "One way trip includes only one pickup and one drop. Additional pickup or drop will attract additional charges."
+    },
+    {
+      question: "Is local sightseeing included in outstation trip?",
+      answer: "Round trip bookings include all the local sightseeing in destination cities."
+    },
+    {
+      question: "How to change pickup date, time and return date?",
+      answer: "Please click on Departure / Return date on booking page."
+    },
+    {
+      question: "Are Driver charges / Driver Bata included in the price?",
+      answer: "Yes, all driver charges are included in the price."
+    },
+    {
+      question: "Do I need to arrange for Driver food and accommodation during the trip?",
+      answer: "Driver will take care of his food and accommodation."
+    },
+    {
+      question: "What are extra charges if I need to travel in night hours?",
+      answer: "For driving between 10:30 PM to 06:00 AM, an additional Rs. 300 allowance will apply."
+    },
+    {
+      question: "Any extra charge other than the price shown above?",
+      answer: "Parking charges, if any, are extra and need to be paid as per actuals. Toll and State tax may vary."
+    },
+    {
+      question: "Can I book cab by calling customer support?",
+      answer: "You can get help via customer support, but bookings must be done via website or mobile app."
+    },
+    {
+      question: "I need a one way cab for multiple destinations, is that possible?",
+      answer: "One way trip allows one pickup and one drop. Please book separate one way trips for multiple destinations."
+    },
+    {
+      question: "Do I need to pay both side Toll tax for one way trip?",
+      answer: "No. Only one side Toll tax applies for one way trip."
+    },
+    {
+      question: "Whether the cab will have FASTag?",
+      answer: "Yes, all our cabs come with FASTag."
+    },
+    {
+      question: "Can I travel with pets?",
+      answer: "Yes. Driver may charge Rs. 500 for small cars and Rs. 1000 for bigger cars."
+    },
+    {
+      question: "Where to mention the complete pickup address?",
+      answer: "You can mention your complete pickup address on the booking screen."
+    },
+    {
+      question: "When will I get car and driver details after booking?",
+      answer: "Usually shared within minutes, but sometimes up to 2 hours before departure."
+    },
+    {
+      question: "Will advance amount be refunded if I cancel the booking?",
+      answer: "It may or may not be refunded. Please check our Cancellation and Refund Policy."
+    },
+    {
+      question: "How can I make the advance payment? Which payment gateway should I choose?",
+      answer: "You can pay via Netbanking, Debit/Credit card, UPI, PhonePe, Google Pay, Paytm, etc. Select the respective payment gateway accordingly."
+    }
+  ];
 
   // Fallback or redirection if no initial car data
   useEffect(() => {
@@ -40,26 +117,27 @@ const CarDetails = () => {
 
   if (!initialCar) return null;
 
-  // Fetch fresh vehicle data from API (only if needed for updated pricing)
+  // Fetch fresh vehicle data from API to ensure we have full details including driver info
   useEffect(() => {
     const fetchVehicleData = async () => {
       if (!id) return;
 
-      // Only fetch if we need fresh computedPricing data
-      if (!car.computedPricing || !car.computedPricing.distancePricing) {
+      // Check if we need to fetch fresh data
+      // Fetch if:
+      // 1. Missing computed pricing
+      // 2. Driver info is missing or is just an ID string
+      // 3. Driver object is incomplete (missing firstName)
+      const needsPricing = !car.computedPricing || !car.computedPricing.distancePricing;
+      const needsDriver = !car.driver || typeof car.driver === 'string' || !car.driver.firstName;
+
+      if (needsPricing || needsDriver) {
         try {
           const response = await vehicleApi.getVehicleById(id);
 
-        if (response.success && response.data) {
-          // Only update if we got better computedPricing data
-          if (response.data.computedPricing && response.data.computedPricing.distancePricing &&
-              (!car.computedPricing || !car.computedPricing.distancePricing)) {
-            setCar(response.data);
-            // Price will be recalculated automatically by the price calculation effect
+          if (response.success && response.data) {
+             setCar(response.data);
           }
-        }
         } catch (error) {
-          // Silent fail - we already have data to work with
           console.error('Error fetching fresh vehicle data:', error);
         }
       }
@@ -69,7 +147,7 @@ const CarDetails = () => {
     const timeoutId = setTimeout(fetchVehicleData, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [id, car.computedPricing]);
+  }, [id]);
 
   // Calculate price based on trip distance
   useEffect(() => {
@@ -125,16 +203,19 @@ const CarDetails = () => {
   };
 
   // Extract real driver data from vehicle (populated from backend)
-  const driver = car.driver ? {
-    name: `${car.driver.firstName || ''} ${car.driver.lastName || ''}`.trim() || 'Driver',
+  // Ensure we handle cases where driver might still be loading or incomplete
+  const hasDriverData = car.driver && typeof car.driver === 'object';
+  
+  const driver = hasDriverData ? {
+    name: `${car.driver.firstName || ''} ${car.driver.lastName || ''}`.trim() || 'Verified Driver',
     rating: car.driver.rating || 4.5,
-    trips: car.totalTrips || car.statistics?.totalTrips || 0, // Use vehicle trip data since driver trip count isn't populated
-    experience: '2+ Years', // Default since not populated
-    image: car.driver.profilePicture || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop", // Use driver's profile picture
-    languages: ["Hindi", "English"], // Default since not populated
-    joined: "2024" // Default since createdAt not populated
+    trips: car.driver.totalTrips || car.statistics?.totalTrips || 0,
+    experience: car.driver.experience ? `${car.driver.experience} Years` : '2+ Years', 
+    image: car.driver.profilePicture || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop",
+    languages: car.driver.languages && car.driver.languages.length > 0 ? car.driver.languages : ["Hindi", "English"],
+    joined: car.driver.createdAt ? new Date(car.driver.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : new Date().getFullYear().toString()
   } : {
-    // Fallback driver data if driver info not available
+    // Fallback if no driver attached to vehicle
     name: "Verified Driver",
     rating: 4.5,
     trips: car.totalTrips || car.statistics?.totalTrips || 0,
@@ -144,17 +225,24 @@ const CarDetails = () => {
     joined: "2024"
   };
 
-  // Mock Additional Images for gallery
-  const carImages = [
-    car.image,
-    "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1550355291-bbee04a92027?w=600&h=400&fit=crop",
-
-    "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&h=400&fit=crop"
-  ];
+  // Use real vehicle images from backend
+  const carImages = car.images && car.images.length > 0 
+    ? car.images.map((img: any) => img.url) 
+    : [car.image];
+    
+  // Ensure we don't duplicate the main image if it's already in the list
+  if (car.image && !carImages.includes(car.image)) {
+    carImages.unshift(car.image);
+  }
 
   const [mainImage, setMainImage] = useState(carImages[0]);
+
+  // Update main image when car data changes
+  useEffect(() => {
+    if (carImages.length > 0) {
+      setMainImage(carImages[0]);
+    }
+  }, [car]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const handleThumbnailClick = (image: string, index: number) => {
@@ -191,6 +279,7 @@ const CarDetails = () => {
         }
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
@@ -453,19 +542,12 @@ const CarDetails = () => {
                 <div>
                   <h4 className="font-bold text-gray-800">{driver.name}</h4>
                   <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                    <span>{driver.rating}</span>
-                    <span className="text-gray-300">•</span>
                     <span>{driver.trips} Trips</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-blue-50/50 p-3 rounded-lg">
-                  <div className="text-gray-500 text-xs mb-1">Experience</div>
-                  <div className="font-semibold text-[#212c40] text-sm">{driver.experience}</div>
-                </div>
+              <div className="mb-6">
                 <div className="bg-blue-50/50 p-3 rounded-lg">
                   <div className="text-gray-500 text-xs mb-1">Joined</div>
                   <div className="font-semibold text-[#212c40] text-sm">{driver.joined}</div>
@@ -501,6 +583,39 @@ const CarDetails = () => {
                 Proceed to Book
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-8 md:mt-12 bg-white px-4 py-6 md:p-8 md:rounded-2xl shadow-sm border border-gray-100">
+          <h2 className="text-xl md:text-2xl font-bold text-[#212c40] mb-6">Frequently Asked Questions</h2>
+          <div className="space-y-4">
+            {faqItems.map((item, index) => (
+              <div key={index} className="border border-gray-100 rounded-xl overflow-hidden hover:border-[#f48432]/30 transition-colors">
+                <button
+                  onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                  className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <span className={`font-semibold text-sm md:text-base pr-4 ${expandedFAQ === index ? 'text-[#f48432]' : 'text-[#212c40]'}`}>
+                    {item.question}
+                  </span>
+                  <ChevronDown 
+                    className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${expandedFAQ === index ? 'rotate-180 text-[#f48432]' : ''}`}
+                  />
+                </button>
+                <div 
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    expandedFAQ === index ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="p-4 pt-0 text-sm text-gray-600 leading-relaxed border-t border-gray-50 bg-gray-50/30">
+                      {item.answer}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

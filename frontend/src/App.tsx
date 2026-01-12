@@ -37,6 +37,9 @@ import DriverEditProfile from "./driver/pages/DriverEditProfile";
 import DriverWallet from "./driver/pages/DriverWallet";
 import DriverLegalDocuments from "./driver/pages/DriverLegalDocuments";
 import DriverTerms from "./driver/pages/DriverTerms";
+import DriverLeaseAgreement from "./driver/pages/DriverLeaseAgreement";
+import DriverSLA from "./driver/pages/DriverSLA";
+import DriverCancelPenalty from "./driver/pages/DriverCancelPenalty";
 import AdminAuth from "./admin/pages/AdminAuth";
 import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminUserManagement from "./admin/pages/AdminUserManagement";
@@ -135,6 +138,9 @@ const App = () => (
                 <Route path="/driver/profile/edit" element={<ProtectedDriverRoute><DriverEditProfile /></ProtectedDriverRoute>} />
                 <Route path="/driver/profile/legal" element={<ProtectedDriverRoute><DriverLegalDocuments /></ProtectedDriverRoute>} />
                 <Route path="/driver/profile/legal/terms" element={<ProtectedDriverRoute><DriverTerms /></ProtectedDriverRoute>} />
+                <Route path="/driver/profile/legal/lease" element={<ProtectedDriverRoute><DriverLeaseAgreement /></ProtectedDriverRoute>} />
+                <Route path="/driver/profile/legal/sla" element={<ProtectedDriverRoute><DriverSLA /></ProtectedDriverRoute>} />
+                <Route path="/driver/profile/legal/penalty" element={<ProtectedDriverRoute><DriverCancelPenalty /></ProtectedDriverRoute>} />
                 <Route path="/driver/wallet" element={<ProtectedDriverRoute><DriverWallet /></ProtectedDriverRoute>} />
 
                 {/* Admin Module Routes */}

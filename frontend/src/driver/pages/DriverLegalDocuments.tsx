@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FileText, Shield, ClipboardCheck, Car, Wallet, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileText, Shield, ClipboardCheck, Car, Wallet, ChevronRight, AlertTriangle } from "lucide-react";
 
 const DriverLegalDocuments = () => {
   const navigate = useNavigate();
@@ -12,40 +12,35 @@ const DriverLegalDocuments = () => {
       icon: FileText,
       path: "/driver/profile/legal/terms",
     },
-    {
-      title: "Privacy Policy",
-      description: "How your data is collected and used",
-      icon: Shield,
-      path: "/privacy", // Placeholder path
-    },
+
     {
       title: "Service Level Agreement (SLA)",
       description: "Performance standards, penalties and expectations",
       icon: ClipboardCheck,
-      path: "/sla", // Placeholder path
+      path: "/driver/profile/legal/sla",
     },
     {
       title: "Lease Agreement",
       description: "Vehicle lease terms between driver and company",
       icon: Car,
       status: "Accepted",
-      path: "/lease-agreement", // Placeholder path
+      path: "/driver/profile/legal/lease",
     },
     {
-      title: "Commission Policy",
-      description: "Platform commission and payout structure",
-      icon: Wallet,
-      path: "/commission-policy", // Placeholder path
+      title: "Cancel Penalty",
+      description: "Fines for cancellations and service violations",
+      icon: AlertTriangle,
+      path: "/driver/profile/legal/penalty",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="bg-white px-4 py-4 shadow-sm sticky top-0 z-10 flex items-center">
+      <div className="bg-white px-4 py-4 sticky top-0 z-10 flex items-center border-b border-gray-50">
         <button 
           onClick={() => navigate(-1)} 
-          className="mr-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          className="mr-3 p-2 rounded-full hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
@@ -58,11 +53,11 @@ const DriverLegalDocuments = () => {
       {/* Main Content */}
       <div className="flex-1 p-4 space-y-3">
         {documents.map((doc, index) => (
-          <Card 
-            key={index} 
-            className="border-none shadow-sm rounded-xl overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
-            onClick={() => navigate(doc.path)}
-          >
+           <Card 
+             key={index} 
+             className="border border-gray-100 shadow-sm rounded-xl overflow-hidden active:scale-[0.99] transition-transform cursor-pointer bg-white"
+             onClick={() => navigate(doc.path)}
+           >
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center space-x-3 overflow-hidden">
                 <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">

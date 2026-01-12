@@ -30,6 +30,11 @@ const BookingSummary = () => {
   }
 
   const { car, searchParams = {} } = state;
+  // Use the first image from the car's gallery if available, otherwise fallback to the main car image
+  const displayImage = car.images && car.images.length > 0 
+    ? car.images[0].url 
+    : car.image;
+
   const [calculatedPrice, setCalculatedPrice] = useState<number>(car.calculatedPrice || car.price || 0);
   const { from, to, pickupDate, pickupTime } = searchParams;
 
@@ -343,7 +348,7 @@ const BookingSummary = () => {
             {/* Vehicle Card */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center">
               <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                <img src={car.image} alt={car.model} className="w-full h-full object-cover" />
+                <img src={displayImage} alt={car.model} className="w-full h-full object-cover" />
               </div>
               <div>
                 <h3 className="font-bold text-[#212c40] text-lg">{car.brand} {car.model}</h3>

@@ -58,16 +58,50 @@ const BookingSummary = () => {
     }
   }, [car, pickupDate, searchParams]);
 
-  // Use calculated price
-  const totalAmount = calculatedPrice;
+  // Use the calculated price from getConsistentVehiclePrice (already includes GST on base fare)
+  const finalAmountWithGST = calculatedPrice;
+
+  // Reverse calculate base fare and GST for display
+  const baseFare = Math.round(finalAmountWithGST / 1.05);
+  const gstAmount = finalAmountWithGST - baseFare;
+
+  // Calculate additional charges for display only (not included in total)
+  const excessKmCharges = (() => {
+    const kmLimit = car.category === 'auto' ? 50 : car.category === 'car' ? 100 : 200;
+    if (car.tripDistance && car.tripDistance > kmLimit) {
+      const excessKm = car.tripDistance - kmLimit;
+      const excessRate = Math.round((car.ratePerKm || 101) * 1.5);
+      return excessKm * excessRate;
+    }
+    return 0;
+  })();
+
+  const fuelCharges = Math.round(car.tripDistance ?
+    (car.tripDistance / (car.fuelType === 'cng' ? 25 : car.fuelType === 'diesel' ? 18 : 15)) *
+    (car.fuelType === 'cng' ? 85 : car.fuelType === 'diesel' ? 90 : 100) : 0);
+
+  const nightCharges = (() => {
+    const tripHours = Math.max(1, Math.ceil((car.tripDistance || 0) / 40));
+    const tripStart = new Date(`${pickupDate}T${pickupTime}`);
+    let nightHours = 0;
+    for (let hour = 0; hour < tripHours; hour++) {
+      const checkTime = new Date(tripStart.getTime() + (hour * 60 * 60 * 1000));
+      const checkHour = checkTime.getHours();
+      if (checkHour >= 22 || checkHour < 6) {
+        nightHours += 1;
+      }
+    }
+    return nightHours * 50;
+  })();
+
   const advancePercentage = 20;
 
-  // Dynamic amounts based on selection
+  // Dynamic amounts based on selection - advance is 20% of final amount including GST
   const currentAdvanceAmount = paymentMethod === 'online'
-    ? Math.round((totalAmount * advancePercentage) / 100)
+    ? Math.round((finalAmountWithGST * advancePercentage) / 100)
     : 0;
 
-  const currentPayToDriver = totalAmount - currentAdvanceAmount;
+  const currentPayToDriver = finalAmountWithGST - currentAdvanceAmount;
 
   // Payment processing function
   const handlePayment = async () => {
@@ -135,7 +169,7 @@ const BookingSummary = () => {
                 passengers: 1,
                 specialRequests: '',
                 paymentMethod: 'razorpay' as 'razorpay' | 'cash',
-                totalAmount: totalAmount, // Use the calculated amount shown to user
+                totalAmount: finalAmountWithGST, // Send the final amount including GST
                 advanceAmount: currentAdvanceAmount // Pass advance amount for online payments
               };
 
@@ -202,7 +236,7 @@ const BookingSummary = () => {
             passengers: 1,
             specialRequests: '',
             paymentMethod: 'cash' as 'cash' | 'razorpay',
-            totalAmount: totalAmount // Use the calculated amount shown to user
+            totalAmount: finalAmountWithGST // Send the final amount including GST
           };
 
           const bookingResult = await bookingApi.createBooking(bookingPayload);
@@ -352,7 +386,7 @@ const BookingSummary = () => {
                 <div className="mt-4 p-3 bg-green-50 rounded-lg flex gap-3 items-start">
                   <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-green-800">
-                    You can pay the full amount of <span className="font-bold">₹{totalAmount.toLocaleString('en-IN')}</span> directly to the driver after the trip.
+                    You can pay the full amount of <span className="font-bold">₹{finalAmountWithGST.toLocaleString('en-IN')}</span> directly to the driver after the trip.
                   </p>
                 </div>
               )}
@@ -386,23 +420,29 @@ const BookingSummary = () => {
                           );
                         }
 
-                        // Use consistent rate calculation from VehiclePricing API
-                        let displayRate = 0;
-                        const dist = car.tripDistance;
-                        if (dist && calculatedPrice) {
-                          displayRate = Math.round(calculatedPrice / dist);
-                        }
+                        // Calculate the actual base rate used for the base fare
+                        const displayRate = car.tripDistance ? Math.round(baseFare / car.tripDistance) : (car.ratePerKm || 101);
                         return (
                           <div className="flex justify-between text-gray-600 text-sm">
                             <span>Base Rate</span>
-                            <span>₹{displayRate || '0'} per km</span>
+                            <span>₹{displayRate} per km</span>
                           </div>
                         );
                       })()}
                       <div className="flex justify-between text-gray-600 text-sm">
                         <span>Base Fare</span>
-                        <span>₹{(calculatedPrice || 0).toLocaleString('en-IN')}</span>
+                        <span>₹{baseFare.toLocaleString('en-IN')}</span>
                       </div>
+                      <div className="flex justify-between text-gray-600 text-sm">
+                        <span>Fuel Charges</span>
+                        <span>₹{fuelCharges.toLocaleString('en-IN')}</span>
+                      </div>
+                      {nightCharges > 0 && (
+                        <div className="flex justify-between text-gray-600 text-sm">
+                          <span>Night Charges</span>
+                          <span>₹{nightCharges.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex justify-between text-gray-600 text-sm">
@@ -415,13 +455,29 @@ const BookingSummary = () => {
                     <span>Included</span>
                   </div>
                   <div className="flex justify-between text-gray-600 text-sm">
-                    <span>Taxes & Fees</span>
-                    <span>₹0</span>
+                    <span>Fuel Charges</span>
+                    <span>₹{Math.round(car.tripDistance ? (car.tripDistance / (car.fuelType === 'cng' ? 25 : car.fuelType === 'diesel' ? 18 : 15)) * (car.fuelType === 'cng' ? 85 : car.fuelType === 'diesel' ? 90 : 100) : 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 text-sm">
+                    <span>Night Charges</span>
+                    <span>₹{Math.round(((new Date(`${pickupDate}T${pickupTime}`).getHours() >= 22 || new Date(`${pickupDate}T${pickupTime}`).getHours() < 6) ? (Math.max(1, Math.ceil((car.tripDistance || 0) / 40)) * 50) : 0))}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 text-sm">
+                    <span>Toll Charges</span>
+                    <span>As applicable</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 text-sm">
+                    <span>Parking Charges</span>
+                    <span>As applicable</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 text-sm">
+                    <span>GST (5% of Base Fare)</span>
+                    <span>₹{gstAmount.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="border-t border-dashed border-gray-200 my-2"></div>
                   <div className="flex justify-between font-bold text-[#212c40] text-lg">
-                    <span>Total Amount</span>
-                    <span>₹{totalAmount.toLocaleString('en-IN')}</span>
+                    <span>Total Amount (incl. GST)</span>
+                    <span>₹{finalAmountWithGST.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 

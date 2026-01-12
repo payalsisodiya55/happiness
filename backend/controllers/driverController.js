@@ -515,7 +515,7 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const completeTrip = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { actualDistance, actualDuration, actualFare, driverNotes } = req.body;
+  const { actualDistance, actualDuration, actualFare, driverNotes, tollCharges, parkingCharges } = req.body;
 
   console.log('Debug - Driver completing trip:', {
     bookingId: id,
@@ -551,6 +551,25 @@ const completeTrip = asyncHandler(async (req, res) => {
   booking.trip.actualDuration = actualDuration || booking.tripDetails.duration;
   booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
   if (driverNotes) booking.trip.driverNotes = driverNotes;
+
+  // Update toll and parking charges if provided
+  let chargesUpdated = false;
+  if (tollCharges !== undefined && tollCharges >= 0) {
+    booking.pricing.tollCharges = tollCharges;
+    chargesUpdated = true;
+  }
+  if (parkingCharges !== undefined && parkingCharges >= 0) {
+    booking.pricing.parkingCharges = parkingCharges;
+    chargesUpdated = true;
+  }
+
+  // Recalculate final amount if charges were updated
+  if (chargesUpdated) {
+    const baseAmount = booking.pricing.totalAmount;
+    const additionalCharges = (booking.pricing.tollCharges || 0) + (booking.pricing.parkingCharges || 0);
+    const gstAmount = Math.round((baseAmount + additionalCharges) * 0.05);
+    booking.pricing.finalAmount = baseAmount + additionalCharges + gstAmount;
+  }
 
   // Update payment status when trip is completed
   let paymentJustCompleted = false;

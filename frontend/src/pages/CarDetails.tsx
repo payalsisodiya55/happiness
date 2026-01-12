@@ -302,6 +302,28 @@ const CarDetails = () => {
               </div>
 
               <div className="border-t pt-6">
+                <h3 className="font-semibold text-gray-800 mb-3">Fare Breakdown</h3>
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Base Fare:</span>
+                      <span>₹{Math.round(calculatedPrice / 1.05).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>GST (5% of Base Fare):</span>
+                      <span>₹{Math.round((calculatedPrice / 1.05) * 0.05).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total (Base Fare + GST):</span>
+                        <span>₹{calculatedPrice.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      * Fuel charges are separate and not included in GST calculation
+                    </div>
+                  </div>
+                </div>
                 <h3 className="font-semibold text-gray-800 mb-3">Pricing Details</h3>
                 {/* Show computedPricing if available */}
                 {car.computedPricing && car.computedPricing.distancePricing && (

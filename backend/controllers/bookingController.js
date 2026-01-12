@@ -175,6 +175,85 @@ const createBooking = asyncHandler(async (req, res) => {
         totalAmount = distance * ratePerKm; // No rounding to avoid extra amounts
       }
 
+    // Calculate additional charges (for display only, not included in GST calculation)
+    let nightCharges = 0;
+    let fuelCharges = 0;
+    let excessKmCharges = 0;
+    let additionalPickupCharges = 0;
+
+    // 1. Calculate Night Charges (₹50 per night hour for trips between 22:00-06:00)
+    if (req.body.pickupTime && req.body.date) {
+      const tripDate = new Date(`${req.body.date}T${req.body.pickupTime}`);
+      const estimatedTripHours = Math.max(1, Math.ceil(distance / 40)); // Assume 40km/h average speed
+      let nightHours = 0;
+
+      for (let hour = 0; hour < estimatedTripHours; hour++) {
+        const checkTime = new Date(tripDate.getTime() + (hour * 60 * 60 * 1000));
+        const checkHour = checkTime.getHours();
+        if (checkHour >= 22 || checkHour < 6) { // 10 PM to 6 AM
+          nightHours += 1;
+        }
+      }
+
+      if (nightHours > 0) {
+        nightCharges = nightHours * 50; // ₹50 per night hour
+      }
+    }
+
+    // 2. Calculate Fuel Charges based on fuel type and distance (for display only)
+    if (vehicle.fuelType && distance > 0) {
+      const fuelEfficiency = {
+        'petrol': 15, // km/liter
+        'diesel': 18, // km/liter
+        'cng': 25,    // km/kg
+        'electric': 0 // no fuel cost
+      };
+
+      const fuelPrices = {
+        'petrol': 100,  // ₹/liter
+        'diesel': 90,   // ₹/liter
+        'cng': 85,      // ₹/kg
+        'electric': 0   // ₹/kWh (no fuel cost)
+      };
+
+      const efficiency = fuelEfficiency[vehicle.fuelType] || 15;
+      const fuelPrice = fuelPrices[vehicle.fuelType] || 100;
+
+      if (efficiency > 0) {
+        const fuelRequired = distance / efficiency;
+        fuelCharges = Math.round(fuelRequired * fuelPrice);
+      }
+    }
+
+    // 3. Calculate KM Limits and Excess Charges
+    let kmLimit = null;
+    if (vehicle.pricingReference?.category === 'auto') {
+      kmLimit = 50;
+    } else if (vehicle.pricingReference?.category === 'car') {
+      kmLimit = 100;
+    } else if (vehicle.pricingReference?.category === 'bus') {
+      kmLimit = 200;
+    }
+
+    if (kmLimit && distance > kmLimit) {
+      const excessKm = distance - kmLimit;
+      const excessRate = Math.round(ratePerKm * 1.5); // 150% of base rate for excess
+      excessKmCharges = excessKm * excessRate;
+    }
+
+    // 4. Calculate Additional Pickup/Drop Charges (₹200 per additional stop)
+    const additionalPickups = req.body.additionalPickups || 0;
+    if (additionalPickups > 0) {
+      additionalPickupCharges = additionalPickups * 200;
+    }
+
+    // Base fare is only distance × rate (as per user requirement)
+    // Additional charges are for display only, not included in GST calculation
+
+    // 5. Calculate GST (5% only on base fare - distance × rate)
+    const gstAmount = Math.round(totalAmount * 0.05);
+    const finalAmount = totalAmount + gstAmount;
+
     // Keep exact amount without rounding to avoid extra charges
     // totalAmount remains as calculated
     ratePerKm = Math.round(ratePerKm); // Only round rate for display purposes
@@ -283,7 +362,10 @@ const createBooking = asyncHandler(async (req, res) => {
     data: {
       bookingId: booking._id,
       bookingNumber: booking.bookingNumber,
-      totalAmount: booking.pricing.totalAmount,
+      totalAmount: finalAmount, // Include GST in total amount
+      baseAmount: totalAmount, // Base amount before GST
+      gstAmount: gstAmount,
+      gstPercentage: 5,
       status: booking.status
     }
   });

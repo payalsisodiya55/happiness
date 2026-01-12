@@ -151,9 +151,11 @@ export const getConsistentVehiclePrice = async (
       console.log(`✅ [CONSISTENT] Found VehiclePricing for model ${vehicle.model}:`, vehiclePricing);
       console.log(`🚗 [CONSISTENT] vehiclepricings.vehicleModel:`, vehiclePricing.vehicleModel);
 
-      // Use simple calculation: distance × base_rate (use 50km rate as base rate for all distances)
+      // Use simple calculation: distance × base_rate, then add GST only on base fare
       const baseRate = vehiclePricing.distancePricing['50km'] || 102;
-      const totalPrice = tripDistance * baseRate; // No rounding to avoid extra amounts
+      const baseFare = tripDistance * baseRate;
+      const gstAmount = Math.round(baseFare * 0.05);
+      const totalPrice = baseFare + gstAmount; // Base fare + GST (fuel charges not included)
 
       console.log(`💰 [CONSISTENT] Simple calculation: ${baseRate}/km × ${tripDistance}km = ₹${totalPrice}`);
       console.log(`📊 [CONSISTENT] Using base rate ${baseRate}/km for all distances`);

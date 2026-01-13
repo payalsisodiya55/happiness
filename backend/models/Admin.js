@@ -56,6 +56,40 @@ const AdminSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  revenue: {
+    totalRevenue: {
+      type: Number,
+      default: 0
+    },
+    commissionFromDrivers: {
+      type: Number,
+      default: 0
+    },
+    transactions: [{
+      type: {
+        type: String,
+        enum: ['commission', 'penalty', 'other'],
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true
+      },
+      description: String,
+      driverId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Driver'
+      },
+      bookingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Booking'
+      },
+      date: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
   activityLog: [{
     action: {
       type: String,
@@ -157,6 +191,31 @@ AdminSchema.methods.logActivity = function(action, description, ipAddress, userA
 // Update last login
 AdminSchema.methods.updateLastLogin = function() {
   this.lastLogin = new Date();
+  return this.save();
+};
+
+// Add revenue from commission
+AdminSchema.methods.addRevenue = function(amount, type, description, driverId = null, bookingId = null) {
+  this.revenue.totalRevenue += amount;
+
+  if (type === 'commission') {
+    this.revenue.commissionFromDrivers += amount;
+  }
+
+  this.revenue.transactions.push({
+    type,
+    amount,
+    description,
+    driverId,
+    bookingId,
+    date: new Date()
+  });
+
+  // Keep only last 1000 revenue transactions
+  if (this.revenue.transactions.length > 1000) {
+    this.revenue.transactions = this.revenue.transactions.slice(-1000);
+  }
+
   return this.save();
 };
 

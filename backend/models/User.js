@@ -161,6 +161,10 @@ const UserSchema = new mongoose.Schema({
       }
     }]
   },
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Vehicle'
+  }],
   isTestUser: {
     type: Boolean,
     default: false

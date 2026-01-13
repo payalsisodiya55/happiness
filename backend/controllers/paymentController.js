@@ -91,6 +91,12 @@ const testRazorpayConfig = asyncHandler(async (req, res) => {
 const createRazorpayOrder = asyncHandler(async (req, res) => {
   const { amount, currency = 'INR', receipt, notes } = req.body;
 
+  // Get the current user (could be user or driver)
+  const currentUser = req.user || req.driver;
+  if (!currentUser) {
+    return res.status(401).json({ success: false, message: 'User not authenticated' });
+  }
+
   try {
     const orderData = {
       amount,
@@ -98,8 +104,9 @@ const createRazorpayOrder = asyncHandler(async (req, res) => {
       receipt: receipt || `receipt_${Date.now()}`,
       notes: {
         ...notes,
-        userId: req.user.id,
-        userEmail: req.user.email,
+        userId: currentUser.id || currentUser._id,
+        userEmail: currentUser.email || 'N/A',
+        userType: req.driver ? 'driver' : 'user',
         timestamp: new Date().toISOString(),
       },
     };
@@ -128,12 +135,17 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
     if (!currentUser) {
         return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
-    
+
     console.log('=== PAYMENT VERIFICATION START ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('req.user exists:', !!req.user);
+    console.log('req.driver exists:', !!req.driver);
+    console.log('currentUser type:', currentUser.constructor.name);
+    console.log('currentUser._id:', currentUser._id);
     console.log('User/Driver ID:', currentUser.id);
     console.log('User Role:', req.driver ? 'driver' : 'user');
     console.log('Headers:', req.headers);
+    console.log('Authorization header:', req.headers.authorization);
     
     // Debug the amount specifically
     console.log('=== AMOUNT DEBUG ===');
@@ -464,19 +476,55 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
     } else if (paymentType === 'wallet_recharge') {
        // Handle Wallet Recharge
        console.log('Processing Wallet Recharge...');
+       console.log('req.driver exists:', !!req.driver);
+       console.log('req.user exists:', !!req.user);
+       console.log('currentUser:', currentUser ? currentUser._id : 'null');
+       console.log('currentUser has earnings field:', currentUser ? !!currentUser.earnings : 'N/A');
+       console.log('currentUser has wallet field:', currentUser ? !!currentUser.wallet : 'N/A');
+
        try {
-           if (req.driver) {
-               // Update Driver Wallet using the driver model method
-               await req.driver.addEarnings(amountInRupees, `Wallet Recharge (Txn: ${razorpayPaymentId})`);
-               console.log(`Driver ${req.driver.firstName} wallet credited with ₹${amountInRupees}`);
+           // Check if this is a driver by looking for earnings field or by checking the model
+           const isDriver = req.driver || (currentUser && currentUser.earnings && !currentUser.wallet);
+
+           if (isDriver) {
+               console.log('Identified as driver payment');
+               let driver = req.driver;
+
+               // If req.driver is not set but currentUser has earnings, it's a driver
+               if (!driver && currentUser.earnings) {
+                   console.log('Using currentUser as driver');
+                   driver = currentUser;
+               }
+
+               if (driver) {
+                   // Update Driver Wallet using the driver model method
+               console.log('Updating driver wallet for:', driver._id);
+               // Ensure earnings.wallet exists
+               if (!driver.earnings) driver.earnings = {};
+               if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+               if (!driver.earnings.wallet.balance) driver.earnings.wallet.balance = 0;
+               if (!driver.earnings.wallet.transactions) driver.earnings.wallet.transactions = [];
+
+               await driver.addEarnings(amountInRupees, `Wallet Recharge (Txn: ${razorpayPaymentId})`);
+               console.log(`Driver ${driver.firstName} wallet credited with ₹${amountInRupees}`);
+
+               // Check if driver wallet is now above ₹1000 and set online
+               if (driver.earnings.wallet.balance >= 1000 && !driver.availability.isOnline) {
+                 driver.availability.isOnline = true;
+                 driver.lastStatusChange = new Date();
+                 await driver.save();
+                 console.log(`Driver ${driver.firstName} automatically set online after wallet recharge`);
+                   }
+               }
            } else if (req.user) {
                // Update User Wallet
+               console.log('Updating user wallet for:', req.user._id);
                const user = await User.findById(req.user.id);
                if (user) {
                    if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
                    if (!user.wallet.balance) user.wallet.balance = 0;
                    if (!user.wallet.transactions) user.wallet.transactions = [];
-                   
+
                    user.wallet.balance += amountInRupees;
                    user.wallet.transactions.push({
                        type: 'credit',
@@ -487,6 +535,58 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
                    });
                    await user.save();
                    console.log(`User ${user.firstName} wallet credited with ₹${amountInRupees}`);
+               }
+           } else {
+               // Fallback: Try to find driver by currentUser ID if it's not set in req.driver
+               console.log('No driver/user wallet update logic triggered, trying fallback');
+               if (currentUser) {
+                   // Check if currentUser is a driver (has earnings field)
+                   if (currentUser.earnings) {
+                       console.log('currentUser has earnings, treating as driver');
+                       const driver = currentUser;
+                       // Ensure earnings.wallet exists
+                       if (!driver.earnings) driver.earnings = {};
+                       if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+                       if (!driver.earnings.wallet.balance) driver.earnings.wallet.balance = 0;
+                       if (!driver.earnings.wallet.transactions) driver.earnings.wallet.transactions = [];
+
+                       await driver.addEarnings(amountInRupees, `Wallet Recharge (Txn: ${razorpayPaymentId})`);
+                       console.log(`Driver ${driver.firstName} wallet credited with ₹${amountInRupees}`);
+
+                       // Check if driver wallet is now above ₹1000 and set online
+                       if (driver.earnings.wallet.balance >= 1000 && !driver.availability.isOnline) {
+                         driver.availability.isOnline = true;
+                         driver.lastStatusChange = new Date();
+                         await driver.save();
+                         console.log(`Driver ${driver.firstName} automatically set online after wallet recharge`);
+                       }
+                   } else {
+                       // Try to find driver by ID
+                       const driver = await Driver.findById(currentUser._id);
+                       if (driver) {
+                           console.log('Found driver by currentUser ID, updating wallet');
+                           // Ensure earnings.wallet exists
+                           if (!driver.earnings) driver.earnings = {};
+                           if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+                           if (!driver.earnings.wallet.balance) driver.earnings.wallet.balance = 0;
+                           if (!driver.earnings.wallet.transactions) driver.earnings.wallet.transactions = [];
+
+                           await driver.addEarnings(amountInRupees, `Wallet Recharge (Txn: ${razorpayPaymentId})`);
+                           console.log(`Driver ${driver.firstName} wallet credited with ₹${amountInRupees}`);
+
+                           // Check if driver wallet is now above ₹1000 and set online
+                           if (driver.earnings.wallet.balance >= 1000 && !driver.availability.isOnline) {
+                             driver.availability.isOnline = true;
+                             driver.lastStatusChange = new Date();
+                             await driver.save();
+                             console.log(`Driver ${driver.firstName} automatically set online after wallet recharge`);
+                           }
+                       } else {
+                           console.error('Could not find driver for wallet recharge');
+                       }
+                   }
+               } else {
+                   console.error('No authenticated user/driver found for wallet recharge');
                }
            }
        } catch (walletError) {

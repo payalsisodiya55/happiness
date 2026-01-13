@@ -81,10 +81,22 @@ const updateLocation = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const toggleStatus = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id);
-  
+
+  // Check wallet balance before allowing driver to go online
+  if (!driver.availability.isOnline && driver.earnings?.wallet?.balance < 1000) {
+    return res.status(400).json({
+      success: false,
+      message: 'Insufficient wallet balance. Minimum ₹1000 required to go online.',
+      data: {
+        currentBalance: driver.earnings?.wallet?.balance || 0,
+        requiredBalance: 1000
+      }
+    });
+  }
+
   driver.availability.isOnline = !driver.availability.isOnline;
   driver.lastStatusChange = new Date();
-  
+
   // Update vehicle availability in driver details
   if (driver.vehicleDetails) {
     driver.vehicleDetails.isAvailable = driver.availability.isOnline;

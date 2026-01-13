@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import VehicleApiService from '../services/vehicleApi';
+import favoritesApi from '../services/favoritesApi';
 import { getConsistentVehiclePrice } from '../utils/pricingUtils';
 
 // Import assets
@@ -60,29 +61,58 @@ const MobileHome = () => {
     fetchCars();
   }, []);
 
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('vehicle_favorites');
-    if (saved) {
-      try {
-        return new Set(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse favorites from local storage", e);
-      }
-    }
-    return new Set();
-  });
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  const toggleFavorite = (carId: string) => {
+  // Load favorites from database on mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const userFavorites = await favoritesApi.getUserFavorites();
+        const favoriteIds = userFavorites.map((car: any) => car._id);
+        setFavorites(new Set(favoriteIds));
+      } catch (error) {
+        console.error('Failed to load favorites:', error);
+        // Fallback to empty set if API fails
+        setFavorites(new Set());
+      }
+    };
+
+    loadFavorites();
+  }, []);
+
+  const toggleFavorite = async (carId: string) => {
+    const isCurrentlyFavorite = favorites.has(carId);
+
+    // Optimistically update UI
     setFavorites(prev => {
       const newFavorites = new Set(prev);
-      if (newFavorites.has(carId)) {
+      if (isCurrentlyFavorite) {
         newFavorites.delete(carId);
       } else {
         newFavorites.add(carId);
       }
-      localStorage.setItem('vehicle_favorites', JSON.stringify(Array.from(newFavorites)));
       return newFavorites;
     });
+
+    try {
+      if (isCurrentlyFavorite) {
+        await favoritesApi.removeFromFavorites(carId);
+      } else {
+        await favoritesApi.addToFavorites(carId);
+      }
+    } catch (error) {
+      // If API call fails, revert the optimistic update
+      console.error('Failed to toggle favorite:', error);
+      setFavorites(prev => {
+        const newFavorites = new Set(prev);
+        if (isCurrentlyFavorite) {
+          newFavorites.add(carId);
+        } else {
+          newFavorites.delete(carId);
+        }
+        return newFavorites;
+      });
+    }
   };
 
   const handleSearch = () => {

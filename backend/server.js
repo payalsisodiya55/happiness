@@ -19,6 +19,7 @@ const adminPaymentRoutes = require('./routes/adminPayment');
 const vehiclePricingRoutes = require('./routes/vehiclePricing');
 const offerRoutes = require('./routes/offers');
 const mapsRoutes = require('./routes/maps');
+const favoritesRoutes = require('./routes/favorites');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
@@ -118,6 +119,7 @@ app.use('/api/admin/payments', adminPaymentRoutes);
 app.use('/api/vehicle-pricing', vehiclePricingRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/maps', mapsRoutes);
+app.use('/api/favorites', favoritesRoutes);
 
 
 

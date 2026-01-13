@@ -1,20 +1,16 @@
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Avatar } from "../components/ui/avatar";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
-import { 
-  User, 
-  Home, 
-  Settings, 
-  LogOut, 
-  Phone, 
+import {
+  User,
+  Home,
+  Settings,
+  LogOut,
+  Phone,
   Mail,
   ChevronRight,
   Shield,
   Bell,
-  Camera,
   Edit3,
   FileText,
   Heart
@@ -39,7 +35,21 @@ const Profile = () => {
     avatar: "https://github.com/shadcn.png"
   });
 
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
+  // Function to get initials from user name
+  const getInitials = (name: string) => {
+    if (!name || name.trim() === '') return 'U'; // Default to 'U' for User
+
+    const nameParts = name.trim().split(' ').filter(part => part.length > 0);
+    if (nameParts.length === 1) {
+      // Single name, take first two letters
+      return nameParts[0].substring(0, 2).toUpperCase();
+    } else if (nameParts.length >= 2) {
+      // Multiple names, take first letter of first and last name
+      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+    }
+    return 'U';
+  };
 
   // Update user profile when user data changes
   useEffect(() => {
@@ -64,20 +74,6 @@ const Profile = () => {
     navigate('/');
   };
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUserProfile({
-          ...userProfile,
-          avatar: e.target?.result as string
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-    setIsPhotoModalOpen(false);
-  };
 
   const profileOptions = [
     {
@@ -187,52 +183,11 @@ const Profile = () => {
             <Card className="p-6 sm:p-8 border-none shadow-lg bg-white rounded-xl">
               <div className={`flex ${isMobile ? 'flex-col space-y-6' : 'items-start space-x-8'}`}>
                 <div className="relative flex justify-center sm:justify-start">
-                  <div className="relative">
-                    <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-white shadow-xl">
-                      <img src={userProfile.avatar} alt={userProfile.name} className="object-cover" />
-                    </Avatar>
-                    <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          className="absolute bottom-0 right-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#f48432] hover:bg-[#d66e22] text-white p-0 border-2 border-white shadow-md transition-all hover:scale-105"
-                        >
-                          <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="w-[95vw] max-w-md mx-auto">
-                        <DialogHeader>
-                          <DialogTitle>Change Profile Photo</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="text-center">
-                            <Avatar className="w-24 h-24 mx-auto mb-4 border-2 border-dashed border-gray-200">
-                              <img src={userProfile.avatar} alt={userProfile.name} />
-                            </Avatar>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Choose a new profile photo
-                            </p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="photo-upload" className="cursor-pointer">
-                              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-[#f48432] hover:bg-orange-50/50 transition-colors">
-                                <Camera className="w-8 h-8 mx-auto mb-2 text-[#212c4050]" />
-                                <p className="text-sm font-medium text-[#212c40]">Click to upload photo</p>
-                                <p className="text-xs text-muted-foreground">JPG, PNG up to 5MB</p>
-                              </div>
-                            </Label>
-                            <Input
-                              id="photo-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handlePhotoChange}
-                              className="hidden"
-                            />
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-white shadow-xl bg-[#f48432] text-white flex items-center justify-center">
+                    <span className="text-xl sm:text-2xl font-bold">
+                      {getInitials(userProfile.name)}
+                    </span>
+                  </Avatar>
                 </div>
 
                 <div className={`flex-1 text-center sm:text-left ${isMobile ? 'space-y-4' : 'pt-2 space-y-3'}`}>

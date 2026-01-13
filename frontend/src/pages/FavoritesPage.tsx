@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import VehicleApiService from '@/services/vehicleApi';
+import favoritesApi from '@/services/favoritesApi';
 import { getConsistentVehiclePrice } from '@/utils/pricingUtils';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -19,53 +20,32 @@ const vehicleApi = new VehicleApiService(
 const FavoritesPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [favoriteCars, setFavoriteCars] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load favorites from local storage on mount
+  // Fetch user favorites from database
   useEffect(() => {
-    const storedFavorites = localStorage.getItem('vehicle_favorites');
-    if (storedFavorites) {
-      try {
-        const parsed = JSON.parse(storedFavorites);
-        setFavorites(new Set(parsed));
-      } catch (e) {
-        console.error("Failed to parse favorites", e);
-      }
-    }
-  }, []);
-
-  // Fetch car details for favorites
-  useEffect(() => {
-    const fetchFavoriteCars = async () => {
-      if (favorites.size === 0) {
-        setFavoriteCars([]);
-        setIsLoading(false);
-        return;
-      }
-
+    const fetchUserFavorites = async () => {
       setIsLoading(true);
       try {
-        // We'll fetch all cars for now since we don't have a "get by ids" endpoint easily exposes
-        // Optimized approach would be to have an endpoint like GET /vehicles?ids=...
-        // For now, let's fetch a larger list and filter locally or fetch individually (inefficient but works for small numbers)
-        
-        // Better approach: Fetch individual cars if count is small, or search with a filter
-        const promises = Array.from(favorites).map(id => vehicleApi.getVehicleById(id));
-        const responses = await Promise.all(promises);
-        
-        const cars = await Promise.all(responses.map(async (res: any) => {
-            if (res.success && res.data) {
-                const car = res.data;
-                 const price = await getConsistentVehiclePrice(car, new Date().toISOString());
-                 return { ...car, displayPrice: price };
-            }
-            return null;
-        }));
-        
-        setFavoriteCars(cars.filter(c => c !== null));
+        const favorites = await favoritesApi.getUserFavorites();
 
+        if (favorites && favorites.length > 0) {
+          // Get pricing for each favorite vehicle
+          const carsWithPricing = await Promise.all(favorites.map(async (car: any) => {
+            try {
+              const price = await getConsistentVehiclePrice(car, new Date().toISOString());
+              return { ...car, displayPrice: price };
+            } catch (error) {
+              console.error('Error getting price for car:', car._id, error);
+              return { ...car, displayPrice: car.pricingReference?.basePrice || 0 };
+            }
+          }));
+
+          setFavoriteCars(carsWithPricing);
+        } else {
+          setFavoriteCars([]);
+        }
       } catch (error) {
         console.error('Failed to fetch favorite cars:', error);
         toast({
@@ -73,27 +53,46 @@ const FavoritesPage = () => {
           title: "Error",
           description: "Failed to load favorite cars.",
         });
+        setFavoriteCars([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchFavoriteCars();
-  }, [favorites]);
+    fetchUserFavorites();
+  }, []);
 
-  const removeFavorite = (carId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      newFavorites.delete(carId);
-      localStorage.setItem('vehicle_favorites', JSON.stringify(Array.from(newFavorites)));
-      return newFavorites;
-    });
-    // Optimistically remove from view
-    setFavoriteCars(prev => prev.filter(c => c._id !== carId));
-    
-    toast({
-        description: "Removed from favorites",
-    });
+  const removeFavorite = async (carId: string) => {
+    try {
+      // Optimistically remove from view first
+      setFavoriteCars(prev => prev.filter(c => c._id !== carId));
+
+      // Then remove from database
+      await favoritesApi.removeFromFavorites(carId);
+
+      // If successful, the toast is already shown in the API service
+    } catch (error) {
+      // If API call fails, add the car back to the list
+      console.error('Failed to remove from favorites:', error);
+      setFavoriteCars(prev => {
+        // Re-fetch favorites to ensure consistency
+        const fetchUpdatedFavorites = async () => {
+          try {
+            const favorites = await favoritesApi.getUserFavorites();
+            const carsWithPricing = await Promise.all(favorites.map(async (car: any) => {
+              const price = await getConsistentVehiclePrice(car, new Date().toISOString());
+              return { ...car, displayPrice: price };
+            }));
+            return carsWithPricing;
+          } catch (err) {
+            console.error('Failed to re-fetch favorites:', err);
+            return prev;
+          }
+        };
+        fetchUpdatedFavorites();
+        return prev;
+      });
+    }
   };
 
   const getCarImage = (car: any) => {

@@ -159,7 +159,7 @@ router.delete('/users/bulk', [
 // Driver management routes
 router.get('/drivers', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be between 1 and 1000'),
   query('search').optional().isString().withMessage('Search must be a string'),
   query('status').optional().isIn(['active', 'inactive', 'suspended', 'pending', 'verified']).withMessage('Invalid status'),
   query('isOnline').optional().isIn(['true', 'false']).withMessage('isOnline must be true or false'),

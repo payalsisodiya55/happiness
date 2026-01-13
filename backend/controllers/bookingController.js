@@ -250,10 +250,6 @@ const createBooking = asyncHandler(async (req, res) => {
     // Base fare is only distance × rate (as per user requirement)
     // Additional charges are for display only, not included in GST calculation
 
-    // 5. Calculate GST (5% only on base fare - distance × rate)
-    const gstAmount = Math.round(totalAmount * 0.05);
-    const finalAmount = totalAmount + gstAmount;
-
     // Keep exact amount without rounding to avoid extra charges
     // totalAmount remains as calculated
     ratePerKm = Math.round(ratePerKm); // Only round rate for display purposes
@@ -291,6 +287,10 @@ const createBooking = asyncHandler(async (req, res) => {
       message: 'Error calculating fare. Please try again or contact support.'
     });
   }
+
+  // Calculate GST (5% only on base fare - distance × rate)
+  const gstAmount = Math.round(totalAmount * 0.05);
+  const finalAmount = totalAmount + gstAmount;
 
   // Determine if this is a partial payment booking (bus/car with cash method)
   const isPartialPayment = (vehicle.pricingReference?.category !== 'auto' && paymentMethod === 'cash');
@@ -1166,6 +1166,8 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 // @route   PUT /api/bookings/:id/collect-cash-payment
 // @access  Private (Driver only)
 const collectCashPayment = asyncHandler(async (req, res) => {
+  const Driver = require('../models/Driver');
+  const Admin = require('../models/Admin');
   console.log('=== COLLECT CASH PAYMENT ===');
   console.log('Request params:', req.params);
   console.log('Request driver:', req.driver);
@@ -1227,6 +1229,65 @@ const collectCashPayment = asyncHandler(async (req, res) => {
   if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
     booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected') {
     booking.payment.status = 'completed';
+
+    // Deduct 20% commission from driver's wallet and add to admin revenue
+    const cashAmount = booking.payment.partialPaymentDetails.cashAmount;
+    const commissionAmount = Math.round(cashAmount * 0.2); // 20% commission
+
+    console.log(`Processing commission: ₹${commissionAmount} from cash amount ₹${cashAmount}`);
+
+    try {
+      // Get the driver and deduct commission from wallet
+      const driver = await Driver.findById(req.driver.id);
+      if (driver) {
+        // Ensure wallet exists
+        if (!driver.earnings) driver.earnings = {};
+        if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+
+        // Check if driver has sufficient balance
+        if (driver.earnings.wallet.balance >= commissionAmount) {
+          // Deduct from driver wallet
+          driver.earnings.wallet.balance -= commissionAmount;
+          driver.earnings.wallet.transactions.push({
+            type: 'debit',
+            amount: commissionAmount,
+            description: `Commission for booking ${booking._id}`,
+            date: new Date()
+          });
+
+          await driver.save();
+          console.log(`Deducted ₹${commissionAmount} commission from driver ${driver.firstName}'s wallet`);
+
+          // Add to admin revenue
+          const admin = await Admin.findOne({ isActive: true }); // Get first active admin
+          if (admin) {
+            await admin.addRevenue(
+              commissionAmount,
+              'commission',
+              `Commission from driver ${driver.firstName} for booking ${booking._id}`,
+              driver._id,
+              booking._id
+            );
+            console.log(`Added ₹${commissionAmount} to admin revenue`);
+          }
+
+          // Check if driver wallet is below ₹1000 and set offline
+          if (driver.earnings.wallet.balance < 1000) {
+            driver.availability.isOnline = false;
+            driver.lastStatusChange = new Date();
+            await driver.save();
+            console.log(`Driver ${driver.firstName} automatically set offline due to low wallet balance`);
+          }
+        } else {
+          console.error(`Driver ${req.driver.firstName} has insufficient balance for commission deduction`);
+        }
+      } else {
+        console.error('Driver not found for commission processing');
+      }
+    } catch (commissionError) {
+      console.error('Error processing commission:', commissionError);
+      // Don't fail the payment collection if commission processing fails
+    }
   }
 
   await booking.save();

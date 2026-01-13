@@ -52,6 +52,36 @@ const VEHICLE_CONFIGS = {
   }
 };
 
+interface DetailRowProps {
+  label: string;
+  value: string | number | undefined;
+  capitalize?: boolean;
+  isMono?: boolean;
+}
+
+const DetailRow = ({ label, value, capitalize, isMono }: DetailRowProps) => {
+  if (value === undefined || value === null || value === '') return null;
+  return (
+    <div className="flex justify-between items-center py-2 text-sm border-b border-gray-100 last:border-0 hover:bg-white px-2 rounded-lg transition-colors">
+      <span className="text-gray-500 font-medium">{label}</span>
+      <span className={`font-semibold text-gray-800 ${capitalize ? 'capitalize' : ''} ${isMono ? 'font-mono' : ''}`}>
+        {value}
+      </span>
+    </div>
+  );
+};
+
+const PricingCard = ({ label, amount, suffix = '', isMain = false }: { label: string; amount: number; suffix?: string; isMain?: boolean }) => (
+  <div className={`p-4 rounded-xl text-center border transition-all hover:shadow-md ${isMain ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
+    <div className={`text-xl font-bold ${isMain ? 'text-[#f48432]' : 'text-[#29354c]'}`}>
+      ₹{amount}{suffix}
+    </div>
+    <div className={`text-xs mt-1 font-medium ${isMain ? 'text-orange-700/70' : 'text-gray-500'}`}>
+      {label}
+    </div>
+  </div>
+);
+
 const DriverMyVehicle = () => {
   const navigate = useNavigate();
   const { driver, isLoggedIn } = useDriverAuth();
@@ -568,32 +598,43 @@ const DriverMyVehicle = () => {
 
       {/* Vehicle Details Modal */}
       <Dialog open={!!viewingVehicle} onOpenChange={() => setViewingVehicle(null)}>
-        <DialogContent className="w-[95vw] sm:max-w-4xl lg:max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <Car className="w-8 h-8 text-blue-600" />
-              {viewingVehicle?.brand} {viewingVehicle?.model} - Complete Details
+        <DialogContent className="w-[95vw] sm:max-w-4xl lg:max-w-6xl max-h-[90vh] p-0 flex flex-col gap-0 overflow-hidden bg-white">
+          <DialogHeader className="bg-[#29354c] text-white p-6 shrink-0 z-20 sticky top-0 flex flex-row items-center justify-between">
+            <DialogTitle className="text-xl font-bold flex items-center gap-3">
+              <Car className="w-6 h-6 text-[#f48432]" />
+              <span className="truncate">{viewingVehicle?.brand} {viewingVehicle?.model}</span>
             </DialogTitle>
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setViewingVehicle(null)} 
+                className="text-white/70 hover:text-white hover:bg-white/10 -mr-2 rounded-full"
+              >
+                <X className="h-6 w-6" />
+              </Button>
           </DialogHeader>
           
           {viewingVehicle && (
-            <div className="space-y-6">
-              {/* Vehicle Images Gallery */}
-              <div className="relative">
-                <div className="relative h-72 overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
+            <div className="space-y-8 p-6 overflow-y-auto custom-scrollbar">
+              {/* Vehicle Images Gallery - Premium Look */}
+              <div className="relative group">
+                <div className="relative h-64 sm:h-80 overflow-hidden rounded-2xl bg-gray-100 shadow-inner">
                   {viewingVehicle.images && viewingVehicle.images.length > 0 ? (
-                    <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${detailImageIndex * 100}%)` }}>
+                    <div className="flex h-full transition-transform duration-500 ease-out" style={{ transform: `translateX(-${detailImageIndex * 100}%)` }}>
                       {viewingVehicle.images.map((image, index) => (
-                        <img 
-                          key={image._id}
-                          src={image.url} 
-                          alt={`${viewingVehicle.brand} ${viewingVehicle.model} - Image ${index + 1}`}
-                          className="w-full h-72 object-contain flex-shrink-0 bg-gray-50"
-                        />
+                        <div key={image._id} className="min-w-full h-full flex items-center justify-center bg-gray-100">
+                           <img 
+                            src={image.url} 
+                            alt={`${viewingVehicle.brand} ${viewingVehicle.model} - Image ${index + 1}`}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <PlaceholderImage vehicleType={viewingVehicle.type} />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                       <PlaceholderImage vehicleType={viewingVehicle.type} className="opacity-50" />
+                    </div>
                   )}
                   
                   {/* Image Navigation */}
@@ -601,190 +642,112 @@ const DriverMyVehicle = () => {
                     <>
                       <button
                         onClick={() => handleDetailImageNavigation('prev')}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-black/70 text-white p-2 rounded-full hover:bg-black/90 transition-all duration-300 hover:scale-110 z-10"
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-white/40 transition-all border border-white/20 opacity-0 group-hover:opacity-100"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleDetailImageNavigation('next')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-black/70 text-white p-2 rounded-full hover:bg-black/90 transition-all duration-300 hover:scale-110 z-10"
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-white/40 transition-all border border-white/20 opacity-0 group-hover:opacity-100"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
                       
-                      {/* Image Counter */}
-                      <div className="absolute top-3 left-3 z-10">
-                        <Badge className="bg-black/80 text-white text-xs px-2 py-1 rounded-full">
-                          {detailImageIndex + 1} / {viewingVehicle.images.length}
-                        </Badge>
+                      {/* Image Indicators */}
+                       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+                        {viewingVehicle.images.map((_, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-1.5 rounded-full transition-all duration-300 ${idx === detailImageIndex ? 'w-6 bg-[#f48432]' : 'w-1.5 bg-gray-300'}`}
+                          />
+                        ))}
                       </div>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Vehicle Information Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Grid Layout for Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Basic Information</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 px-3 bg-blue-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Brand & Model</span>
-                      <span className="font-semibold text-gray-800">{viewingVehicle.brand} {viewingVehicle.model}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-green-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Type</span>
-                      <span className="font-semibold text-gray-800 capitalize">{viewingVehicle.type}</span>
-                    </div>
-                    {viewingVehicle.year && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-purple-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Year</span>
-                        <span className="font-semibold text-gray-800">{viewingVehicle.year}</span>
-                      </div>
-                    )}
-                    {viewingVehicle.color && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-orange-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Color</span>
-                        <span className="font-semibold text-gray-800">{viewingVehicle.color}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center py-2 px-3 bg-red-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Fuel Type</span>
-                      <span className="font-semibold text-gray-800 capitalize">{viewingVehicle.fuelType}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-yellow-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Seating Capacity</span>
-                      <span className="font-semibold text-gray-800">{viewingVehicle.seatingCapacity} passengers</span>
-                    </div>
-                  </div>
+                <div>
+                   <h3 className="text-[#29354c] font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                      <div className="w-1 h-5 bg-[#f48432] rounded-full"></div>
+                      Basic Info
+                   </h3>
+                   <div className="bg-gray-50/50 rounded-xl p-4 space-y-3 border border-gray-100">
+                      <DetailRow label="Type" value={viewingVehicle.type} capitalize />
+                      <DetailRow label="Year" value={viewingVehicle.year} />
+                      <DetailRow label="Color" value={viewingVehicle.color} />
+                      <DetailRow label="Fuel Type" value={viewingVehicle.fuelType} capitalize />
+                      <DetailRow label="Seating" value={`${viewingVehicle.seatingCapacity} Passengers`} />
+                   </div>
                 </div>
 
-                {/* Technical Details */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Technical Details</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Registration Number</span>
-                      <span className="font-mono font-semibold text-gray-800 text-sm">{viewingVehicle.registrationNumber}</span>
-                    </div>
-                    {viewingVehicle.transmission && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Transmission</span>
-                        <span className="font-semibold text-gray-800 capitalize">{viewingVehicle.transmission}</span>
+                {/* Technical / Status */}
+                <div>
+                   <h3 className="text-[#29354c] font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                      <div className="w-1 h-5 bg-[#f48432] rounded-full"></div>
+                      Technical & Stats
+                   </h3>
+                   <div className="bg-gray-50/50 rounded-xl p-4 space-y-3 border border-gray-100">
+                      <DetailRow label="Reg. Number" value={viewingVehicle.registrationNumber} isMono />
+                      <DetailRow label="Transmission" value={viewingVehicle.transmission} capitalize />
+                      {viewingVehicle.mileage && <DetailRow label="Mileage" value={`${viewingVehicle.mileage} km/l`} />}
+                       <div className="flex justify-between items-center py-2 text-sm">
+                        <span className="text-gray-500 font-medium">Status</span>
+                        <Badge className={`${viewingVehicle.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} hover:bg-opacity-100 border-none px-2.5`}>
+                           {viewingVehicle.isAvailable ? 'Available' : 'Unavailable'}
+                        </Badge>
                       </div>
-                    )}
-                    {viewingVehicle.engineCapacity && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Engine Capacity</span>
-                        <span className="font-semibold text-gray-800">{viewingVehicle.engineCapacity}cc</span>
-                      </div>
-                    )}
-                    {viewingVehicle.mileage && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Mileage</span>
-                        <span className="font-semibold text-gray-800">{viewingVehicle.mileage} km/l</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">AC</span>
-                      <span className="font-semibold text-gray-800">{viewingVehicle.isAc ? 'Yes' : 'No'}</span>
-                    </div>
-                    {viewingVehicle.isSleeper && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Sleeper</span>
-                        <span className="font-semibold text-gray-800">Yes</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status & Performance */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Status & Performance</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Status</span>
-                      <span className={`font-semibold ${viewingVehicle.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                        {viewingVehicle.isAvailable ? 'Available' : 'Unavailable'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600 font-medium">Verification</span>
-                      <span className={`font-semibold ${driver?.isVerified ? 'text-green-600' : 'text-orange-600'}`}>
-                        {driver?.isVerified ? 'Verified' : 'Pending'}
-                      </span>
-                    </div>
-                    {viewingVehicle.vehicleLocation?.address && (
-                      <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600 font-medium">Location</span>
-                        <span className="font-semibold text-gray-800 text-xs text-right max-w-[200px] truncate">{viewingVehicle.vehicleLocation.address}</span>
-                      </div>
-                    )}
-                    <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="text-lg font-bold text-blue-600">{viewingVehicle.statistics?.totalTrips || 0}</div>
-                      <div className="text-xs text-gray-600">Total Trips</div>
-                    </div>
-                  </div>
+                   </div>
                 </div>
               </div>
 
-              {/* Amenities */}
+               {/* Amenities */}
               {viewingVehicle.amenities && viewingVehicle.amenities.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Amenities</h3>
+                <div>
+                  <h3 className="text-[#29354c] font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                      <div className="w-1 h-5 bg-[#f48432] rounded-full"></div>
+                      Features & Amenities
+                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {viewingVehicle.amenities.map((amenity, index) => (
-                      <Badge key={index} className="bg-blue-100 text-blue-800 border border-blue-200 px-3 py-1">
-                        {amenity}
-                      </Badge>
+                      <div key={index} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-100 rounded-full shadow-sm text-sm text-gray-600">
+                        <CheckCircle className="w-3.5 h-3.5 text-[#f48432]" />
+                        <span className="capitalize">{amenity}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Pricing Information */}
+              {/* Pricing - If exists */}
               {viewingVehicle.computedPricing && (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Pricing Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                      <div className="text-2xl font-bold text-yellow-600">₹{viewingVehicle.computedPricing.autoPrice?.oneWay || 0}</div>
-                      <div className="text-sm text-gray-600">Base Price</div>
-                    </div>
-                    {viewingVehicle.computedPricing.category !== 'auto' && (
-                      <>
-                        <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
-                          <div className="text-2xl font-bold text-purple-600">₹{viewingVehicle.computedPricing.distancePricing?.oneWay?.['50km'] || 0}/km</div>
-                          <div className="text-sm text-gray-600">50km Rate</div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200">
-                          <div className="text-2xl font-bold text-green-600">₹{viewingVehicle.computedPricing.distancePricing?.oneWay?.['100km'] || 0}/km</div>
-                          <div className="text-sm text-gray-600">100km Rate</div>
-                        </div>
-                        <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
-                          <div className="text-2xl font-bold text-blue-600">₹{viewingVehicle.computedPricing.distancePricing?.oneWay?.['200km'] || 0}/km</div>
-                          <div className="text-sm text-gray-600">200km Rate</div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {viewingVehicle.computedPricing.category !== 'auto' && (
-                    <div className="text-xs text-gray-500 text-center">
-                      Distance-based pricing: 50km • 100km • 150km • 200km • 250km • 300km
-                    </div>
-                  )}
-                </div>
+                 <div>
+                   <h3 className="text-[#29354c] font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                      <div className="w-1 h-5 bg-[#f48432] rounded-full"></div>
+                      Pricing Structure
+                   </h3>
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <PricingCard 
+                        label="Base Price" 
+                        amount={viewingVehicle.computedPricing.autoPrice?.oneWay || 0} 
+                        isMain 
+                      />
+                      {viewingVehicle.computedPricing.category !== 'auto' && (
+                        <>
+                           <PricingCard label="50km Rate" amount={viewingVehicle.computedPricing.distancePricing?.oneWay?.['50km'] || 0} suffix="/km" />
+                           <PricingCard label="100km Rate" amount={viewingVehicle.computedPricing.distancePricing?.oneWay?.['100km'] || 0} suffix="/km" />
+                           <PricingCard label="200km Rate" amount={viewingVehicle.computedPricing.distancePricing?.oneWay?.['200km'] || 0} suffix="/km" />
+                        </>
+                      )}
+                   </div>
+                 </div>
               )}
-
-
-
-
             </div>
           )}
+
         </DialogContent>
       </Dialog>
 
@@ -1058,5 +1021,6 @@ const VehicleCard = ({
     </Card>
   );
 };
+
 
 export default DriverMyVehicle;

@@ -4,7 +4,7 @@ import DriverTopNavigation from "@/driver/components/DriverTopNavigation";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
 import DriverHeroSection from "@/driver/components/DriverHeroSection";
 import DriverAgreementForm from "@/driver/components/DriverAgreementForm";
-import { Home, MessageSquare, Car, User, LogOut, Loader2, Banknote, TrendingUp, Clock, Zap, Shield, Star } from "lucide-react";
+import { Home, MessageSquare, Car, User, LogOut, Loader2, Banknote, TrendingUp, Clock, Zap, Shield, Star, Wallet, Gift, ChevronRight, Target, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -339,16 +339,69 @@ const DriverHome = () => {
                   <span className="text-[10px] text-gray-600 font-medium text-center">Ratings</span>
                 </div>
 
-                {/* Support */}
+                {/* Wallet */}
                 <div 
+                  onClick={() => navigate('/driver/wallet')}
                   className="flex flex-col items-center cursor-pointer group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm">
-                    <Shield className="w-6 h-6 text-purple-600" />
+                    <Wallet className="w-6 h-6 text-purple-600" />
                   </div>
-                  <span className="text-[10px] text-gray-600 font-medium text-center">Support</span>
+                  <span className="text-[10px] text-gray-600 font-medium text-center">Wallet</span>
                 </div>
               </div>
+            {/* Quick Actions included above */}
+            </div>
+
+            {/* Refer & Earn Banner */}
+            <div className="mt-2" onClick={() => navigate('/driver/profile')}>
+               <div className="bg-gradient-to-r from-[#29354c] to-[#3a4860] rounded-2xl p-4 flex items-center justify-between shadow-lg relative overflow-hidden group cursor-pointer">
+                  {/* Decorative Elements */}
+                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
+                  <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-[#f48432]/20 rounded-full blur-xl"></div>
+                  
+                  <div className="relative z-10 flex-1">
+                     <div className="inline-flex items-center gap-1.5 bg-[#f48432]/20 text-[#f48432] text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 border border-[#f48432]/20">
+                        <Gift className="w-3 h-3" />
+                        <span>Referral Program</span>
+                     </div>
+                     <h3 className="text-white font-bold text-lg leading-tight mb-1">Invite & Earn ₹500</h3>
+                     <p className="text-gray-300 text-xs">Get rewarded for every driver you refer!</p>
+                  </div>
+                  <div className="relative z-10 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/10 group-hover:scale-105 transition-transform">
+                     <ChevronRight className="w-6 h-6 text-white" />
+                  </div>
+               </div>
+            </div>
+
+
+
+            {/* Driver Resources / Legal */}
+            <div>
+               <h3 className="font-bold text-[#29354c] mb-3 px-1 text-sm">Driver Resources</h3>
+               <div className="grid grid-cols-3 gap-3">
+                  <div 
+                     onClick={() => navigate('/driver/profile/legal/terms')}
+                     className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#29354c]/20 transition-colors"
+                  >
+                     <FileText className="w-5 h-5 text-gray-400" />
+                     <span className="text-[10px] font-medium text-gray-600">Terms</span>
+                  </div>
+                  <div 
+                     onClick={() => navigate('/driver/profile/legal/sla')}
+                     className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#29354c]/20 transition-colors"
+                  >
+                     <Shield className="w-5 h-5 text-gray-400" />
+                     <span className="text-[10px] font-medium text-gray-600">SLA</span>
+                  </div>
+                  <div 
+                     onClick={() => navigate('/driver/profile/legal/penalty')}
+                     className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#29354c]/20 transition-colors"
+                  >
+                     <FileText className="w-5 h-5 text-gray-400" />
+                     <span className="text-[10px] font-medium text-gray-600">Penalty</span>
+                  </div>
+               </div>
             </div>
 
             {/* Online/Offline Status Card bottom */}

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, X, Loader2, Car, Bus, AlertCircle, MapPin } from "lucide-react";
+import { Upload, X, Loader2, Car, Bus, AlertCircle, MapPin, User, FileText, Shield } from "lucide-react";
 import { CreateVehicleData, Vehicle, UpdateVehicleData } from "@/services/vehicleApi";
 import { getPricingForVehicle, VehiclePricing } from "@/services/vehiclePricingApi";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
@@ -85,10 +85,18 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
       address: '',
       city: '',
       state: ''
+    },
+    assignedDriver: {
+      name: '',
+      phoneNumber: ''
     }
   });
 
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [assignedDriverImage, setAssignedDriverImage] = useState<File | null>(null);
+  const [drivingLicense, setDrivingLicense] = useState<File | null>(null);
+  const [aadharCard, setAadharCard] = useState<File | null>(null);
+  const [driverImagePreview, setDriverImagePreview] = useState<string | null>(initial?.assignedDriver?.profilePicture || null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [existing, setExisting] = useState<(typeof existingImages[0] & { markDelete?: boolean })[]>(existingImages);
   const [fetchedPricing, setFetchedPricing] = useState<VehiclePricing | null>(null);
@@ -261,6 +269,10 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
         ...prev,
         ...initial,
         type: 'car',
+        assignedDriver: initial.assignedDriver || {
+          name: '',
+          phoneNumber: ''
+        }
       }));
       if (initial.type && initial.type === 'car') setSelectedVehicleCategory('car');
       setExisting(existingImages);
@@ -378,7 +390,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
       workingHoursStart: formData.workingHoursStart || '06:00',
       workingHoursEnd: formData.workingHoursEnd || '22:00',
       operatingCities: formData.operatingCities || [],
-      operatingStates: formData.operatingStates || []
+      operatingStates: formData.operatingStates || [],
+      assignedDriver: formData.assignedDriver
     };
     const deleteIds = existing.filter(e => e.markDelete).map(e => e._id);
     onSubmit(
@@ -1173,6 +1186,161 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
 
           </div>
 
+
+
+          {/* Assigned Driver Details */}
+          <div className="space-y-4">
+             <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-6 bg-[#212c40] rounded-full"></div>
+                <h3 className="text-lg font-semibold text-[#212c40]">Assigned Driver (Optional)</h3>
+             </div>
+             
+             <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-4">
+                {/* Driver Image Upload */}
+                <div className="flex items-center gap-4">
+                   <div className="relative group shrink-0">
+                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-white">
+                         {driverImagePreview ? (
+                           <img src={driverImagePreview} alt="Driver" className="w-full h-full object-cover" />
+                         ) : (
+                           <User className="w-8 h-8 text-gray-400" />
+                         )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('driverImageInput')?.click()}
+                        className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                         <Upload className="w-5 h-5 text-white" />
+                      </button>
+                      <input 
+                        id="driverImageInput"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                             setAssignedDriverImage(file);
+                             const reader = new FileReader();
+                             reader.onload = () => setDriverImagePreview(reader.result as string);
+                             reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                   </div>
+                   <div>
+                      <Label htmlFor="driverName" className="font-semibold text-[#29354c]">Driver Photo</Label>
+                      <p className="text-xs text-gray-500 mt-1">Upload a clear photo of the driver for identification.</p>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                      <Label htmlFor="driverName">Driver Name</Label>
+                      <Input 
+                        id="driverName"
+                        placeholder="e.g. Rahul Kumar"
+                        value={formData.assignedDriver?.name || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                           ...prev, 
+                           assignedDriver: { ...prev.assignedDriver!, name: e.target.value } 
+                        }))}
+                      />
+                   </div>
+                   <div>
+                      <Label htmlFor="driverPhone">Mobile Number</Label>
+                      <Input 
+                        id="driverPhone"
+                        placeholder="e.g. 9876543210"
+                        value={formData.assignedDriver?.phoneNumber || ''}
+                         onChange={(e) => setFormData(prev => ({ 
+                           ...prev, 
+                           assignedDriver: { ...prev.assignedDriver!, phoneNumber: e.target.value } 
+                        }))}
+                      />
+                   </div>
+                </div>
+
+                {/* Driver Documents */}
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-semibold text-[#212c40]">Driver Documents</h3>
+                  <div className="flex flex-col gap-4">
+                    {/* Driving License */}
+                    <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                      <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                           <FileText className="w-5 h-5 text-[#212c40]" />
+                         </div>
+                         <div>
+                           <p className="font-semibold text-[#212c40]">
+                             {drivingLicense ? "License Uploaded" : "Driving License Not Uploaded"}
+                           </p>
+                           <p className="text-xs text-gray-500">
+                             {drivingLicense ? drivingLicense.name : "Driving License"}
+                           </p>
+                         </div>
+                      </div>
+                      <div>
+                         <input
+                           id="licenseDocInput"
+                           type="file"
+                           accept="image/*,.pdf"
+                           className="hidden"
+                           onChange={(e) => {
+                             if (e.target.files?.[0]) setDrivingLicense(e.target.files[0]);
+                           }}
+                         />
+                         <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={() => document.getElementById('licenseDocInput')?.click()}
+                         >
+                           <Upload className="w-4 h-4 mr-2" /> Upload
+                         </Button>
+                      </div>
+                    </div>
+
+                    {/* Aadhar Card */}
+                     <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                      <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                           <Shield className="w-5 h-5 text-[#212c40]" />
+                         </div>
+                          <div>
+                           <p className="font-semibold text-[#212c40]">
+                             {aadharCard ? "Aadhar Card Uploaded" : "Aadhar Card Not Uploaded"}
+                           </p>
+                           <p className="text-xs text-gray-500">
+                             {aadharCard ? aadharCard.name : "Aadhar Card"}
+                           </p>
+                         </div>
+                      </div>
+                      <div>
+                         <input
+                           id="aadharDocInput"
+                           type="file"
+                           accept="image/*,.pdf"
+                           className="hidden"
+                           onChange={(e) => {
+                             if (e.target.files?.[0]) setAadharCard(e.target.files[0]);
+                           }}
+                         />
+                         <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={() => document.getElementById('aadharDocInput')?.click()}
+                         >
+                           <Upload className="w-4 h-4 mr-2" /> Upload
+                         </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+             </div>
+          </div>
 
           {/* Vehicle Images Upload */}
           <div className="space-y-4">

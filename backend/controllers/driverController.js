@@ -83,6 +83,7 @@ const toggleStatus = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id);
 
   // Check wallet balance before allowing driver to go online
+  // Check wallet balance before allowing driver to go online
   if (!driver.availability.isOnline && driver.earnings?.wallet?.balance < 1000) {
     return res.status(400).json({
       success: false,

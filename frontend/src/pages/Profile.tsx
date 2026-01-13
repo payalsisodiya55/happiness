@@ -267,27 +267,7 @@ const Profile = () => {
               </div>
             </Card>
 
-            {/* Download App */}
-            <Card className="hidden md:block p-4 border-none shadow-sm bg-gradient-to-r from-[#212c40] to-[#2c3b55] text-white rounded-xl">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white text-base sm:text-lg">Download App</h4>
-                  <p className="text-xs sm:text-sm text-white/70">Get the best experience </p>
-                </div>
-                <Button 
-                  className="bg-[#f48432] hover:bg-[#d66e22] text-white font-semibold border-none shadow-lg" 
-                  size="sm"
-                  onClick={() => window.open('https://play.google.com/store/apps/details?id=com.chalo.sawari', '_blank')}
-                >
-                  Download
-                </Button>
-              </div>
-            </Card>
+
 
             {/* App Version */}
             <div className="text-center pt-4 opacity-50">

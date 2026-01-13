@@ -93,6 +93,13 @@ interface VehicleStatistics {
 export interface Vehicle {
   _id: string;
   driver: string;
+  assignedDriver?: {
+    name: string;
+    phoneNumber: string;
+    profilePicture?: string;
+    drivingLicense?: string;
+    aadharCard?: string;
+  };
   type: 'bus' | 'car' | 'auto';
   brand: string;
   model?: string;
@@ -240,6 +247,13 @@ export interface CreateVehicleData {
   workingHoursEnd?: string;
   operatingCities?: string[];
   operatingStates?: string[];
+  assignedDriver?: {
+    name: string;
+    phoneNumber: string;
+    profilePicture?: string;
+    drivingLicense?: string;
+    aadharCard?: string;
+  };
 }
 
 export interface UpdateVehicleData extends Partial<CreateVehicleData> {}

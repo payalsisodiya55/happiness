@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, ChevronRight, Loader2 } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -229,9 +229,7 @@ const DriverWallet = () => {
           <div className="pb-6">
             <div className="flex justify-between items-center mb-4 px-1">
               <h3 className="text-lg font-bold text-[#29354c]">Recent Transactions</h3>
-              <Button variant="ghost" size="sm" className="text-[#f48432] hover:text-[#d9732a] hover:bg-orange-50 p-0 h-auto font-medium">
-                View All <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+
             </div>
             
             <div className="space-y-3">

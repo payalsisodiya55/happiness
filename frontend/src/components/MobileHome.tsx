@@ -13,6 +13,7 @@ import { getConsistentVehiclePrice } from '../utils/pricingUtils';
 // Import assets
 import carHero from '@/assets/CarHeroBanner.png';
 import happinessLogo from '@/assets/Happiness-logo-removebg-preview.png';
+import { ThemedDatePicker, ThemedTimePicker } from '@/components/ui/ThemedDatePickers';
 
 // Create vehicle API service instance
 const vehicleApi = new VehicleApiService(
@@ -189,7 +190,7 @@ const MobileHome = () => {
     <div className="bg-gray-50 min-h-screen pb-24">
       {/* 1. Curved Premium Header */}
       <div className="sticky top-0 z-20">
-          <div className="bg-[#212c40] px-6 pt-10 pb-44 rounded-b-[3rem] shadow-xl relative z-10">
+          <div className="bg-[#212c40] px-6 pt-6 pb-44 rounded-b-[3rem] shadow-xl relative z-10">
             {/* Top Row: Brand & Profile */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -285,11 +286,11 @@ const MobileHome = () => {
                       </div>
                       <div className="flex-1 relative min-w-0">
                           <label className="text-[8px] uppercase font-bold text-gray-400 tracking-wider block">Pickup Date</label>
-                          <input 
-                            type="date"
+                          <ThemedDatePicker 
                             value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="w-full bg-transparent border-none p-0 h-auto text-[10px] font-semibold text-[#212c40] focus:ring-0 outline-none"
+                            onChange={setDate}
+                            placeholder="Select Date"
+                            minDate={new Date()}
                           />
                       </div>
                    </div>
@@ -302,11 +303,11 @@ const MobileHome = () => {
                         </div>
                         <div className="flex-1 relative min-w-0">
                             <label className="text-[8px] uppercase font-bold text-gray-400 tracking-wider block">Return</label>
-                            <input 
-                              type="date"
+                            <ThemedDatePicker 
                               value={returnDate}
-                              onChange={(e) => setReturnDate(e.target.value)}
-                              className="w-full bg-transparent border-none p-0 h-auto text-[10px] font-semibold text-[#212c40] focus:ring-0 outline-none"
+                              onChange={setReturnDate}
+                              placeholder="Select Date"
+                              minDate={date ? new Date(date) : new Date()}
                             />
                         </div>
                      </div>
@@ -317,11 +318,10 @@ const MobileHome = () => {
                         </div>
                         <div className="flex-1 relative min-w-0">
                             <label className="text-[8px] uppercase font-bold text-gray-400 tracking-wider block">Time</label>
-                            <input 
-                              type="time"
+                            <ThemedTimePicker 
                               value={time}
-                              onChange={(e) => setTime(e.target.value)}
-                              className="w-full bg-transparent border-none p-0 h-auto text-[10px] font-semibold text-[#212c40] focus:ring-0 outline-none"
+                              onChange={setTime}
+                              placeholder="Select Time"
                             />
                         </div>
                      </div>
@@ -337,11 +337,10 @@ const MobileHome = () => {
                           </div>
                           <div className="flex-1 relative">
                               <label className="text-[8px] uppercase font-bold text-gray-400 tracking-wider">Pickup Time</label>
-                              <input 
-                                type="time"
+                              <ThemedTimePicker 
                                 value={time}
-                                onChange={(e) => setTime(e.target.value)}
-                                className="w-full bg-transparent border-none p-0 h-auto text-xs font-semibold text-[#212c40] focus:ring-0 outline-none"
+                                onChange={setTime}
+                                placeholder="Select Time"
                               />
                           </div>
                        </div>

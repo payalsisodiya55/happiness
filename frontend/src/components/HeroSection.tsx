@@ -6,9 +6,8 @@ import LocationAutocomplete from './LocationAutocomplete';
 import CarHeroBanner from '@/assets/CarHeroBanner.png';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/components/ui/use-toast';
+import { ThemedDatePicker, ThemedTimePicker } from '@/components/ui/ThemedDatePickers';
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -250,29 +249,21 @@ const HeroSection = () => {
                   <div className="space-y-1 relative">
                      <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Date</label>
                      {errors.date && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.date}</span>}
-                     <Popover>
-                      <PopoverTrigger asChild>
-                        <button
+                     <div className={cn(
+                        "border-b transition-colors",
+                        errors.date ? "border-red-500" : "border-white/30 focus-within:border-white"
+                     )}>
+                        <ThemedDatePicker
+                          value={date ? format(date, "yyyy-MM-dd") : ""}
+                          onChange={(val) => { setDate(val ? new Date(val) : undefined); if(errors.date) setErrors({...errors, date: ''}); }}
+                          placeholder="Select Date"
+                          minDate={new Date()}
                           className={cn(
-                            "w-full bg-transparent border-0 border-b rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto transition-colors flex justify-between items-center group",
-                            !date ? "text-white/40" : "text-white",
-                            errors.date ? "border-red-500" : "border-white/30 focus:border-white"
+                            "w-full bg-transparent border-none rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto hover:bg-transparent",
+                            !date ? "text-white/40" : "text-white"
                           )}
-                        >
-                          <span className="truncate">{date ? format(date, "PPP") : "Select Date"}</span>
-                          <CalendarIcon className={cn("w-4 h-4 transition-colors flex-shrink-0 ml-2", errors.date ? "text-red-500" : "text-white/50 group-hover:text-white")} />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={(d) => { setDate(d); if(errors.date) setErrors({...errors, date: ''}); }}
-                          initialFocus
-                          className="bg-white rounded-md"
                         />
-                      </PopoverContent>
-                    </Popover>
+                     </div>
                   </div>
 
                   {/* Pick Up Time (For One Way & Local default position) or Return Date (For Round Trip) */}
@@ -280,50 +271,39 @@ const HeroSection = () => {
                       <div className="space-y-1 relative">
                          <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Return Date</label>
                          {errors.returnDate && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.returnDate}</span>}
-                         <Popover>
-                          <PopoverTrigger asChild>
-                            <button
+                         <div className={cn(
+                            "border-b transition-colors",
+                            errors.returnDate ? "border-red-500" : "border-white/30 focus-within:border-white"
+                         )}>
+                            <ThemedDatePicker
+                              value={returnDate ? format(returnDate, "yyyy-MM-dd") : ""}
+                              onChange={(val) => { setReturnDate(val ? new Date(val) : undefined); if(errors.returnDate) setErrors({...errors, returnDate: ''}); }}
+                              placeholder="Select Date"
+                              minDate={date || new Date()}
                               className={cn(
-                                "w-full bg-transparent border-0 border-b rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto transition-colors flex justify-between items-center group",
-                                !returnDate ? "text-white/40" : "text-white",
-                                errors.returnDate ? "border-red-500" : "border-white/30 focus:border-white"
+                                "w-full bg-transparent border-none rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto hover:bg-transparent",
+                                !returnDate ? "text-white/40" : "text-white"
                               )}
-                            >
-                              <span className="truncate">{returnDate ? format(returnDate, "PPP") : "Select Date"}</span>
-                              <CalendarIcon className={cn("w-4 h-4 transition-colors flex-shrink-0 ml-2", errors.returnDate ? "text-red-500" : "text-white/50 group-hover:text-white")} />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 bg-white text-black border-none shadow-xl" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={returnDate}
-                              onSelect={(d) => { setReturnDate(d); if(errors.returnDate) setErrors({...errors, returnDate: ''}); }}
-                              initialFocus
-                              className="bg-white rounded-md"
                             />
-                          </PopoverContent>
-                        </Popover>
+                         </div>
                       </div>
                    ) : (
                       <div className="space-y-1 relative">
                          <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
                          {errors.time && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.time}</span>}
                          <div className={cn(
-                             "relative border-b transition-colors py-2 group",
+                             "border-b transition-colors group",
                              errors.time ? "border-red-500" : "border-white/30 hover:border-white"
                          )}>
-                            <input
-                              type="time"
+                            <ThemedTimePicker
                               value={time}
-                              onChange={(e) => { setTime(e.target.value); if(errors.time) setErrors({...errors, time: ''}); }}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                              onChange={(val) => { setTime(val); if(errors.time) setErrors({...errors, time: ''}); }}
+                              placeholder="--:--"
+                              className={cn(
+                                  "w-full bg-transparent border-none rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto hover:bg-transparent",
+                                  !time ? "text-white/40" : "text-white"
+                              )}
                             />
-                            <div className="flex justify-between items-center text-white text-base">
-                              <span className={!time ? "text-white/40" : "text-white"}>
-                                {time || "--:--"}
-                              </span>
-                              <Clock className={cn("w-4 h-4 transition-colors", errors.time ? "text-red-500" : "text-white/50 group-hover:text-white")} />
-                            </div>
                          </div>
                       </div>
                    )}
@@ -335,21 +315,18 @@ const HeroSection = () => {
                      <label className="text-white/70 text-[11px] font-semibold uppercase tracking-wider pl-1">Pick Up Time</label>
                      {errors.time && <span className="text-red-500 text-[10px] absolute right-0 top-0 font-medium">{errors.time}</span>}
                      <div className={cn(
-                         "relative border-b transition-colors py-2 group",
+                         "border-b transition-colors group",
                          errors.time ? "border-red-500" : "border-white/30 hover:border-white"
                      )}>
-                        <input
-                          type="time"
+                        <ThemedTimePicker
                           value={time}
-                          onChange={(e) => { setTime(e.target.value); if(errors.time) setErrors({...errors, time: ''}); }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(val) => { setTime(val); if(errors.time) setErrors({...errors, time: ''}); }}
+                          placeholder="--:--"
+                          className={cn(
+                              "w-full bg-transparent border-none rounded-none text-left text-base focus:ring-0 px-0 py-2 h-auto hover:bg-transparent",
+                              !time ? "text-white/40" : "text-white"
+                          )}
                         />
-                        <div className="flex justify-between items-center text-white text-base">
-                          <span className={!time ? "text-white/40" : "text-white"}>
-                            {time || "--:--"}
-                          </span>
-                          <Clock className={cn("w-4 h-4 transition-colors", errors.time ? "text-red-500" : "text-white/50 group-hover:text-white")} />
-                        </div>
                      </div>
                   </div>
                 )}

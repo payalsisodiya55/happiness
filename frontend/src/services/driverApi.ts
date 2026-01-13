@@ -49,6 +49,12 @@ interface Driver {
     };
     commission: number;
   };
+  referralCode?: string;
+  referralStats?: {
+    totalReferred: number;
+    totalRewards: number;
+    activeReferrals: number;
+  };
   documents?: {
     drivingLicense: {
       number: string;
@@ -350,6 +356,23 @@ class DriverApiService {
 
   async toggleStatus() {
     return apiService.request('/driver/status', { method: 'PUT' }, 'driver');
+  }
+
+  // Referral System
+  async getReferralStats() {
+    return apiService.request('/driver/referral-stats', {}, 'driver');
+  }
+
+  async generateReferralCode() {
+    return apiService.request('/driver/generate-code', { method: 'POST' }, 'driver');
+  }
+
+  async getReferredUsers() {
+    return apiService.request('/driver/referred-users', {}, 'driver');
+  }
+
+  async getReferralRewards() {
+    return apiService.request('/driver/referral-rewards', {}, 'driver');
   }
 
   // Dashboard Summary - Improved with better error handling and data fetching

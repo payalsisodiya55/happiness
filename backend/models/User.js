@@ -172,6 +172,18 @@ const UserSchema = new mongoose.Schema({
   defaultOTP: {
     type: String,
     default: null
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Driver'
+  },
+  usedReferralCode: {
+    type: String
+  },
+  referralStatus: {
+    type: String,
+    enum: ['pending', 'active', 'rewarded'],
+    default: 'pending'
   }
 }, {
   timestamps: true,

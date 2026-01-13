@@ -383,7 +383,42 @@ const DriverSchema = new mongoose.Schema({
   defaultOTP: {
     type: String,
     default: null
-  }
+  },
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  referralStats: {
+    totalReferred: { type: Number, default: 0 },
+    totalRewards: { type: Number, default: 0 },
+    activeReferrals: { type: Number, default: 0 }
+  },
+  referredUsers: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    referralDate: { type: Date, default: Date.now },
+    status: { type: String, enum: ['pending', 'active', 'rewarded'], default: 'pending' },
+    rewardAmount: { type: Number, default: 0 },
+    rewardDate: Date
+  }],
+  referralRewards: [{
+    amount: Number,
+    type: { type: String, enum: ['wallet_credit', 'discount', 'cash'] },
+    reason: String,
+    referredUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    date: { type: Date, default: Date.now }
+  }],
+  // New fields for Driver-to-Driver Referral
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Driver' },
+  usedReferralCode: { type: String },
+  referralStatus: { type: String, enum: ['pending', 'active', 'rewarded'], default: 'pending' },
+  referredDrivers: [{
+    driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'Driver' },
+    referralDate: { type: Date, default: Date.now },
+    status: { type: String, enum: ['pending', 'active', 'rewarded'], default: 'pending' },
+    rewardAmount: { type: Number, default: 0 },
+    rewardDate: Date
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

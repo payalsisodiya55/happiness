@@ -15,7 +15,8 @@ import {
   HelpCircle,
   Truck,
   ShieldCheck,
-  Phone
+  Phone,
+  Gift
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
@@ -56,7 +57,8 @@ const DriverAuth = () => {
     lastName: "",
     email: "",
     phone: "",
-    otp: ""
+    otp: "",
+    referralCode: ""
   });
 
   const handleSendOtp = async () => {
@@ -185,7 +187,8 @@ const DriverAuth = () => {
             driverData: {
               firstName: signupForm.firstName,
               lastName: signupForm.lastName,
-              email: signupForm.email
+              email: signupForm.email,
+              referralCode: signupForm.referralCode
             }
           })
         }, 'public');
@@ -201,7 +204,9 @@ const DriverAuth = () => {
           setShowOtpField(true);
           setLoginForm({ phone: signupForm.phone, otp: '' });
           setShowSignupOtpField(false);
-          setSignupForm({ firstName: '', lastName: '', email: '', phone: '', otp: '' });
+          setLoginForm({ phone: signupForm.phone, otp: '' });
+          setShowSignupOtpField(false);
+          setSignupForm({ firstName: '', lastName: '', email: '', phone: '', otp: '', referralCode: '' });
         }
       } catch (error) {
         console.error('Driver signup error:', error);
@@ -492,6 +497,20 @@ const DriverAuth = () => {
                             className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
                             value={signupForm.email || ''}
                             onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="referralCode" className="text-[10px] font-semibold uppercase text-gray-500 tracking-wider ml-1">Referral Code (Optional)</Label>
+                        <div className="relative">
+                          <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+                          <Input
+                            id="referralCode"
+                            placeholder="HAPPYXXXX"
+                            className="pl-9 h-10 bg-gray-50 border-gray-200 focus:ring-[#29354c] text-sm"
+                            value={signupForm.referralCode || ''}
+                            onChange={(e) => setSignupForm({...signupForm, referralCode: e.target.value.toUpperCase()})}
                           />
                         </div>
                       </div>

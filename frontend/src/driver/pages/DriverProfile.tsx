@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNavigation from "@/driver/components/DriverBottomNavigation";
-import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye, ChevronRight } from "lucide-react";
+import { User, LogOut, Edit, Upload, Phone, Mail, MapPin, Calendar, CreditCard, Download, Star, Settings, Bell, TrendingUp, Loader2, FileText, Shield, Eye, ChevronRight, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useDriverAuth } from "@/contexts/DriverAuthContext";
 import { toast } from "sonner";
 import apiService from "@/services/api";
+import driverApiService from "@/services/driverApi";
 
 const DriverProfile = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const DriverProfile = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [earningsData, setEarningsData] = useState<any>(null);
   const [statsData, setStatsData] = useState<any>(null);
+  const [referralStats, setReferralStats] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{type: string, url: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,19 @@ const DriverProfile = () => {
     }
   };
 
+
+  // Get referral stats
+  const fetchReferralStats = async () => {
+    try {
+      const response = await driverApiService.getReferralStats();
+      if (response.success) {
+        setReferralStats(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching referral stats:', error);
+    }
+  };
+
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/driver-auth');
@@ -79,6 +94,7 @@ const DriverProfile = () => {
       // Fetch additional data when driver is available
       fetchDriverStats();
       fetchDriverEarnings();
+      fetchReferralStats();
     }
   }, [isLoggedIn, driver, navigate]);
 
@@ -512,6 +528,41 @@ const DriverProfile = () => {
                 />
               </div>
             </div>
+
+          </CardContent>
+        </Card>
+
+        {/* Referral Program */}
+        <Card className="mb-4 md:mb-6">
+          <CardHeader className="pb-3">
+             <CardTitle className="flex items-center space-x-2 text-lg md:text-xl text-[#29354c]">
+               <Gift className="w-5 h-5 text-purple-600" />
+               <span>Referral Program</span>
+             </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+               <div className="flex justify-between items-center mb-2">
+                 <span className="text-sm font-medium text-purple-900">Your Referral Code</span>
+                 <Badge className="bg-purple-600 hover:bg-purple-700 text-sm">{referralStats?.code || 'Generating...'}</Badge>
+               </div>
+               <p className="text-xs text-purple-700 mb-4">Share this code with new users to earn rewards.</p>
+               
+               <div className="grid grid-cols-3 gap-2 text-center">
+                 <div className="bg-white p-2 rounded border border-purple-100">
+                    <div className="text-lg font-bold text-purple-700">{referralStats?.stats?.totalReferred || 0}</div>
+                    <div className="text-[10px] text-gray-500">Referred</div>
+                 </div>
+                 <div className="bg-white p-2 rounded border border-purple-100">
+                    <div className="text-lg font-bold text-purple-700">{referralStats?.stats?.activeReferrals || 0}</div>
+                    <div className="text-[10px] text-gray-500">Active</div>
+                 </div>
+                 <div className="bg-white p-2 rounded border border-purple-100">
+                    <div className="text-lg font-bold text-green-600">₹{referralStats?.stats?.totalRewards || 0}</div>
+                    <div className="text-[10px] text-gray-500">Earned</div>
+                 </div>
+               </div>
+             </div>
           </CardContent>
         </Card>
 

@@ -1676,6 +1676,103 @@ const uploadProfilePhoto = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get referral stats
+// @route   GET /api/driver/referral-stats
+// @access  Private (Driver)
+const getReferralStats = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id).select('referralCode referralStats');
+  
+  if (!driver.referralCode) {
+     const prefix = 'HAPPY';
+     let isUnique = false;
+     let newCode = '';
+     for(let i=0; i<5; i++) {
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        newCode = `${prefix}${randomNum}`;
+        const existing = await Driver.findOne({ referralCode: newCode });
+        if(!existing) {
+            isUnique = true;
+            break;
+        }
+     }
+     
+     if (isUnique) {
+        driver.referralCode = newCode;
+        await driver.save();
+     }
+  }
+
+  res.json({
+    success: true,
+    data: {
+      code: driver.referralCode,
+      stats: driver.referralStats
+    }
+  });
+});
+
+// @desc    Generate/Regenerate referral code
+// @route   POST /api/driver/generate-code
+// @access  Private (Driver)
+const generateReferralCode = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id);
+  
+  const prefix = 'HAPPY';
+  let isUnique = false;
+  let newCode = '';
+  
+  for (let i = 0; i < 5; i++) {
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      newCode = `${prefix}${randomNum}`;
+      const existing = await Driver.findOne({ referralCode: newCode });
+      if (!existing) {
+          isUnique = true;
+          break;
+      }
+  }
+  
+  if (!isUnique) {
+      return res.status(500).json({ success: false, message: 'Failed to generate unique code, please try again' });
+  }
+
+  driver.referralCode = newCode;
+  await driver.save();
+
+  res.json({
+    success: true,
+    data: { referralCode: newCode }
+  });
+});
+
+// @desc    Get referred users
+// @route   GET /api/driver/referred-users
+// @access  Private (Driver)
+const getReferredUsers = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id)
+    .populate({
+      path: 'referredUsers.userId',
+      select: 'firstName lastName profilePicture createdAt'
+    });
+
+  res.json({
+    success: true,
+    data: driver.referredUsers
+  });
+});
+
+// @desc    Get referral rewards
+// @route   GET /api/driver/referral-rewards
+// @access  Private (Driver)
+const getReferralRewards = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id)
+    .select('referralRewards');
+    
+  res.json({
+    success: true,
+    data: driver.referralRewards
+  });
+});
+
 module.exports = {
   getDriverProfile,
   updateDriverProfile,
@@ -1701,5 +1798,9 @@ module.exports = {
   getTripHistory,
   acceptDriverAgreement,
   uploadDocument,
-  uploadProfilePhoto
+  uploadProfilePhoto,
+  getReferralStats,
+  generateReferralCode,
+  getReferredUsers,
+  getReferralRewards
 };

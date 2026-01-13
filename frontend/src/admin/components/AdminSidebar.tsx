@@ -72,7 +72,7 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
     {
       title: "Vehicle Management",
       href: "/admin/vehicles",
-      icon: Bus,
+      icon: Car,
     },
     {
       title: "Price Management",

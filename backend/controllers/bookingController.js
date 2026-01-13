@@ -1149,8 +1149,71 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
         await vehicle.updateStatistics(actualDistance, actualFare);
         console.log(`📊 Updated vehicle ${vehicle._id} statistics: +1 trip, +${actualDistance}km, +₹${actualFare}`);
       }
+
+      // Process Referral Reward
+      const user = await User.findById(booking.user);
+      if (user && user.referralStatus === 'active' && user.referredBy) {
+        // Check if this is the first completed booking
+        const completedBookingsCount = await Booking.countDocuments({
+          user: user._id,
+          status: 'completed'
+        });
+
+        // Since we just saved this booking as completed, count should be 1 for the first time
+        if (completedBookingsCount === 1) {
+          console.log(`Processing referral reward for user ${user._id} referred by ${user.referredBy}`);
+          const Driver = require('../models/Driver');
+          const referringDriver = await Driver.findById(user.referredBy);
+
+          if (referringDriver) {
+            const rewardAmount = 500;
+
+            // Updated User status
+            user.referralStatus = 'rewarded';
+            await user.save();
+
+            // Update Driver Stats
+            referringDriver.referralStats.totalRewards += rewardAmount;
+            
+            // Add to Driver Wallet
+            if (!referringDriver.earnings) referringDriver.earnings = {};
+            if (!referringDriver.earnings.wallet) referringDriver.earnings.wallet = { balance: 0, transactions: [] };
+            
+            referringDriver.earnings.wallet.balance += rewardAmount;
+            referringDriver.earnings.wallet.transactions.push({
+                type: 'credit',
+                amount: rewardAmount,
+                description: `Referral Reward for new user ${user.firstName}`,
+                date: new Date()
+            });
+
+            // Log Reward
+            referringDriver.referralRewards.push({
+                amount: rewardAmount,
+                type: 'wallet_credit',
+                reason: 'First booking completed by referred user',
+                referredUserId: user._id,
+                date: new Date()
+            });
+
+            // Update specific referred user status in driver's list
+            const referredUserIndex = referringDriver.referredUsers.findIndex(
+                u => u.userId.toString() === user._id.toString()
+            );
+            if (referredUserIndex !== -1) {
+                referringDriver.referredUsers[referredUserIndex].status = 'rewarded';
+                referringDriver.referredUsers[referredUserIndex].rewardAmount = rewardAmount;
+                referringDriver.referredUsers[referredUserIndex].rewardDate = new Date();
+            }
+
+            await referringDriver.save();
+            console.log(`✅ Referral reward of ₹${rewardAmount} credited to driver ${referringDriver._id}`);
+          }
+        }
+      }
+
     } catch (error) {
-      console.error('❌ Error updating vehicle statistics:', error);
+      console.error('❌ Error updating vehicle statistics or referral rewards:', error);
       // Don't fail the status update if statistics update fails
     }
   }

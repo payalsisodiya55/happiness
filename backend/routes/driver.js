@@ -25,7 +25,11 @@ const {
   getTodayEarnings,
   acceptDriverAgreement,
   uploadDocument,
-  uploadProfilePhoto
+  uploadProfilePhoto,
+  getReferralStats,
+  generateReferralCode,
+  getReferredUsers,
+  getReferralRewards
 } = require('../controllers/driverController');
 const { protectDriver } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
@@ -437,5 +441,12 @@ router.put('/vehicles/:id/base-location', [
     });
   }
 });
+
+// Referral routes
+router.get('/referral-code', getReferralStats);
+router.get('/referral-stats', getReferralStats);
+router.get('/referred-users', getReferredUsers);
+router.get('/referral-rewards', getReferralRewards);
+router.post('/generate-code', generateReferralCode);
 
 module.exports = router;

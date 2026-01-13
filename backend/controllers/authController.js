@@ -300,12 +300,16 @@ const verifyOTPAndProceed = async (req, res, next) => {
         isVerified: true // User is verified after OTP verification
       };
 
+
+
       // Only add email if it's provided and valid
       if (userData.email && userData.email.trim()) {
         userDataToSave.email = userData.email.toLowerCase().trim();
       }
 
       const user = await User.create(userDataToSave);
+
+
 
       // Generate verification code for future use
       await user.generateVerificationCode();
@@ -749,10 +753,42 @@ const verifyDriverOTPAndProceed = async (req, res, next) => {
         isApproved: true // Auto-approve drivers on signup
       };
 
+      // Handle referral code for Driver-to-Driver referral
+      if (driverData.referralCode) {
+        try {
+          const referringDriver = await Driver.findOne({ referralCode: driverData.referralCode.toUpperCase() });
+          if (referringDriver) {
+            driverDataToSave.referredBy = referringDriver._id;
+            driverDataToSave.usedReferralCode = driverData.referralCode;
+            driverDataToSave.referralStatus = 'active';
+          }
+        } catch (err) {
+          console.error('Error handling referral code:', err);
+        }
+      }
+
       const driver = await Driver.create(driverDataToSave);
 
       // Generate verification code for future use
       await driver.generateVerificationCode();
+
+      // Update referring driver stats if applicable
+      if (driverDataToSave.referredBy) {
+        try {
+          const referringDriver = await Driver.findById(driverDataToSave.referredBy);
+          if (referringDriver) {
+            referringDriver.referralStats.totalReferred += 1;
+            referringDriver.referralStats.activeReferrals += 1;
+            referringDriver.referredDrivers.push({
+              driverId: driver._id,
+              status: 'active'
+            });
+            await referringDriver.save();
+          }
+        } catch (err) {
+          console.error('Error updating driver referral stats:', err);
+        }
+      }
 
       res.status(201).json({
         success: true,

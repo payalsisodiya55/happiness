@@ -334,65 +334,22 @@ class VehicleApiService {
 
   // Populate computed pricing for vehicles
   async populateVehiclePricing(vehicles: any[]): Promise<any[]> {
-    // Fetch latest pricing data for each vehicle to ensure we have real-time pricing
-    const vehiclesWithPricing = await Promise.all(
-      vehicles.map(async (vehicle) => {
-        try {
-          if (vehicle.pricingReference) {
-            // Fetch latest pricing data for both one-way and return trips
-            const [oneWayResponse, returnResponse] = await Promise.all([
-              this.makeRequest(
-                `/vehicle-pricing/calculate?category=${vehicle.pricingReference.category}&vehicleType=${vehicle.pricingReference.vehicleType}&vehicleModel=${vehicle.pricingReference.vehicleModel}&tripType=one-way`
-              ),
-              this.makeRequest(
-                `/vehicle-pricing/calculate?category=${vehicle.pricingReference.category}&vehicleType=${vehicle.pricingReference.vehicleType}&vehicleModel=${vehicle.pricingReference.vehicleModel}&tripType=return`
-              )
-            ]);
-            
-            if (oneWayResponse.success && oneWayResponse.data && returnResponse.success && returnResponse.data) {
-              const oneWayPricing = oneWayResponse.data as any;
-              const returnPricing = returnResponse.data as any;
-              
-              // Update the vehicle's pricing with the latest data
-              if (oneWayPricing.category === 'auto') {
-                vehicle.pricing = {
-                  autoPrice: {
-                    oneWay: oneWayPricing.autoPrice,
-                    return: returnPricing.autoPrice
-                  },
-                  distancePricing: {
-                    oneWay: { '50km': 0, '100km': 0, '150km': 0, '200km': 0, '250km': 0, '300km': 0 },
-                    return: { '50km': 0, '100km': 0, '150km': 0, '200km': 0, '250km': 0, '300km': 0 }
-                  },
-                  lastUpdated: new Date().toISOString()
-                };
-              } else {
-                vehicle.pricing = {
-                  autoPrice: {
-                    oneWay: 0,
-                    return: 0
-                  },
-                  distancePricing: {
-                    oneWay: oneWayPricing.distancePricing,
-                    return: returnPricing.distancePricing
-                  },
-                  lastUpdated: new Date().toISOString()
-                };
-              }
-              
-              console.log(`✅ Updated real-time pricing for vehicle ${vehicle._id}:`, vehicle.pricing);
-            } else {
-              console.warn(`⚠️ Could not fetch pricing for vehicle ${vehicle._id}, using existing pricing`);
-            }
-          }
-        } catch (error) {
-          console.error(`❌ Error updating pricing for vehicle ${vehicle._id}:`, error);
-        }
-        
-        return vehicle;
-      })
-    );
-    
+    // Use stored pricing from vehicle documents instead of fetching latest pricing
+    // This ensures that admin-updated pricing is preserved and displayed correctly
+    const vehiclesWithPricing = vehicles.map(vehicle => {
+      // If vehicle already has pricing stored, use it (this is updated when admin changes pricing)
+      if (vehicle.pricing && vehicle.pricing.lastUpdated) {
+        // Ensure pricing has computedPricing field for frontend compatibility
+        vehicle.computedPricing = vehicle.pricing;
+        console.log(`✅ Using stored pricing for vehicle ${vehicle._id}:`, vehicle.pricing);
+      } else {
+        // Fallback: if no stored pricing, try to fetch from VehiclePricing (for backward compatibility)
+        console.warn(`⚠️ No stored pricing found for vehicle ${vehicle._id}, pricing may be outdated`);
+      }
+
+      return vehicle;
+    });
+
     return vehiclesWithPricing;
   }
 

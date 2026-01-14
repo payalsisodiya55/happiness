@@ -303,6 +303,15 @@ const getDriverVehicles = asyncHandler(async (req, res) => {
 
   const vehicles = await Vehicle.paginate(query, options);
 
+  // Set computedPricing from stored pricing for frontend compatibility
+  if (vehicles.docs && vehicles.docs.length > 0) {
+    vehicles.docs.forEach(vehicle => {
+      if (vehicle.pricing) {
+        vehicle.computedPricing = vehicle.pricing;
+      }
+    });
+  }
+
   res.json({
     success: true,
     data: vehicles
@@ -919,6 +928,10 @@ const searchVehicles = asyncHandler(async (req, res) => {
   // Clean response - vehicles already have pricing populated from the robust system
   // No need to compute or fetch pricing - it's already stored in vehicle.pricing
   const cleanVehicles = availableVehicles.map(vehicle => {
+    // Set computedPricing from stored pricing for frontend compatibility
+    if (vehicle.pricing) {
+      vehicle.computedPricing = vehicle.pricing;
+    }
     // Calculate precise rate and fare based on the calculated distance
     let ratePerKm = 0;
     let calculatedPrice = 0;
@@ -1041,6 +1054,7 @@ const searchVehicles = asyncHandler(async (req, res) => {
       } : null,
       // Pricing information - directly from the robust pricing system
       pricing: vehicle.pricing || null,
+      computedPricing: vehicle.pricing || null, // Set computedPricing for frontend compatibility
       pricingReference: vehicle.pricingReference || null,
       // Add calculated fields for frontend
       ratePerKm,
@@ -1081,10 +1095,32 @@ const getVehicleById = asyncHandler(async (req, res) => {
     });
   }
 
-  // Populate computed pricing for the vehicle
-  const VehiclePricing = require('../models/VehiclePricing');
-
+  // Use stored pricing from vehicle document instead of fetching from VehiclePricing collection
+  // This ensures admin-updated pricing is preserved and displayed correctly
   try {
+    let useStoredPricing = false;
+
+    if (vehicle.pricing && !vehicle.pricing.unavailable && !vehicle.pricing.error) {
+      // Use stored pricing (updated by admin changes) - PRIORITY
+      vehicle.computedPricing = vehicle.pricing;
+      console.log(`✅ Using stored pricing for vehicle ${vehicle._id}:`, vehicle.pricing);
+      useStoredPricing = true;
+    }
+
+    if (useStoredPricing) {
+      // Stored pricing is already set, send response
+      console.log(`🚀 Sending vehicle ${vehicle._id} with stored pricing:`, vehicle.computedPricing);
+      res.json({
+        success: true,
+        data: vehicle
+      });
+      return;
+    }
+
+    // Fallback: if no stored pricing, fetch from VehiclePricing collection
+    console.log(`⚠️ No valid stored pricing for vehicle ${vehicle._id}, using fallback`);
+
+    const VehiclePricing = require('../models/VehiclePricing');
     let pricing = null;
     let tripType = 'one-way'; // Default to one-way pricing
 
@@ -1614,6 +1650,13 @@ const getVehicleAuto = asyncHandler(async (req, res) => {
       booked: auto.booked,
       hasDriver: !!auto.driver
     })));
+
+    // Set computedPricing from stored pricing for frontend compatibility
+    availableAutos.forEach(vehicle => {
+      if (vehicle.pricing) {
+        vehicle.computedPricing = vehicle.pricing;
+      }
+    });
 
     // Return the autos
     console.log(`✅ Returning ${availableAutos.length} autos`);
@@ -3017,6 +3060,13 @@ const getVehiclesByLocation = asyncHandler(async (req, res) => {
   const startIndex = (parseInt(page) - 1) * parseInt(limit);
   const endIndex = startIndex + parseInt(limit);
   const paginatedVehicles = availableVehicles.slice(startIndex, endIndex);
+
+  // Set computedPricing from stored pricing for frontend compatibility
+  paginatedVehicles.forEach(vehicle => {
+    if (vehicle.pricing) {
+      vehicle.computedPricing = vehicle.pricing;
+    }
+  });
 
   // Get total count for pagination - use $geoWithin instead of $near to avoid geospatial sorting restrictions
   const totalCount = await Vehicle.countDocuments({

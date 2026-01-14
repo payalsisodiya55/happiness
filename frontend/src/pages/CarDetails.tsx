@@ -122,15 +122,16 @@ const CarDetails = () => {
     const fetchVehicleData = async () => {
       if (!id) return;
 
+      // Debug: Check current pricing
+      console.log('CarDetails: Current car pricing:', car.computedPricing);
+
       // Check if we need to fetch fresh data
-      // Fetch if:
-      // 1. Missing computed pricing
-      // 2. Driver info is missing or is just an ID string
-      // 3. Driver object is incomplete (missing firstName)
-      const needsPricing = !car.computedPricing || !car.computedPricing.distancePricing;
+      // Only fetch if driver info is missing (pricing should be preserved from initial data)
       const needsDriver = !car.driver || typeof car.driver === 'string' || !car.driver.firstName;
 
-      if (needsPricing || needsDriver) {
+      console.log('CarDetails: needsDriver:', needsDriver, 'hasPricing:', !!car.computedPricing);
+
+      if (needsDriver) {
         try {
           const response = await vehicleApi.getVehicleById(id);
 

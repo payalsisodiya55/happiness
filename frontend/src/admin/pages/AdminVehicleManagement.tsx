@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { adminVehicles } from "@/services/adminApi";
-import { 
+import {
   Car,
   Search,
   Eye,
@@ -20,7 +20,9 @@ import {
   MapPin,
   Star,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  UserPlus,
+  UserMinus
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -124,6 +126,16 @@ const AdminVehicleManagement = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [deletingVehicle, setDeletingVehicle] = useState<string | null>(null);
+  const [showAssignDriverModal, setShowAssignDriverModal] = useState(false);
+  const [vehicleToAssign, setVehicleToAssign] = useState<Vehicle | null>(null);
+  const [driverForm, setDriverForm] = useState({
+    name: '',
+    phoneNumber: '',
+    profilePicture: '',
+    drivingLicense: '',
+    aadharCard: '',
+    isVerified: false
+  });
 
   const fetchVehicles = async () => {
     try {
@@ -163,6 +175,72 @@ const AdminVehicleManagement = () => {
       title: "Refreshed",
       description: "Vehicle data has been refreshed",
     });
+  };
+
+  const handleAssignDriver = (vehicle: Vehicle) => {
+    setVehicleToAssign(vehicle);
+    if (vehicle.assignedDriver) {
+      // Pre-fill form with existing driver data
+      setDriverForm({
+        name: vehicle.assignedDriver.name || '',
+        phoneNumber: vehicle.assignedDriver.phoneNumber || '',
+        profilePicture: vehicle.assignedDriver.profilePicture || '',
+        drivingLicense: vehicle.assignedDriver.drivingLicense || '',
+        aadharCard: vehicle.assignedDriver.aadharCard || '',
+        isVerified: vehicle.assignedDriver.isVerified || false
+      });
+    } else {
+      // Reset form for new driver
+      setDriverForm({
+        name: '',
+        phoneNumber: '',
+        profilePicture: '',
+        drivingLicense: '',
+        aadharCard: '',
+        isVerified: false
+      });
+    }
+    setShowAssignDriverModal(true);
+  };
+
+  const handleDriverSubmit = async () => {
+    if (!vehicleToAssign) return;
+
+    try {
+      if (vehicleToAssign.assignedDriver && !driverForm.name.trim()) {
+        // Remove driver
+        await adminVehicles.removeDriver(vehicleToAssign._id);
+        toast({
+          title: "Success",
+          description: "Driver removed from vehicle successfully",
+        });
+      } else if (driverForm.name.trim()) {
+        // Assign or update driver
+        await adminVehicles.assignDriver(vehicleToAssign._id, {
+          driverName: driverForm.name,
+          driverPhone: driverForm.phoneNumber,
+          driverProfilePicture: driverForm.profilePicture,
+          driverLicense: driverForm.drivingLicense,
+          driverAadhar: driverForm.aadharCard,
+          isVerified: driverForm.isVerified
+        });
+        toast({
+          title: "Success",
+          description: vehicleToAssign.assignedDriver ? "Driver updated successfully" : "Driver assigned successfully",
+        });
+      }
+
+      setShowAssignDriverModal(false);
+      setVehicleToAssign(null);
+      fetchVehicles(); // Refresh vehicle list
+    } catch (error) {
+      console.error('Error managing driver:', error);
+      toast({
+        title: "Error",
+        description: "Failed to manage driver assignment",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
@@ -491,9 +569,17 @@ const AdminVehicleManagement = () => {
                           View
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-3"
+                          onClick={() => handleAssignDriver(vehicle)}
+                        >
+                          {vehicle.assignedDriver ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium h-9"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium h-9"
                           onClick={() => handleVehicleAction('delete', vehicle._id)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -806,6 +892,95 @@ const AdminVehicleManagement = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Driver Modal */}
+      <Dialog open={showAssignDriverModal} onOpenChange={setShowAssignDriverModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {vehicleToAssign?.assignedDriver ? 'Update Driver' : 'Assign Driver'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="driverName">Driver Name *</Label>
+              <Input
+                id="driverName"
+                placeholder="Enter driver name"
+                value={driverForm.name}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="driverPhone">Phone Number</Label>
+              <Input
+                id="driverPhone"
+                placeholder="Enter phone number"
+                value={driverForm.phoneNumber}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="profilePicture">Profile Picture URL</Label>
+              <Input
+                id="profilePicture"
+                placeholder="Enter profile picture URL"
+                value={driverForm.profilePicture}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, profilePicture: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="drivingLicense">Driving License URL</Label>
+              <Input
+                id="drivingLicense"
+                placeholder="Enter driving license URL"
+                value={driverForm.drivingLicense}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, drivingLicense: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="aadharCard">Aadhar Card URL</Label>
+              <Input
+                id="aadharCard"
+                placeholder="Enter aadhar card URL"
+                value={driverForm.aadharCard}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, aadharCard: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isVerified"
+                checked={driverForm.isVerified}
+                onChange={(e) => setDriverForm(prev => ({ ...prev, isVerified: e.target.checked }))}
+              />
+              <Label htmlFor="isVerified">Documents Verified</Label>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowAssignDriverModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleDriverSubmit}
+            >
+              {vehicleToAssign?.assignedDriver ? 'Update Driver' : 'Assign Driver'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>

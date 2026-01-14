@@ -289,12 +289,41 @@ const updateVehiclePricing = asyncHandler(async (req, res) => {
   console.log('✅ Saving updated pricing...');
   await pricing.save();
 
+  // Update pricing in all vehicles that use this pricing reference
+  console.log('🔄 Updating pricing in related vehicles...');
+  const Vehicle = require('../models/Vehicle');
+
+  const vehiclesToUpdate = await Vehicle.find({
+    'pricingReference.category': pricing.category,
+    'pricingReference.vehicleType': pricing.vehicleType,
+    'pricingReference.vehicleModel': pricing.vehicleModel
+  });
+
+  console.log(`📋 Found ${vehiclesToUpdate.length} vehicles to update pricing for`);
+
+  for (const vehicle of vehiclesToUpdate) {
+    try {
+      // Update the vehicle's stored pricing based on the updated pricing record
+      if (pricing.category === 'auto') {
+        vehicle.pricing.autoPrice[pricing.tripType] = pricing.autoPrice;
+      } else {
+        vehicle.pricing.distancePricing[pricing.tripType] = pricing.distancePricing;
+      }
+      vehicle.pricing.lastUpdated = new Date();
+
+      await vehicle.save();
+      console.log(`✅ Updated pricing for vehicle ${vehicle._id} (${vehicle.registrationNumber})`);
+    } catch (error) {
+      console.error(`❌ Failed to update pricing for vehicle ${vehicle._id}:`, error.message);
+    }
+  }
+
   console.log('✅ Vehicle pricing updated successfully');
 
   res.status(200).json({
     success: true,
     data: pricing,
-    message: 'Vehicle pricing updated successfully'
+    message: `Vehicle pricing updated successfully. Updated ${vehiclesToUpdate.length} vehicle(s).`
   });
 });
 

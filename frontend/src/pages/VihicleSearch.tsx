@@ -209,13 +209,13 @@ const VihicleSearch = () => {
     fetchDistance();
   }, [fromData, toData]);
 
-    // Apply filters to vehicles
+  // Apply filters to vehicles
   useEffect(() => {
     let filtered = [...vehicleData];
 
     console.log('🔍 Applying filters:', filters);
     console.log('📊 Original vehicles count:', vehicleData.length);
-    console.log('🚗 Sample vehicle fuel types:', vehicleData.slice(0, 3).map(v => ({brand: v.brand, fuel: v.fuelType})));
+    console.log('🚗 Sample vehicle fuel types:', vehicleData.slice(0, 3).map(v => ({ brand: v.brand, fuel: v.fuelType })));
 
     // Filter by seating capacity
     if (filters.seatingCapacity.length > 0) {
@@ -349,8 +349,8 @@ const VihicleSearch = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <button 
-                  onClick={() => navigate(-1)} 
+                <button
+                  onClick={() => navigate(-1)}
                   className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors text-white"
                   aria-label="Go back"
                 >
@@ -371,10 +371,10 @@ const VihicleSearch = () => {
               <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg">
                 <Calendar className="w-5 h-5 text-[#f48432]" />
                 <span className="text-white text-sm">
-                  {new Date(pickupDate).toLocaleDateString('en-IN', { 
-                    day: 'numeric', 
-                    month: 'short', 
-                    year: 'numeric' 
+                  {new Date(pickupDate).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
                   })}
                 </span>
               </div>
@@ -484,9 +484,9 @@ const VihicleSearch = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {                    filteredCars.map((car) => (
-                      <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} tripDistance={tripDistance} />
-                    ))}
+                      {filteredCars.map((car) => (
+                        <CarCard key={car._id} car={car} isMobile={isMobile} searchParams={searchParams} tripDistance={tripDistance} />
+                      ))}
                     </div>
                   )}
                 </div>
@@ -510,14 +510,14 @@ const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMo
   };
 
   return (
-    <div 
+    <div
       onClick={handleDetailsClick}
       className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full cursor-pointer group"
     >
       {/* Image Section */}
       <div className="relative overflow-hidden h-48">
-        <img 
-          src={car.image} 
+        <img
+          src={car.image}
           alt={`${car.brand} ${car.model}`}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -528,8 +528,8 @@ const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMo
           }}
           className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-all duration-200 z-10"
         >
-          <Heart 
-            className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} 
+          <Heart
+            className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
           />
         </button>
 
@@ -594,7 +594,7 @@ const CarCard = ({ car, isMobile, searchParams, tripDistance }: { car: any; isMo
               </div>
             </div>
           </div>
-          <button 
+          <button
             className="w-full bg-gradient-to-r from-[#212c40] to-[#2d3a52] hover:from-[#1a2333] hover:to-[#212c40] text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 text-sm"
           >
             Details

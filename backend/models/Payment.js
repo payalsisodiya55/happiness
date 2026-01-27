@@ -29,7 +29,7 @@ const paymentSchema = new mongoose.Schema({
   method: {
     type: String,
     required: true,
-    enum: ['wallet', 'card', 'upi', 'cash', 'netbanking']
+    enum: ['wallet', 'card', 'upi', 'cash', 'netbanking', 'phonepe', 'razorpay']
   },
   status: {
     type: String,
@@ -67,7 +67,7 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentGateway: {
     type: String,
-    enum: ['stripe', 'paytm', 'internal', 'phonepe'],
+    enum: ['stripe', 'paytm', 'internal', 'phonepe', 'razorpay'],
     default: 'phonepe'
   },
   paymentDetails: {

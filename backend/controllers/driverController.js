@@ -326,18 +326,18 @@ const getDriverBookings = asyncHandler(async (req, res) => {
     const totalAmount = bookingObj.pricing?.totalAmount || 0;
     const paymentMethod = bookingObj.payment?.method;
 
-    // Calculate driver's earnings: deduct 20% for online payments (admin commission)
-    const driverEarnings = paymentMethod === 'phonepe'
-      ? Math.round(totalAmount * 0.8)  // 80% for online payments
-      : totalAmount;                    // 100% for cash payments
+    // Calculate driver's earnings: deduct 20% for all bookings (admin commission)
+    // For cash bookings, they collect 80% (partial) or 100% (full, then 20% deducted)
+    // For online, they get 80% credited.
+    const driverEarnings = Math.round(totalAmount * 0.8);
 
     return {
       ...bookingObj,
       driverEarnings: {
         amount: driverEarnings,
         originalAmount: totalAmount,
-        commissionDeducted: paymentMethod === 'phonepe' ? Math.round(totalAmount * 0.2) : 0,
-        commissionPercentage: paymentMethod === 'phonepe' ? 20 : 0
+        commissionDeducted: Math.round(totalAmount * 0.2),
+        commissionPercentage: 20
       }
     };
   });
@@ -442,62 +442,12 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     booking.trip.actualFare = actualFare || booking.pricing.totalAmount;
     if (driverNotes) booking.trip.driverNotes = driverNotes;
 
-    // Update payment status when trip is completed
-    let paymentJustCompleted = false;
-    if (booking.payment.method === 'phonepe') {
-      // Online payments are already completed
-      if (booking.payment.status !== 'completed') {
-        booking.payment.status = 'completed';
-        booking.payment.completedAt = new Date();
-        paymentJustCompleted = true;
-      }
-    } else if (booking.payment.method === 'cash') {
-      // For cash payments, check if it's partial payment
-      if (booking.payment.isPartialPayment) {
-        // For partial payments, payment is completed only when both online and cash are collected
-        if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
-          booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
-          booking.payment.status !== 'completed') {
-          booking.payment.status = 'completed';
-          booking.payment.completedAt = new Date();
-          paymentJustCompleted = true;
-        }
-        // If only one part is completed, keep payment as pending
-      } else {
-        // For regular cash payments, mark as completed when trip is done
-        if (booking.payment.status !== 'completed') {
-          booking.payment.status = 'completed';
-          booking.payment.completedAt = new Date();
-          paymentJustCompleted = true;
-        }
-      }
-    }
+    // NOTE: We no longer automatically mark cash payments as 'completed' here.
+    // The driver must explicitly call the collect-cash-payment endpoint.
 
-    // Add earnings to driver's wallet if payment was just completed
-    if (paymentJustCompleted) {
-      try {
-        const Driver = require('../models/Driver');
-        const driver = await Driver.findById(booking.driver);
-        if (driver) {
-          // Calculate driver's earnings after commission
-          const totalAmount = booking.pricing?.totalAmount || 0;
-
-          if (booking.payment.method === 'phonepe') {
-            const driverEarnings = Math.round(totalAmount * 0.8);
-            await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
-            console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
-          } else {
-            // Cash payment: Deduct 20% commission
-            const adminCommission = Math.round(totalAmount * 0.2);
-            await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
-            console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error adding earnings to driver wallet:', error);
-        // Don't fail the status update if earnings update fails
-      }
-    }
+    // NOTE: Wallet crediting for 80% driver share is REMOVED as per user request.
+    // Drivers now collect 80% cash directly from the user for ALL booking types.
+    // Online bookings are now 20% advance (Admin share) + 80% Cash (Driver share).
   }
 
   await booking.save();
@@ -589,62 +539,10 @@ const completeTrip = asyncHandler(async (req, res) => {
     booking.pricing.finalAmount = baseAmount + additionalCharges + gstAmount;
   }
 
-  // Update payment status when trip is completed
-  let paymentJustCompleted = false;
-  if (booking.payment.method === 'phonepe') {
-    // Online payments are already completed
-    if (booking.payment.status !== 'completed') {
-      booking.payment.status = 'completed';
-      booking.payment.completedAt = new Date();
-      paymentJustCompleted = true;
-    }
-  } else if (booking.payment.method === 'cash') {
-    // For cash payments, check if it's partial payment
-    if (booking.payment.isPartialPayment) {
-      // For partial payments, payment is completed only when both online and cash are collected
-      if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
-        booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
-        booking.payment.status !== 'completed') {
-        booking.payment.status = 'completed';
-        booking.payment.completedAt = new Date();
-        paymentJustCompleted = true;
-      }
-      // If only one part is completed, keep payment as pending
-    } else {
-      // For regular cash payments, mark as completed when trip is done
-      if (booking.payment.status !== 'completed') {
-        booking.payment.status = 'completed';
-        booking.payment.completedAt = new Date();
-        paymentJustCompleted = true;
-      }
-    }
-  }
+  // NOTE: We no longer automatically mark cash payments as 'completed' here.
+  // The driver must explicitly call the collect-cash-payment endpoint.
 
-  // Add earnings to driver's wallet if payment was just completed
-  if (paymentJustCompleted) {
-    try {
-      const Driver = require('../models/Driver');
-      const driver = await Driver.findById(booking.driver);
-      if (driver) {
-        // Calculate driver's earnings after commission
-        const totalAmount = booking.pricing?.totalAmount || 0;
-
-        if (booking.payment.method === 'phonepe') {
-          const driverEarnings = Math.round(totalAmount * 0.8);
-          await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
-          console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
-        } else {
-          // Cash payment: Deduct 20% commission
-          const adminCommission = Math.round(totalAmount * 0.2);
-          await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
-          console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error adding earnings to driver wallet:', error);
-      // Don't fail the status update if earnings update fails
-    }
-  }
+  // NOTE: Wallet crediting removed. Drivers collect 80% cash.
 
   await booking.save();
 

@@ -142,8 +142,8 @@ const createBooking = asyncHandler(async (req, res) => {
         // For car and bus vehicles, use simple calculation: distance × base_rate
         // Use 50km rate as base rate for all distances
         ratePerKm = vehicle.pricing?.distancePricing?.['one-way']?.['50km'] ||
-                   vehicle.pricing?.distancePricing?.['return']?.['50km'] ||
-                   vehicle.pricing?.perKmPrice || 102;
+          vehicle.pricing?.distancePricing?.['return']?.['50km'] ||
+          vehicle.pricing?.perKmPrice || 102;
 
         // If ratePerKm is 0, try to fetch from VehiclePricing model
         if (!ratePerKm || ratePerKm === 0) {
@@ -159,8 +159,8 @@ const createBooking = asyncHandler(async (req, res) => {
           if (pricingData) {
             // Use 50km rate as base rate for simple calculation
             ratePerKm = pricingData.distancePricing?.['one-way']?.['50km'] ||
-                       pricingData.distancePricing?.['return']?.['50km'] ||
-                       pricingData.perKmRate || 101;
+              pricingData.distancePricing?.['return']?.['50km'] ||
+              pricingData.perKmRate || 101;
 
             // Update vehicle pricing data
             if (!vehicle.pricing) vehicle.pricing = {};
@@ -175,84 +175,84 @@ const createBooking = asyncHandler(async (req, res) => {
         totalAmount = distance * ratePerKm; // No rounding to avoid extra amounts
       }
 
-    // Calculate additional charges (for display only, not included in GST calculation)
-    let nightCharges = 0;
-    let fuelCharges = 0;
-    let excessKmCharges = 0;
-    let additionalPickupCharges = 0;
+      // Calculate additional charges (for display only, not included in GST calculation)
+      let nightCharges = 0;
+      let fuelCharges = 0;
+      let excessKmCharges = 0;
+      let additionalPickupCharges = 0;
 
-    // 1. Calculate Night Charges (₹50 per night hour for trips between 22:00-06:00)
-    if (req.body.pickupTime && req.body.date) {
-      const tripDate = new Date(`${req.body.date}T${req.body.pickupTime}`);
-      const estimatedTripHours = Math.max(1, Math.ceil(distance / 40)); // Assume 40km/h average speed
-      let nightHours = 0;
+      // 1. Calculate Night Charges (₹50 per night hour for trips between 22:00-06:00)
+      if (req.body.pickupTime && req.body.date) {
+        const tripDate = new Date(`${req.body.date}T${req.body.pickupTime}`);
+        const estimatedTripHours = Math.max(1, Math.ceil(distance / 40)); // Assume 40km/h average speed
+        let nightHours = 0;
 
-      for (let hour = 0; hour < estimatedTripHours; hour++) {
-        const checkTime = new Date(tripDate.getTime() + (hour * 60 * 60 * 1000));
-        const checkHour = checkTime.getHours();
-        if (checkHour >= 22 || checkHour < 6) { // 10 PM to 6 AM
-          nightHours += 1;
+        for (let hour = 0; hour < estimatedTripHours; hour++) {
+          const checkTime = new Date(tripDate.getTime() + (hour * 60 * 60 * 1000));
+          const checkHour = checkTime.getHours();
+          if (checkHour >= 22 || checkHour < 6) { // 10 PM to 6 AM
+            nightHours += 1;
+          }
+        }
+
+        if (nightHours > 0) {
+          nightCharges = nightHours * 50; // ₹50 per night hour
         }
       }
 
-      if (nightHours > 0) {
-        nightCharges = nightHours * 50; // ₹50 per night hour
+      // 2. Calculate Fuel Charges based on fuel type and distance (for display only)
+      if (vehicle.fuelType && distance > 0) {
+        const fuelEfficiency = {
+          'petrol': 15, // km/liter
+          'diesel': 18, // km/liter
+          'cng': 25,    // km/kg
+          'electric': 0 // no fuel cost
+        };
+
+        const fuelPrices = {
+          'petrol': 100,  // ₹/liter
+          'diesel': 90,   // ₹/liter
+          'cng': 85,      // ₹/kg
+          'electric': 0   // ₹/kWh (no fuel cost)
+        };
+
+        const efficiency = fuelEfficiency[vehicle.fuelType] || 15;
+        const fuelPrice = fuelPrices[vehicle.fuelType] || 100;
+
+        if (efficiency > 0) {
+          const fuelRequired = distance / efficiency;
+          fuelCharges = Math.round(fuelRequired * fuelPrice);
+        }
       }
-    }
 
-    // 2. Calculate Fuel Charges based on fuel type and distance (for display only)
-    if (vehicle.fuelType && distance > 0) {
-      const fuelEfficiency = {
-        'petrol': 15, // km/liter
-        'diesel': 18, // km/liter
-        'cng': 25,    // km/kg
-        'electric': 0 // no fuel cost
-      };
-
-      const fuelPrices = {
-        'petrol': 100,  // ₹/liter
-        'diesel': 90,   // ₹/liter
-        'cng': 85,      // ₹/kg
-        'electric': 0   // ₹/kWh (no fuel cost)
-      };
-
-      const efficiency = fuelEfficiency[vehicle.fuelType] || 15;
-      const fuelPrice = fuelPrices[vehicle.fuelType] || 100;
-
-      if (efficiency > 0) {
-        const fuelRequired = distance / efficiency;
-        fuelCharges = Math.round(fuelRequired * fuelPrice);
+      // 3. Calculate KM Limits and Excess Charges
+      let kmLimit = null;
+      if (vehicle.pricingReference?.category === 'auto') {
+        kmLimit = 50;
+      } else if (vehicle.pricingReference?.category === 'car') {
+        kmLimit = 100;
+      } else if (vehicle.pricingReference?.category === 'bus') {
+        kmLimit = 200;
       }
-    }
 
-    // 3. Calculate KM Limits and Excess Charges
-    let kmLimit = null;
-    if (vehicle.pricingReference?.category === 'auto') {
-      kmLimit = 50;
-    } else if (vehicle.pricingReference?.category === 'car') {
-      kmLimit = 100;
-    } else if (vehicle.pricingReference?.category === 'bus') {
-      kmLimit = 200;
-    }
+      if (kmLimit && distance > kmLimit) {
+        const excessKm = distance - kmLimit;
+        const excessRate = Math.round(ratePerKm * 1.5); // 150% of base rate for excess
+        excessKmCharges = excessKm * excessRate;
+      }
 
-    if (kmLimit && distance > kmLimit) {
-      const excessKm = distance - kmLimit;
-      const excessRate = Math.round(ratePerKm * 1.5); // 150% of base rate for excess
-      excessKmCharges = excessKm * excessRate;
-    }
+      // 4. Calculate Additional Pickup/Drop Charges (₹200 per additional stop)
+      const additionalPickups = req.body.additionalPickups || 0;
+      if (additionalPickups > 0) {
+        additionalPickupCharges = additionalPickups * 200;
+      }
 
-    // 4. Calculate Additional Pickup/Drop Charges (₹200 per additional stop)
-    const additionalPickups = req.body.additionalPickups || 0;
-    if (additionalPickups > 0) {
-      additionalPickupCharges = additionalPickups * 200;
-    }
+      // Base fare is only distance × rate (as per user requirement)
+      // Additional charges are for display only, not included in GST calculation
 
-    // Base fare is only distance × rate (as per user requirement)
-    // Additional charges are for display only, not included in GST calculation
-
-    // Keep exact amount without rounding to avoid extra charges
-    // totalAmount remains as calculated
-    ratePerKm = Math.round(ratePerKm); // Only round rate for display purposes
+      // Keep exact amount without rounding to avoid extra charges
+      // totalAmount remains as calculated
+      ratePerKm = Math.round(ratePerKm); // Only round rate for display purposes
 
       // Fallback pricing if still no pricing available
       if (totalAmount === 0 || isNaN(totalAmount)) {
@@ -292,12 +292,14 @@ const createBooking = asyncHandler(async (req, res) => {
   const gstAmount = Math.round(totalAmount * 0.05);
   const finalAmount = totalAmount + gstAmount;
 
-  // Determine if this is a partial payment booking (bus/car with cash method)
-  const isPartialPayment = (vehicle.pricingReference?.category !== 'auto' && paymentMethod === 'cash');
+  // Determine if this is a partial payment booking
+  // NEW LOGIC: Only Online (PhonePe) bookings are partial payments (20% advance admin, 80% cash driver).
+  // 100% Cash bookings are NOT partial, they are fully collected by driver and commission is deducted from wallet.
+  const isPartialPayment = (paymentMethod === 'phonepe');
 
-  // Calculate partial payment amounts (30% online, 70% cash)
-  const onlineAmount = isPartialPayment ? Math.round(totalAmount * 0.3) : 0;
-  const cashAmount = isPartialPayment ? Math.round(totalAmount * 0.7) : totalAmount;
+  // Calculate partial payment amounts
+  const onlineAmount = isPartialPayment ? Math.round(totalAmount * 0.2) : 0;
+  const cashAmount = isPartialPayment ? Math.round(totalAmount * 0.8) : totalAmount;
 
   // Create booking with the new structure
   const booking = new Booking({
@@ -1174,36 +1176,36 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 
             // Update Driver Stats
             referringDriver.referralStats.totalRewards += rewardAmount;
-            
+
             // Add to Driver Wallet
             if (!referringDriver.earnings) referringDriver.earnings = {};
             if (!referringDriver.earnings.wallet) referringDriver.earnings.wallet = { balance: 0, transactions: [] };
-            
+
             referringDriver.earnings.wallet.balance += rewardAmount;
             referringDriver.earnings.wallet.transactions.push({
-                type: 'credit',
-                amount: rewardAmount,
-                description: `Referral Reward for new user ${user.firstName}`,
-                date: new Date()
+              type: 'credit',
+              amount: rewardAmount,
+              description: `Referral Reward for new user ${user.firstName}`,
+              date: new Date()
             });
 
             // Log Reward
             referringDriver.referralRewards.push({
-                amount: rewardAmount,
-                type: 'wallet_credit',
-                reason: 'First booking completed by referred user',
-                referredUserId: user._id,
-                date: new Date()
+              amount: rewardAmount,
+              type: 'wallet_credit',
+              reason: 'First booking completed by referred user',
+              referredUserId: user._id,
+              date: new Date()
             });
 
             // Update specific referred user status in driver's list
             const referredUserIndex = referringDriver.referredUsers.findIndex(
-                u => u.userId.toString() === user._id.toString()
+              u => u.userId.toString() === user._id.toString()
             );
             if (referredUserIndex !== -1) {
-                referringDriver.referredUsers[referredUserIndex].status = 'rewarded';
-                referringDriver.referredUsers[referredUserIndex].rewardAmount = rewardAmount;
-                referringDriver.referredUsers[referredUserIndex].rewardDate = new Date();
+              referringDriver.referredUsers[referredUserIndex].status = 'rewarded';
+              referringDriver.referredUsers[referredUserIndex].rewardAmount = rewardAmount;
+              referringDriver.referredUsers[referredUserIndex].rewardDate = new Date();
             }
 
             await referringDriver.save();
@@ -1258,99 +1260,141 @@ const collectCashPayment = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if this is a partial payment booking
-  if (!booking.payment.isPartialPayment) {
+  // Check if this booking allows cash collection (either partial payment OR full cash method)
+  const isDirectCash = booking.payment.method === 'cash' && !booking.payment.isPartialPayment;
+
+  if (!booking.payment.isPartialPayment && !isDirectCash) {
     return res.status(400).json({
       success: false,
-      message: 'This booking does not have partial payment setup'
+      message: 'This booking does not support cash payment collection'
     });
   }
 
-  // Check if online payment is completed
-  if (booking.payment.partialPaymentDetails.onlinePaymentStatus !== 'completed') {
-    return res.status(400).json({
-      success: false,
-      message: 'Online payment must be completed before collecting cash payment'
-    });
-  }
+  let commissionAmount = 0;
+  let cashAmountToDisplay = 0;
 
-  // Check if cash payment is already collected
-  if (booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected') {
-    return res.status(400).json({
-      success: false,
-      message: 'Cash payment has already been collected'
-    });
-  }
+  // Handle Partial Payment Bookings
+  if (booking.payment.isPartialPayment) {
+    // Check if online payment is completed
+    console.log(`[CollectCash] Checking onlinePaymentStatus: ${booking.payment.partialPaymentDetails.onlinePaymentStatus}`);
 
-  // Mark cash payment as collected
-  booking.payment.partialPaymentDetails.cashPaymentStatus = 'collected';
-  booking.payment.partialPaymentDetails.cashCollectedAt = new Date();
-  booking.payment.partialPaymentDetails.cashCollectedBy = req.driver.id;
-  booking.payment.partialPaymentDetails.cashCollectedByModel = 'Driver';
-
-  // Update overall payment status to completed if both payments are done
-  if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
-    booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected') {
-    booking.payment.status = 'completed';
-
-    // Deduct 20% commission from driver's wallet and add to admin revenue
-    const cashAmount = booking.payment.partialPaymentDetails.cashAmount;
-    const commissionAmount = Math.round(cashAmount * 0.2); // 20% commission
-
-    console.log(`Processing commission: ₹${commissionAmount} from cash amount ₹${cashAmount}`);
-
-    try {
-      // Get the driver and deduct commission from wallet
-      const driver = await Driver.findById(req.driver.id);
-      if (driver) {
-        // Ensure wallet exists
-        if (!driver.earnings) driver.earnings = {};
-        if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
-
-        // Check if driver has sufficient balance
-        if (driver.earnings.wallet.balance >= commissionAmount) {
-          // Deduct from driver wallet
-          driver.earnings.wallet.balance -= commissionAmount;
-          driver.earnings.wallet.transactions.push({
-            type: 'debit',
-            amount: commissionAmount,
-            description: `Commission for booking ${booking._id}`,
-            date: new Date()
-          });
-
-          await driver.save();
-          console.log(`Deducted ₹${commissionAmount} commission from driver ${driver.firstName}'s wallet`);
-
-          // Add to admin revenue
-          const admin = await Admin.findOne({ isActive: true }); // Get first active admin
-          if (admin) {
-            await admin.addRevenue(
-              commissionAmount,
-              'commission',
-              `Commission from driver ${driver.firstName} for booking ${booking._id}`,
-              driver._id,
-              booking._id
-            );
-            console.log(`Added ₹${commissionAmount} to admin revenue`);
-          }
-
-          // Check if driver wallet is below ₹1000 and set offline
-          if (driver.earnings.wallet.balance < 1000) {
-            driver.availability.isOnline = false;
-            driver.lastStatusChange = new Date();
-            await driver.save();
-            console.log(`Driver ${driver.firstName} automatically set offline due to low wallet balance`);
-          }
-        } else {
-          console.error(`Driver ${req.driver.firstName} has insufficient balance for commission deduction`);
-        }
-      } else {
-        console.error('Driver not found for commission processing');
-      }
-    } catch (commissionError) {
-      console.error('Error processing commission:', commissionError);
-      // Don't fail the payment collection if commission processing fails
+    if (booking.payment.partialPaymentDetails.onlinePaymentStatus !== 'completed' && process.env.NODE_ENV === 'production') {
+      console.log('[CollectCash] ❌ Online payment not completed. Blocking collection in production.');
+      return res.status(400).json({
+        success: false,
+        message: 'Online payment must be completed before collecting cash payment'
+      });
     }
+
+    // Check if cash payment is already collected
+    if (booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cash payment has already been collected'
+      });
+    }
+
+    // Mark cash payment as collected
+    booking.payment.partialPaymentDetails.cashPaymentStatus = 'collected';
+    booking.payment.partialPaymentDetails.cashCollectedAt = new Date();
+    booking.payment.partialPaymentDetails.cashCollectedBy = req.driver.id;
+    booking.payment.partialPaymentDetails.cashCollectedByModel = 'Driver';
+
+    cashAmountToDisplay = booking.payment.partialPaymentDetails.cashAmount;
+
+    // Update overall payment status to completed
+    booking.payment.status = 'completed';
+    booking.payment.completedAt = new Date();
+
+    // For partial payments, the admin already has the 20% online portion.
+    // So no commission is deducted from the driver's wallet here.
+    console.log('[CollectCash] Partial payment cash collected. Admin already has online portion.');
+  }
+  // Handle Direct Full Cash Bookings
+  else if (isDirectCash) {
+    if (booking.payment.status === 'completed') {
+      return res.status(400).json({ success: false, message: 'Payment already completed' });
+    }
+
+    booking.payment.status = 'completed';
+    booking.payment.completedAt = new Date();
+    cashAmountToDisplay = booking.pricing.totalAmount;
+
+    // For direct cash, driver gets 100%, so we deduct 20% commission from wallet
+    commissionAmount = Math.round(booking.pricing.totalAmount * 0.2);
+    console.log(`[CollectCash] Direct cash collected. Processing ₹${commissionAmount} commission (20% of ₹${booking.pricing.totalAmount})`);
+  }
+
+  // Update driver statistics and process commission/income records
+  try {
+    const driver = await Driver.findById(booking.driver);
+    if (driver) {
+      const totalAmount = booking.pricing.totalAmount;
+      const driverShare = Math.round(totalAmount * 0.8);
+      const cashPortion = isDirectCash ? totalAmount : (booking.payment.partialPaymentDetails?.cashAmount || 0);
+
+      // 1. Update overall driver stats
+      driver.totalEarnings = (driver.totalEarnings || 0) + driverShare;
+      driver.totalRides = (driver.totalRides || 0) + 1;
+
+      // 2. Record transactions for history and wallet balance
+      // We add a credit for the cash collected to show in "Total Income"
+      // then immediately debit it because the driver already has it physically.
+
+      // Credit cash earning (so it shows in stats/transaction list)
+      driver.earnings.wallet.transactions.push({
+        type: 'credit',
+        amount: cashPortion,
+        description: `Trip Income (Cash Collected) - ${booking.bookingNumber}`,
+        date: new Date()
+      });
+
+      // Debit same amount (as it's in driver's pocket, not wallet balance)
+      driver.earnings.wallet.transactions.push({
+        type: 'debit',
+        amount: cashPortion,
+        description: `Cash Collection Adjustment - ${booking.bookingNumber}`,
+        date: new Date()
+      });
+
+      // 3. Process Commission for Full Cash bookings
+      if (commissionAmount > 0) {
+        // Deduct 20% commission from wallet balance
+        driver.earnings.wallet.balance -= commissionAmount;
+        driver.earnings.wallet.transactions.push({
+          type: 'debit',
+          amount: commissionAmount,
+          description: `Commission for Cash Booking - ${booking.bookingNumber}`,
+          date: new Date()
+        });
+
+        console.log(`Deducted ₹${commissionAmount} commission from driver ${driver.firstName}'s wallet`);
+
+        // Add to admin revenue record
+        const Admin = require('../models/Admin');
+        const admin = await Admin.findOne({ isActive: true });
+        if (admin) {
+          await admin.addRevenue(
+            commissionAmount,
+            'commission',
+            `Commission from driver ${driver.firstName} for booking ${booking._id}`,
+            driver._id,
+            booking._id
+          );
+        }
+
+        // Automatic offline if balance drops below threshold
+        if (driver.earnings.wallet.balance < 1000) {
+          driver.availability.isOnline = false;
+          driver.lastStatusChange = new Date();
+        }
+      }
+
+      await driver.save();
+      console.log(`✅ Updated stats and transactions for driver ${driver.firstName}`);
+    }
+  } catch (err) {
+    console.error('❌ Error updating driver stats/commission during cash collection:', err);
   }
 
   await booking.save();
@@ -1360,7 +1404,7 @@ const collectCashPayment = asyncHandler(async (req, res) => {
     message: 'Cash payment marked as collected successfully',
     data: {
       bookingId: booking._id,
-      cashAmount: booking.payment.partialPaymentDetails.cashAmount,
+      cashAmount: cashAmountToDisplay,
       totalAmount: booking.pricing.totalAmount,
       paymentStatus: booking.payment.status
     }

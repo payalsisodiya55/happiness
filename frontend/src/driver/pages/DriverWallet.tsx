@@ -50,7 +50,7 @@ const DriverWallet = () => {
 
           let { merchantOrderId } = parsed || {};
 
-          if (merchantOrderId) {
+          if (merchantOrderId && parsed.paymentType === 'wallet_recharge') {
             toast({ title: "Verifying Payment", description: "Verifying your transaction..." });
 
             // Handle object case if needed

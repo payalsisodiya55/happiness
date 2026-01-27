@@ -87,32 +87,34 @@ const DriverRequests = () => {
     // Fallback: calculate on frontend if backend data not available
     const baseAmount = booking.pricing?.totalAmount || 0;
     const paymentMethod = booking.payment?.method;
-    const driverEarnings = paymentMethod === 'phonepe'
-      ? Math.round(baseAmount * 0.8)  // 80% for online payments
-      : baseAmount;                    // 100% for cash payments
+    const isPartial = booking.payment?.isPartialPayment;
 
-    if (booking.pricing && booking.pricing.totalAmount) {
-      return {
-        ...booking.pricing,
-        totalAmount: driverEarnings,  // Driver's actual earnings
-        originalAmount: baseAmount,   // Original booking amount
-        ratePerKm: booking.pricing.ratePerKm || 0,
-        distance: booking.tripDetails?.distance || 0,
-        tripType: booking.tripDetails?.tripType || 'one-way',
-        paymentMethod: paymentMethod,
-        isCommissionDeducted: paymentMethod === 'phonepe'
-      };
+    let driverEarnings = baseAmount;
+    let isCommissionDeducted = false;
+
+    if (paymentMethod === 'phonepe') {
+      // 100% online: Driver gets 80% added to wallet (eventually)
+      driverEarnings = Math.round(baseAmount * 0.8);
+      isCommissionDeducted = true;
+    } else if (isPartial) {
+      // Partial: Driver gets 80% in cash. Admin keeps the 20% advance as commission.
+      driverEarnings = Math.round(baseAmount * 0.8);
+      // We don't say "commission deducted from wallet" here because they just collect less cash
+    } else if (paymentMethod === 'cash') {
+      // Full Cash: Driver gets 100% in cash, then 20% is deducted from wallet
+      driverEarnings = Math.round(baseAmount * 0.8); // Their actual net earning
+      isCommissionDeducted = true;
     }
 
-    // Fallback: return safe default if no pricing data
     return {
-      totalAmount: driverEarnings,
-      originalAmount: baseAmount,
-      ratePerKm: 0,
+      ...booking.pricing,
+      totalAmount: driverEarnings,  // Driver's actual net earnings
+      originalAmount: baseAmount,   // Original booking amount
+      ratePerKm: booking.pricing?.ratePerKm || 0,
       distance: booking.tripDetails?.distance || 0,
       tripType: booking.tripDetails?.tripType || 'one-way',
       paymentMethod: paymentMethod,
-      isCommissionDeducted: paymentMethod === 'phonepe'
+      isCommissionDeducted: isCommissionDeducted
     };
   };
   const { driver, isLoggedIn, refreshDriverData } = useDriverAuth();
@@ -148,30 +150,34 @@ const DriverRequests = () => {
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
       setUpdatingStatus(bookingId);
-      await apiService.updateDriverBookingStatus(bookingId, newStatus);
+      const response = await apiService.updateDriverBookingStatus(bookingId, newStatus);
 
-      // Update local state
-      setBookings(prev => prev.map(booking =>
-        booking._id === bookingId
-          ? { ...booking, status: newStatus }
-          : booking
-      ));
+      if (response.success && response.data) {
+        // Update local state with fresh data from server
+        setBookings(prev => prev.map(booking =>
+          booking._id === bookingId
+            ? { ...booking, ...response.data, status: newStatus }
+            : booking
+        ));
 
-      toast({
-        title: "Success",
-        description: `Booking ${newStatus} successfully`,
-      });
+        // Refresh bookings from server as well to ensure total consistency
+        await fetchDriverBookings();
 
-      // Refresh driver data to update wallet balance and transactions
-      await refreshDriverData();
+        // Also refresh driver data for wallet balance
+        if (typeof refreshDriverData === 'function') {
+          await refreshDriverData();
+        }
 
-      // Refresh bookings to get updated data
-      fetchDriverBookings();
-    } catch (error) {
+        toast({
+          title: "Success",
+          description: `Trip ${newStatus === 'completed' ? 'completed' : newStatus} successfully`,
+        });
+      }
+    } catch (error: any) {
       console.error('Error updating booking status:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update status",
+        description: error.message || "Failed to update status",
         variant: "destructive",
       });
     } finally {
@@ -186,36 +192,43 @@ const DriverRequests = () => {
       const resp = await apiService.request(`/bookings/${bookingId}/collect-cash-payment`, { method: 'PUT' }, 'driver');
 
       // Update local state
-      setBookings(prev => prev.map(booking =>
-        booking._id === bookingId
-          ? {
-            ...booking,
-            payment: {
-              ...booking.payment,
-              partialPaymentDetails: {
-                ...booking.payment.partialPaymentDetails,
-                cashPaymentStatus: 'collected'
-              }
-            }
+      setBookings(prev => prev.map(booking => {
+        if (booking._id === bookingId) {
+          const updatedBooking = { ...booking };
+          // Ensure payment object exists
+          updatedBooking.payment = {
+            ...(booking.payment || { method: 'cash', isPartialPayment: false, status: 'pending' }),
+            status: 'completed'
+          };
+
+          if (updatedBooking.payment.isPartialPayment && updatedBooking.payment.partialPaymentDetails) {
+            updatedBooking.payment.partialPaymentDetails = {
+              ...updatedBooking.payment.partialPaymentDetails,
+              cashPaymentStatus: 'collected'
+            };
           }
-          : booking
-      ));
+          return updatedBooking;
+        }
+        return booking;
+      }));
 
       toast({
         title: "Success",
         description: "Cash payment marked as collected successfully",
       });
 
-      // Refresh driver data to update wallet balance and transactions
-      await refreshDriverData();
+      // Refresh driver data for wallet balance
+      if (typeof refreshDriverData === 'function') {
+        await refreshDriverData();
+      }
 
-      // Refresh bookings to get updated data
-      fetchDriverBookings();
-    } catch (error) {
+      // Refresh bookings for fresh data
+      await fetchDriverBookings();
+    } catch (error: any) {
       console.error('Error collecting cash payment:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to collect cash payment",
+        description: error.message || "Failed to collect payment",
         variant: "destructive",
       });
     } finally {
@@ -291,18 +304,34 @@ const DriverRequests = () => {
           </Button>
         );
       case 'completed':
-        // Show payment collection button for partial payment bookings
-        if (booking.payment?.isPartialPayment &&
-          booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending') {
+        // Show payment collection button for cash-based bookings that are not yet fully paid
+        const isCashMethod = booking.payment?.method === 'cash';
+        const isPartial = booking.payment?.isPartialPayment;
+
+        // It's pending cash if:
+        // 1. It's a partial payment and the cash part is still 'pending'
+        // 2. OR it's a full cash payment and the overall payment status is 'pending'
+        const isPendingCash = (isPartial && booking.payment?.partialPaymentDetails?.cashPaymentStatus === 'pending') ||
+          (isCashMethod && !isPartial && booking.payment?.status === 'pending');
+
+        if (isPendingCash) {
+          // Calculate amount to collect
+          let amountToCollect = 0;
+          if (isPartial) {
+            amountToCollect = booking.payment.partialPaymentDetails?.cashAmount || Math.round(booking.pricing.totalAmount * 0.8);
+          } else {
+            amountToCollect = booking.pricing.totalAmount;
+          }
+
           return (
             <Button
               size="sm"
-              className="bg-[#f48432] hover:bg-[#e07528] w-full sm:w-auto shadow-md"
+              className="bg-[#f48432] hover:bg-[#e07528] w-full sm:w-auto shadow-md font-bold"
               onClick={() => collectCashPayment(booking._id)}
               disabled={updatingStatus === booking._id}
             >
               <CreditCard className="w-4 h-4 mr-1" />
-              Collect Cash Payment
+              Collect ₹{amountToCollect.toLocaleString()} Cash
             </Button>
           );
         }

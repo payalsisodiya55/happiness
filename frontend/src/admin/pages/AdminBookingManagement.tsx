@@ -96,7 +96,7 @@ interface Booking {
   };
   status: 'pending' | 'accepted' | 'started' | 'completed' | 'cancelled' | 'cancellation_requested';
   payment: {
-    method: 'cash' | 'upi' | 'netbanking' | 'card' | 'phonepe';
+    method: 'cash' | 'upi' | 'netbanking' | 'card' | 'phonepe' | 'razorpay';
     status: 'pending' | 'completed' | 'failed';
     transactionId?: string;
     completedAt?: string;
@@ -508,12 +508,12 @@ const AdminBookingManagement = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const displayDate = (dateString: string) => {
     if (!dateString) return 'Not specified';
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatTime = (timeString: string) => {
+  const displayTime = (timeString: string) => {
     if (!timeString) return 'Not specified';
     return timeString;
   };
@@ -1369,8 +1369,8 @@ const AdminBookingManagement = () => {
                           {getStatusBadge(booking.status)}
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                          <span>📅 {formatDate(booking.tripDetails.date)}</span>
-                          <span>🕐 {formatTime(booking.tripDetails.time)}</span>
+                          <span>📅 {displayDate(booking.tripDetails.date)}</span>
+                          <span>🕐 {displayTime(booking.tripDetails.time)}</span>
                         </div>
                       </div>
 
@@ -1751,7 +1751,7 @@ const AdminBookingManagement = () => {
                                 </p>
 
                                 <div className="text-xs text-gray-500 ml-6 mt-2">
-                                  📅 {formatDate(booking.tripDetails.date)} at {formatTime(booking.tripDetails.time)}
+                                  📅 {displayDate(booking.tripDetails.date)} at {displayTime(booking.tripDetails.time)}
                                 </div>
                               </div>
                             </TableCell>
@@ -1976,7 +1976,7 @@ const AdminBookingManagement = () => {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Created At</Label>
-                    <p className="mt-1 font-medium text-sm sm:text-base">{formatDate(selectedBooking.createdAt)}</p>
+                    <p className="mt-1 font-medium text-sm sm:text-base">{displayDate(selectedBooking.createdAt)}</p>
                   </div>
                 </div>
               </div>
@@ -2066,7 +2066,7 @@ const AdminBookingManagement = () => {
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Date & Time</Label>
                     <p className="mt-1 font-medium">
-                      {formatDate(selectedBooking.tripDetails.date)} at {formatTime(selectedBooking.tripDetails.time)}
+                      {displayDate(selectedBooking.tripDetails.date)} at {displayTime(selectedBooking.tripDetails.time)}
                     </p>
                   </div>
                   <div>
@@ -2097,7 +2097,7 @@ const AdminBookingManagement = () => {
                         <div className="flex-1">
                           <p className="font-medium capitalize">{history.status}</p>
                           <p className="text-sm text-gray-500">
-                            {formatDate(history.timestamp)} - {history.updatedByModel}
+                            {displayDate(history.timestamp)} - {history.updatedByModel}
                           </p>
                           {history.reason && (
                             <p className="text-sm text-gray-600 mt-1">{history.reason}</p>
@@ -2120,7 +2120,7 @@ const AdminBookingManagement = () => {
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-600">Cancelled At</Label>
-                      <p className="mt-1 font-medium">{formatDate(selectedBooking.cancellation.cancelledAt)}</p>
+                      <p className="mt-1 font-medium">{displayDate(selectedBooking.cancellation.cancelledAt)}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-600">Reason</Label>
@@ -2182,7 +2182,7 @@ const AdminBookingManagement = () => {
                           </div>
                           <div>
                             <Label className="text-sm font-medium text-gray-600">Date</Label>
-                            <p className="mt-1 font-medium text-sm sm:text-base">{formatDate(payment.createdAt)}</p>
+                            <p className="mt-1 font-medium text-sm sm:text-base">{displayDate(payment.createdAt)}</p>
                           </div>
                           {payment.transactionId && (
                             <div>
@@ -2190,10 +2190,10 @@ const AdminBookingManagement = () => {
                               <p className="mt-1 font-medium font-mono text-xs sm:text-sm">{payment.transactionId}</p>
                             </div>
                           )}
-                          {payment.paymentDetails?.razorpayPaymentId && (
+                          {payment.paymentDetails?.phonePeTransactionId && (
                             <div>
-                              <Label className="text-sm font-medium text-gray-600">Razorpay Payment ID</Label>
-                              <p className="mt-1 font-medium font-mono text-xs sm:text-sm">{payment.paymentDetails.razorpayPaymentId}</p>
+                              <Label className="text-sm font-medium text-gray-600">PhonePe Transaction ID</Label>
+                              <p className="mt-1 font-medium font-mono text-xs sm:text-sm">{payment.paymentDetails.phonePeTransactionId}</p>
                             </div>
                           )}
                         </div>
@@ -2213,7 +2213,7 @@ const AdminBookingManagement = () => {
                               </div>
                               <div>
                                 <Label className="text-sm font-medium text-gray-600">Refund Date</Label>
-                                <p className="mt-1 font-medium text-sm sm:text-base">{formatDate(payment.refund.refundedAt)}</p>
+                                <p className="mt-1 font-medium text-sm sm:text-base">{displayDate(payment.refund.refundedAt)}</p>
                               </div>
                               <div>
                                 <Label className="text-sm font-medium text-gray-600">Refund ID</Label>
@@ -2262,12 +2262,12 @@ const AdminBookingManagement = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="refundMethod">Refund Method</Label>
-              <Select value={refundMethod} onValueChange={(value: 'razorpay' | 'manual') => setRefundMethod(value)}>
+              <Select value={refundMethod} onValueChange={(value: 'phonepe' | 'manual') => setRefundMethod(value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select refund method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="razorpay">Razorpay (Automatic)</SelectItem>
+                  <SelectItem value="phonepe">PhonePe (Automatic)</SelectItem>
                   <SelectItem value="manual">Manual (Offline)</SelectItem>
                 </SelectContent>
               </Select>

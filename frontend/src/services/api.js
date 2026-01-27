@@ -2,7 +2,7 @@
 const resolveApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
   if (envUrl) return envUrl;
-  return import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
+  return import.meta.env.DEV ? 'http://localhost:5001/api' : '/api';
 };
 const API_BASE_URL = resolveApiBaseUrl();
 
@@ -24,22 +24,22 @@ class ApiService {
   async throttleRequest() {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
-    
+
     if (timeSinceLastRequest < this.minRequestInterval) {
       const delay = this.minRequestInterval - timeSinceLastRequest;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
+
     this.lastRequestTime = Date.now();
   }
 
   // Check if we're currently on an auth page to prevent redirect loops
   isOnAuthPage() {
     const currentPath = window.location.pathname;
-    return currentPath.includes('/auth') || 
-           currentPath.includes('/driver-auth') || 
-           currentPath.includes('/admin-auth') ||
-           currentPath === '/';
+    return currentPath.includes('/auth') ||
+      currentPath.includes('/driver-auth') ||
+      currentPath.includes('/admin-auth') ||
+      currentPath === '/';
   }
 
   // Get auth token from localStorage
@@ -54,7 +54,7 @@ class ApiService {
           return localStorage.getItem('token');
       }
     })();
-    
+
     return token;
   }
 
@@ -110,7 +110,7 @@ class ApiService {
     try {
       // Apply throttling to prevent rate limiting
       await this.throttleRequest();
-      
+
       const url = `${this.baseURL}${endpoint}`;
       const config = {
         ...options,
@@ -127,11 +127,11 @@ class ApiService {
           await new Promise(resolve => setTimeout(resolve, delay));
           return this.request(endpoint, options, role, retryCount + 1);
         }
-        
+
         // Handle authentication errors (but not for public endpoints)
         if (response.status === 401 && role !== 'public') {
           this.removeAuthToken(role);
-          
+
           // Only redirect if we're not already on an auth page to prevent loops
           if (!this.isOnAuthPage()) {
             // Redirect based on role
@@ -143,7 +143,7 @@ class ApiService {
               window.location.href = '/auth';
             }
           }
-          
+
           throw new Error('Authentication failed. Please login again.');
         }
 
@@ -457,7 +457,7 @@ class ApiService {
   // Error handling
   handleApiError(error) {
     console.error('API Error:', error);
-    
+
     if (error.message.includes('Authentication failed')) {
       // Redirect to login
       window.location.href = '/auth';

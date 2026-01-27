@@ -11,7 +11,9 @@ const PaymentStatus = () => {
     const [status, setStatus] = useState<'loading' | 'completed' | 'failed' | 'processing'>('loading');
     const [paymentData, setPaymentData] = useState<any>(null);
 
-    const merchantOrderId = searchParams.get('orderId') || searchParams.get('merchantOrderId');
+    const merchantOrderId = searchParams.get('orderId') ||
+        searchParams.get('merchantOrderId') ||
+        JSON.parse(localStorage.getItem('phonepe_pending_payment') || '{}').merchantOrderId;
 
     useEffect(() => {
         if (!merchantOrderId) {
@@ -21,7 +23,7 @@ const PaymentStatus = () => {
 
         const checkStatus = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/payments/status/${merchantOrderId}`);
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'}/payments/status/${merchantOrderId}`);
                 const result = await response.json();
 
                 if (result.success) {

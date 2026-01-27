@@ -133,43 +133,52 @@ const BookingSummary = () => {
     setIsProcessing(true);
 
     try {
+      // 1. Common Booking Payload for both methods
+      const bookingApi = new BookingApiService(
+        import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'
+      );
+
+      const bookingPayload = {
+        vehicleId: car._id,
+        pickup: {
+          latitude: searchParams.fromData?.lat || 0,
+          longitude: searchParams.fromData?.lng || 0,
+          address: from || 'Not specified',
+        },
+        destination: {
+          latitude: searchParams.toData?.lat || 0,
+          longitude: searchParams.toData?.lng || 0,
+          address: to || 'Not specified',
+        },
+        date: pickupDate || new Date().toISOString().split('T')[0],
+        time: pickupTime || '09:00',
+        tripType: searchParams.serviceType === 'roundTrip' ? 'return' : 'one-way',
+        returnDate: searchParams.returnDate || null,
+        passengers: 1,
+        specialRequests: '',
+        paymentMethod: (paymentMethod === 'online' ? 'phonepe' : 'cash') as 'phonepe' | 'cash',
+        totalAmount: finalAmountWithGST,
+        advanceAmount: currentAdvanceAmount
+      };
+
       if (paymentMethod === 'online') {
-        // Online payment with PhonePe
+        // Online payment flow:
+        // A. Create a "pending" booking first
+        console.log('Creating pending booking for online payment...', bookingPayload);
+        const bookingResult = await bookingApi.createBooking(bookingPayload);
+        const realBookingId = bookingResult.data.bookingId;
+        console.log('Pending booking created with ID:', realBookingId);
+
+        // B. Redirect to PhonePe using the real booking ID
         await phonePeService.handlePaymentRedirect({
           amount: currentAdvanceAmount,
-          bookingId: `temp_${Date.now()}`,
+          bookingId: realBookingId,
           paymentType: 'booking',
           redirectUrl: `${window.location.origin}/payment-status`
         });
       } else {
         // Cash payment - create booking directly
         try {
-          const bookingApi = new BookingApiService(
-            import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-          );
-
-          const bookingPayload = {
-            vehicleId: car._id,
-            pickup: {
-              latitude: searchParams.fromData?.lat || 0,
-              longitude: searchParams.fromData?.lng || 0,
-              address: from || 'Not specified',
-            },
-            destination: {
-              latitude: searchParams.toData?.lat || 0,
-              longitude: searchParams.toData?.lng || 0,
-              address: to || 'Not specified',
-            },
-            date: pickupDate || new Date().toISOString().split('T')[0],
-            time: pickupTime || '09:00',
-            tripType: searchParams.serviceType === 'roundTrip' ? 'return' : 'one-way',
-            returnDate: searchParams.returnDate || null,
-            passengers: 1,
-            specialRequests: '',
-            paymentMethod: 'phonepe' as 'phonepe' | 'cash',
-            totalAmount: finalAmountWithGST // Send the final amount including GST
-          };
-
           const bookingResult = await bookingApi.createBooking(bookingPayload);
 
           toast({
@@ -183,7 +192,6 @@ const BookingSummary = () => {
               booking: bookingResult.data
             }
           });
-
         } catch (bookingError) {
           console.error('Cash booking failed:', bookingError);
           toast({
@@ -197,7 +205,7 @@ const BookingSummary = () => {
       console.error('Payment processing error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, X, Loader2, Car, Bus, AlertCircle, MapPin, User, FileText, Shield } from "lucide-react";
+import { Upload, X, Loader2, Car, Bus, AlertCircle, MapPin } from "lucide-react";
 import { CreateVehicleData, Vehicle, UpdateVehicleData } from "@/services/vehicleApi";
 import { getPricingForVehicle, VehiclePricing } from "@/services/vehiclePricingApi";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
@@ -93,26 +93,22 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   });
 
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [assignedDriverImage, setAssignedDriverImage] = useState<File | null>(null);
-  const [drivingLicense, setDrivingLicense] = useState<File | null>(null);
-  const [aadharCard, setAadharCard] = useState<File | null>(null);
-  const [driverImagePreview, setDriverImagePreview] = useState<string | null>(initial?.assignedDriver?.profilePicture || null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [existing, setExisting] = useState<(typeof existingImages[0] & { markDelete?: boolean })[]>(existingImages);
   const [fetchedPricing, setFetchedPricing] = useState<VehiclePricing | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [oneWayPricing, setOneWayPricing] = useState<VehiclePricing | null>(null);
   const [returnPricing, setReturnPricing] = useState<VehiclePricing | null>(null);
-  
+
   // Vehicle location input state
   const [vehicleLocationInput, setVehicleLocationInput] = useState("");
 
   // Auto-fetch pricing when vehicle category, type, or model changes
   useEffect(() => {
     const fetchPricing = async () => {
-      if (formData.pricingReference?.category && 
-          formData.pricingReference?.vehicleType && 
-          formData.pricingReference?.vehicleModel) {
+      if (formData.pricingReference?.category &&
+        formData.pricingReference?.vehicleType &&
+        formData.pricingReference?.vehicleModel) {
         setIsLoadingPricing(true);
         try {
           // Fetch both one-way and return pricing
@@ -130,7 +126,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
               'return'
             )
           ]);
-          
+
           setOneWayPricing(oneWay);
           setReturnPricing(returnTrip);
           setFetchedPricing(oneWay); // Keep for backward compatibility
@@ -163,19 +159,19 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
     if (match) {
       return parseInt(match[1]);
     }
-    
+
     // Look for patterns like "32 Seater", "40 Seater" (with space)
     const match2 = modelName.match(/(\d+)\s+Seater/i);
     if (match2) {
       return parseInt(match2[1]);
     }
-    
+
     // Look for patterns like "32S", "40S" (abbreviated)
     const match3 = modelName.match(/(\d+)S/i);
     if (match3) {
       return parseInt(match3[1]);
     }
-    
+
     // Default seating capacity based on vehicle category
     return selectedVehicleCategory === 'auto' ? 3 : selectedVehicleCategory === 'car' ? 4 : 40;
   };
@@ -195,12 +191,12 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
           seatingCapacity: extractedCapacity, // Set seating capacity based on model name
           pricingReference: newPricingReference
         };
-        
+
         // Only auto-populate brand for car vehicles, not for buses
         if (selectedVehicleCategory === 'car') {
           updates.brand = value; // Set brand to the selected vehicle model for cars
         }
-        
+
         return updates;
       }
 
@@ -214,35 +210,35 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   // Handle vehicle location selection
   const handleVehicleLocationSelect = async (location: LocationSuggestion) => {
     setVehicleLocationInput(location.description);
-    
+
     try {
       // Import the googleMapsService dynamically to avoid circular dependencies
       const { googleMapsService } = await import('@/services/googleMapsService');
       const placeDetails = await googleMapsService.getPlaceDetails(location.place_id);
-      
+
       if (placeDetails && placeDetails.geometry && placeDetails.geometry.location) {
         const lat = placeDetails.geometry.location.lat();
         const lng = placeDetails.geometry.location.lng();
-        
+
         // Extract city and state from the address components
         let city = '';
         let state = '';
-        
+
         if (placeDetails.address_components) {
           const cityComponent = placeDetails.address_components.find(
-            (component: any) => 
-              component.types.includes('locality') || 
+            (component: any) =>
+              component.types.includes('locality') ||
               component.types.includes('administrative_area_level_2')
           );
           const stateComponent = placeDetails.address_components.find(
-            (component: any) => 
+            (component: any) =>
               component.types.includes('administrative_area_level_1')
           );
-          
+
           if (cityComponent) city = cityComponent.long_name;
           if (stateComponent) state = stateComponent.long_name;
         }
-        
+
         // Update form data with the selected location
         handleFormChange('vehicleLocation', {
           latitude: lat,
@@ -269,19 +265,19 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
         ...prev,
         ...initial,
         type: 'car',
-        assignedDriver: initial.assignedDriver || {
+        assignedDriver: {
           name: '',
           phoneNumber: ''
         }
       }));
       if (initial.type && initial.type === 'car') setSelectedVehicleCategory('car');
       setExisting(existingImages);
-      
+
       // Set vehicle location input for display
       if (initial.vehicleLocation?.address) {
         setVehicleLocationInput(initial.vehicleLocation.address);
       }
-      
+
       // If editing and pricingReference exists, fetch the pricing
       if (mode === 'edit' && initial.pricingReference) {
         fetchPricing(
@@ -298,7 +294,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
     if (files.length > 0) {
       const newImages = [...selectedImages, ...files];
       setSelectedImages(newImages);
-      
+
       // Convert new files to preview URLs
       files.forEach(file => {
         const reader = new FileReader();
@@ -319,7 +315,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   // Validate that both one-way and return pricing are available
   const isPricingComplete = () => {
     if (!oneWayPricing || !returnPricing) return false;
-    
+
     if (fetchedPricing?.category === 'auto') {
       return oneWayPricing.autoPrice > 0 && returnPricing.autoPrice > 0;
     } else {
@@ -332,7 +328,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedVehicleCategory) {
       alert('Please select a vehicle category');
       return;
@@ -404,7 +400,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
   const handleCategorySelect = (category: 'auto' | 'car' | 'bus') => {
     setSelectedVehicleCategory(category);
     const config = VEHICLE_CONFIGS[category];
-    
+
     // Set default values based on vehicle type
     setFormData(prev => ({
       ...prev,
@@ -420,18 +416,18 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
         vehicleModel: ''
       }
     }));
-    
+
     // Clear fetched pricing when category changes
     setFetchedPricing(null);
   };
-  
+
   // Function to fetch pricing when vehicle type and model are selected
   const fetchPricing = async (category: string, vehicleType: string, vehicleModel: string) => {
     if (!category || !vehicleType || !vehicleModel) {
       setFetchedPricing(null);
       return;
     }
-    
+
     try {
       setIsLoadingPricing(true);
       const pricing = await getPricingForVehicle(
@@ -462,19 +458,19 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
           variants: ['Sedan', 'Hatchback', 'SUV'],
           fuelTypes: ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'CNG'],
           models: {
-            'Sedan': ['Honda Amaze', 'Swift Dzire', 'Honda City', 'Suzuki Ciaz','Hyundai Aura','Verna','Tata Tigor','Skoda Slavia' ],
-            'Hatchback': ['Baleno','Hundai i20','Renault Kwid Toyota Glanza','Alto K10','Calerio Maruti','Ignis Maruti','Swift Vxi,Lxi,Vdi', 'WagonR', 'Polo', 'Tata Altroz','Tata Tiago'],
-            'SUV': ['Hundai Extor','Grand Vitara Brezza Suzuki','Suzuki Vitara Brezza','XUV 3x0','XUV 700','Tata Punch','Kia Seltos','Tata Harrier','Tata Nexon','Innova Crysta', 'Scorpio N','Scorpio', 'XUV500', 'Nexon EV','Hundai Creta','Hundai Venue','Bolereo Plus','Bolereo','Bolereo Neo','Fronx Maruti Suzuki','Ertiga Maruti Suzuki','XI Maruti Suzuki','Fortuner']
+            'Sedan': ['Honda Amaze', 'Swift Dzire', 'Honda City', 'Suzuki Ciaz', 'Hyundai Aura', 'Verna', 'Tata Tigor', 'Skoda Slavia'],
+            'Hatchback': ['Baleno', 'Hundai i20', 'Renault Kwid Toyota Glanza', 'Alto K10', 'Calerio Maruti', 'Ignis Maruti', 'Swift Vxi,Lxi,Vdi', 'WagonR', 'Polo', 'Tata Altroz', 'Tata Tiago'],
+            'SUV': ['Hundai Extor', 'Grand Vitara Brezza Suzuki', 'Suzuki Vitara Brezza', 'XUV 3x0', 'XUV 700', 'Tata Punch', 'Kia Seltos', 'Tata Harrier', 'Tata Nexon', 'Innova Crysta', 'Scorpio N', 'Scorpio', 'XUV500', 'Nexon EV', 'Hundai Creta', 'Hundai Venue', 'Bolereo Plus', 'Bolereo', 'Bolereo Neo', 'Fronx Maruti Suzuki', 'Ertiga Maruti Suzuki', 'XI Maruti Suzuki', 'Fortuner']
           }
         };
       case 'bus':
         return {
-          variants: ['Mini Bus', 'Luxury Bus','Traveller'],
-          fuelTypes: ['Diesel','Petrol','Electric'],
+          variants: ['Mini Bus', 'Luxury Bus', 'Traveller'],
+          fuelTypes: ['Diesel', 'Petrol', 'Electric'],
           models: {
-            'Mini Bus': ['32-Seater','40-Seater','52-Seater'],
+            'Mini Bus': ['32-Seater', '40-Seater', '52-Seater'],
             'Luxury Bus': ['45-Seater'],
-            'Traveller': ['13-Seater','17-Seater','26-Seater'],
+            'Traveller': ['13-Seater', '17-Seater', '26-Seater'],
           }
         };
       default:
@@ -497,13 +493,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
       <div className="hidden">
         <Label className="text-base font-semibold">What type of vehicle do you want to add?</Label>
         <div className="grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              className="p-4 border-2 rounded-lg text-center transition-all duration-200 border-[#29354c] bg-blue-50 text-[#29354c]"
-            >
-              <div className="text-2xl mb-2">🚗</div>
-              <div className="font-medium">Car</div>
-            </button>
+          <button
+            type="button"
+            className="p-4 border-2 rounded-lg text-center transition-all duration-200 border-[#29354c] bg-blue-50 text-[#29354c]"
+          >
+            <div className="text-2xl mb-2">🚗</div>
+            <div className="font-medium">Car</div>
+          </button>
         </div>
       </div>
 
@@ -511,47 +507,47 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
       {selectedVehicleCategory && (
         <>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Vehicle Type Selection */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="vehicleType">
-                {selectedVehicleCategory === 'auto' ? 'Auto Type' : 'Variant'}
-              </Label>
-              <Select 
-                value={formData.pricingReference?.vehicleType || ''} 
-                onValueChange={(value) => {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    pricingReference: {
-                      ...prev.pricingReference!,
-                      vehicleType: value,
-                      vehicleModel: '' // Reset model when type changes
-                    }
-                  }));
-                  // Fetch pricing when vehicle type changes
-                  fetchPricing(selectedVehicleCategory, value, '');
-                }}
-              >
-                <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
-                  <SelectValue placeholder={`Select ${selectedVehicleCategory === 'auto' ? 'auto type' : 'variant'}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVehicleOptions(selectedVehicleCategory).variants.map((variant) => (
-                    <SelectItem key={variant} value={variant}>{variant}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Vehicle Type Selection */}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="vehicleType">
+                  {selectedVehicleCategory === 'auto' ? 'Auto Type' : 'Variant'}
+                </Label>
+                <Select
+                  value={formData.pricingReference?.vehicleType || ''}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      pricingReference: {
+                        ...prev.pricingReference!,
+                        vehicleType: value,
+                        vehicleModel: '' // Reset model when type changes
+                      }
+                    }));
+                    // Fetch pricing when vehicle type changes
+                    fetchPricing(selectedVehicleCategory, value, '');
+                  }}
+                >
+                  <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
+                    <SelectValue placeholder={`Select ${selectedVehicleCategory === 'auto' ? 'auto type' : 'variant'}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getVehicleOptions(selectedVehicleCategory).variants.map((variant) => (
+                      <SelectItem key={variant} value={variant}>{variant}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
 
-          {/* Pricing Information */}
+            {/* Pricing Information */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="pricingVehicleType">
                   {selectedVehicleCategory === 'auto' ? 'Auto Type for Pricing' : 'Vehicle Type for Pricing'}
                 </Label>
-                <Select 
-                  value={formData.pricingReference?.vehicleType || ''} 
+                <Select
+                  value={formData.pricingReference?.vehicleType || ''}
                   onValueChange={(value) => handlePricingReferenceChange('vehicleType', value)}
                 >
                   <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
@@ -564,13 +560,13 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="pricingVehicleModel">
                   {selectedVehicleCategory === 'auto' ? 'Fuel Type for Pricing' : 'Vehicle Model for Pricing'}
                 </Label>
-                <Select 
-                  value={formData.pricingReference?.vehicleModel || ''} 
+                <Select
+                  value={formData.pricingReference?.vehicleModel || ''}
                   onValueChange={(value) => handlePricingReferenceChange('vehicleModel', value)}
                 >
                   <SelectTrigger className="border-gray-200 focus:ring-0 focus:ring-offset-0 focus:border-[#212c40]">
@@ -661,7 +657,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Return Trip Pricing */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-700 mb-2">Return Trip Pricing</h4>
@@ -700,8 +696,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                       </div>
                     )}
                     <p className="text-xs text-[#212c40] mt-2">
-                      * {fetchedPricing.category === 'auto' 
-                        ? 'Auto pricing is fixed per trip regardless of distance' 
+                      * {fetchedPricing.category === 'auto'
+                        ? 'Auto pricing is fixed per trip regardless of distance'
                         : 'Pricing will be automatically applied based on distance and trip type'
                       }
                     </p>
@@ -724,7 +720,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                   </h4>
                 </div>
                 <p className="text-sm text-green-700 mb-4 bg-green-100 p-2 rounded border border-green-200">
-                  <strong>ℹ️ Information:</strong> These pricing fields are automatically populated from the admin-defined pricing structure 
+                  <strong>ℹ️ Information:</strong> These pricing fields are automatically populated from the admin-defined pricing structure
                   and cannot be modified by drivers. The pricing will be applied automatically when users book your vehicle.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -736,8 +732,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           <span>Auto Price - One-way (₹)</span>
                           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                         </Label>
-                        <Input 
-                          id="autoPriceOneWay" 
+                        <Input
+                          id="autoPriceOneWay"
                           type="number"
                           value={fetchedPricing.autoPrice}
                           readOnly
@@ -753,8 +749,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           <span>Auto Price - Return (₹)</span>
                           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                         </Label>
-                        <Input 
-                          id="autoPriceReturn" 
+                        <Input
+                          id="autoPriceReturn"
                           type="number"
                           value={returnPricing?.autoPrice || 'N/A'}
                           readOnly
@@ -778,8 +774,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>50km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance50kmOneWay" 
+                            <Input
+                              id="distance50kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['50km']}
                               readOnly
@@ -792,8 +788,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>100km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance100kmOneWay" 
+                            <Input
+                              id="distance100kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['100km']}
                               readOnly
@@ -806,8 +802,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>150km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance150kmOneWay" 
+                            <Input
+                              id="distance150kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['150km']}
                               readOnly
@@ -820,8 +816,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>200km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance200kmOneWay" 
+                            <Input
+                              id="distance200kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['200km']}
                               readOnly
@@ -834,8 +830,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>250km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance250kmOneWay" 
+                            <Input
+                              id="distance250kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['250km']}
                               readOnly
@@ -848,8 +844,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>300km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance300kmOneWay" 
+                            <Input
+                              id="distance300kmOneWay"
                               type="number"
                               value={fetchedPricing.distancePricing['300km']}
                               readOnly
@@ -859,7 +855,7 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Return Trip Pricing */}
                       <div className="col-span-2">
                         <h4 className="text-sm font-medium text-gray-700 mb-3">Return Trip Pricing</h4>
@@ -869,8 +865,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>50km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance50kmReturn" 
+                            <Input
+                              id="distance50kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['50km'] || 'N/A'}
                               readOnly
@@ -883,8 +879,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>100km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance100kmReturn" 
+                            <Input
+                              id="distance100kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['100km'] || 'N/A'}
                               readOnly
@@ -897,8 +893,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>150km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance150kmReturn" 
+                            <Input
+                              id="distance150kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['150km'] || 'N/A'}
                               readOnly
@@ -911,8 +907,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>200km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance200kmReturn" 
+                            <Input
+                              id="distance200kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['200km'] || 'N/A'}
                               readOnly
@@ -925,8 +921,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>250km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance250kmReturn" 
+                            <Input
+                              id="distance250kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['250km'] || 'N/A'}
                               readOnly
@@ -939,8 +935,8 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
                               <span>300km Rate (₹/km)</span>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Read Only</span>
                             </Label>
-                            <Input 
-                              id="distance300kmReturn" 
+                            <Input
+                              id="distance300kmReturn"
                               type="number"
                               value={returnPricing?.distancePricing['300km'] || 'N/A'}
                               readOnly
@@ -987,477 +983,325 @@ const AddVehicleForm = ({ mode = 'create', initial, existingImages = [], onSubmi
               </div>
             )}
 
-          {/* Basic Vehicle Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="brand">Brand *</Label>
-              <Input 
-                id="brand" 
-                placeholder="e.g., Maruti Suzuki, Honda, Volvo"
-                value={formData.brand}
-                onChange={(e) => handleFormChange('brand', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="seatingCapacity">Seating Capacity *</Label>
-              <Input 
-                id="seatingCapacity" 
-                type="number" 
-                min="1"
-                max="100"
-                placeholder={selectedVehicleCategory === 'auto' ? "e.g., 3" : selectedVehicleCategory === 'car' ? "e.g., 4" : "e.g., 40"}
-                value={formData.seatingCapacity}
-                onChange={(e) => handleFormChange('seatingCapacity', parseInt(e.target.value))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="fuelType">Fuel Type *</Label>
-              <Select value={formData.fuelType} onValueChange={(value) => handleFormChange('fuelType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select fuel type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVehicleOptions(selectedVehicleCategory).fuelTypes.map((fuelType) => (
-                    <SelectItem key={fuelType.toLowerCase()} value={fuelType.toLowerCase()}>
-                      {fuelType}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Features - Hidden for Auto */}
-          {selectedVehicleCategory !== 'auto' && (
-            <div className="space-y-3">
-              <Label>Features</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="isAc" 
-                    checked={formData.isAc}
-                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
-                    onCheckedChange={(checked) => {
-                      handleFormChange('isAc', checked);
-                      // Also update amenities
-                      const currentAmenities = formData.amenities || [];
-                      if (checked) {
-                        if (!currentAmenities.includes('ac')) {
-                          handleFormChange('amenities', [...currentAmenities, 'ac']);
-                        }
-                      } else {
-                        handleFormChange('amenities', currentAmenities.filter(a => a !== 'ac'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isAc" className="text-[#212c40]">AC</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="isNonAc" 
-                    checked={!formData.isAc}
-                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
-                    onCheckedChange={(checked) => {
-                      handleFormChange('isAc', !checked);
-                      // Also update amenities
-                      const currentAmenities = formData.amenities || [];
-                      if (!checked) {
-                        if (!currentAmenities.includes('ac')) {
-                          handleFormChange('amenities', [...currentAmenities, 'ac']);
-                        }
-                      } else {
-                        handleFormChange('amenities', currentAmenities.filter(a => a !== 'ac'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isNonAc" className="text-[#212c40]">Non-AC</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="isSleeper" 
-                    checked={formData.isSleeper}
-                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
-                    onCheckedChange={(checked) => {
-                      handleFormChange('isSleeper', checked);
-                      // Also update amenities
-                      const currentAmenities = formData.amenities || [];
-                      if (checked) {
-                        if (!currentAmenities.includes('sleeper')) {
-                          handleFormChange('amenities', [...currentAmenities, 'sleeper']);
-                        }
-                      } else {
-                        handleFormChange('amenities', currentAmenities.filter(a => a !== 'sleeper'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isSleeper" className="text-[#212c40]">Sleeper</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="isNonSleeper" 
-                    checked={!formData.isSleeper}
-                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
-                    onCheckedChange={(checked) => {
-                      handleFormChange('isSleeper', !checked);
-                      // Also update amenities
-                      const currentAmenities = formData.amenities || [];
-                      if (!checked) {
-                        if (!currentAmenities.includes('sleeper')) {
-                          handleFormChange('amenities', [...currentAmenities, 'sleeper']);
-                        }
-                      } else {
-                        handleFormChange('amenities', currentAmenities.filter(a => a !== 'sleeper'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isNonSleeper" className="text-[#212c40]">Non-Sleeper</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="hasTv" 
-                    checked={formData.amenities?.includes('tv') || false}
-                    className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
-                    onCheckedChange={(checked) => {
-                      const currentAmenities = formData.amenities || [];
-                      if (checked) {
-                        handleFormChange('amenities', [...currentAmenities, 'tv']);
-                      } else {
-                        handleFormChange('amenities', currentAmenities.filter(a => a !== 'tv'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="hasTv" className="text-[#212c40]">TV</Label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Registration Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Registration Information</h3>
-            
+            {/* Basic Vehicle Information */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="registrationNumber">Registration Number *</Label>
-                <Input 
-                  id="registrationNumber" 
-                  placeholder="e.g., DL-01-AB-1234" 
-                  value={formData.registrationNumber}
-                  onChange={(e) => handleFormChange('registrationNumber', e.target.value.toUpperCase())}
+                <Label htmlFor="brand">Brand *</Label>
+                <Input
+                  id="brand"
+                  placeholder="e.g., Maruti Suzuki, Honda, Volvo"
+                  value={formData.brand}
+                  onChange={(e) => handleFormChange('brand', e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="seatingCapacity">Seating Capacity *</Label>
+                <Input
+                  id="seatingCapacity"
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder={selectedVehicleCategory === 'auto' ? "e.g., 3" : selectedVehicleCategory === 'car' ? "e.g., 4" : "e.g., 40"}
+                  value={formData.seatingCapacity}
+                  onChange={(e) => handleFormChange('seatingCapacity', parseInt(e.target.value))}
                   required
                 />
               </div>
             </div>
-          </div>
 
-          {/* Vehicle Location */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="vehicleLocation">Vehicle Base Location *</Label>
-              <LocationAutocomplete
-                value={vehicleLocationInput}
-                onChange={setVehicleLocationInput}
-                onLocationSelect={handleVehicleLocationSelect}
-                placeholder="Enter your vehicle's base location (e.g., Indore, Madhya Pradesh)"
-                icon={<MapPin className="w-4 h-4 text-[#f48432]" />}
-                className="w-full"
-                showGetLocation={false}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="fuelType">Fuel Type *</Label>
+                <Select value={formData.fuelType} onValueChange={(value) => handleFormChange('fuelType', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select fuel type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getVehicleOptions(selectedVehicleCategory).fuelTypes.map((fuelType) => (
+                      <SelectItem key={fuelType.toLowerCase()} value={fuelType.toLowerCase()}>
+                        {fuelType}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Display selected location details */}
-            {formData.vehicleLocation?.address && (
-              <div className="p-3 bg-[#212c40]/5 border border-[#212c40]/20 rounded-lg">
-                <div className="text-sm font-medium text-[#212c40] mb-2">Selected Location:</div>
-                <div className="space-y-1 text-sm text-[#212c40]">
-                  <div><strong>Address:</strong> {formData.vehicleLocation.address}</div>
-                  {formData.vehicleLocation.city && <div><strong>City:</strong> {formData.vehicleLocation.city}</div>}
-                  {formData.vehicleLocation.state && <div><strong>State:</strong> {formData.vehicleLocation.state}</div>}
-                  <div><strong>Coordinates:</strong> {formData.vehicleLocation.latitude}, {formData.vehicleLocation.longitude}</div>
+            {/* Features - Hidden for Auto */}
+            {selectedVehicleCategory !== 'auto' && (
+              <div className="space-y-3">
+                <Label>Features</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isAc"
+                      checked={formData.isAc}
+                      className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
+                      onCheckedChange={(checked) => {
+                        handleFormChange('isAc', checked);
+                        // Also update amenities
+                        const currentAmenities = formData.amenities || [];
+                        if (checked) {
+                          if (!currentAmenities.includes('ac')) {
+                            handleFormChange('amenities', [...currentAmenities, 'ac']);
+                          }
+                        } else {
+                          handleFormChange('amenities', currentAmenities.filter(a => a !== 'ac'));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="isAc" className="text-[#212c40]">AC</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isNonAc"
+                      checked={!formData.isAc}
+                      className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
+                      onCheckedChange={(checked) => {
+                        handleFormChange('isAc', !checked);
+                        // Also update amenities
+                        const currentAmenities = formData.amenities || [];
+                        if (!checked) {
+                          if (!currentAmenities.includes('ac')) {
+                            handleFormChange('amenities', [...currentAmenities, 'ac']);
+                          }
+                        } else {
+                          handleFormChange('amenities', currentAmenities.filter(a => a !== 'ac'));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="isNonAc" className="text-[#212c40]">Non-AC</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isSleeper"
+                      checked={formData.isSleeper}
+                      className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
+                      onCheckedChange={(checked) => {
+                        handleFormChange('isSleeper', checked);
+                        // Also update amenities
+                        const currentAmenities = formData.amenities || [];
+                        if (checked) {
+                          if (!currentAmenities.includes('sleeper')) {
+                            handleFormChange('amenities', [...currentAmenities, 'sleeper']);
+                          }
+                        } else {
+                          handleFormChange('amenities', currentAmenities.filter(a => a !== 'sleeper'));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="isSleeper" className="text-[#212c40]">Sleeper</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isNonSleeper"
+                      checked={!formData.isSleeper}
+                      className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
+                      onCheckedChange={(checked) => {
+                        handleFormChange('isSleeper', !checked);
+                        // Also update amenities
+                        const currentAmenities = formData.amenities || [];
+                        if (!checked) {
+                          if (!currentAmenities.includes('sleeper')) {
+                            handleFormChange('amenities', [...currentAmenities, 'sleeper']);
+                          }
+                        } else {
+                          handleFormChange('amenities', currentAmenities.filter(a => a !== 'sleeper'));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="isNonSleeper" className="text-[#212c40]">Non-Sleeper</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hasTv"
+                      checked={formData.amenities?.includes('tv') || false}
+                      className="data-[state=checked]:bg-[#212c40] border-[#212c40]"
+                      onCheckedChange={(checked) => {
+                        const currentAmenities = formData.amenities || [];
+                        if (checked) {
+                          handleFormChange('amenities', [...currentAmenities, 'tv']);
+                        } else {
+                          handleFormChange('amenities', currentAmenities.filter(a => a !== 'tv'));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="hasTv" className="text-[#212c40]">TV</Label>
+                  </div>
                 </div>
               </div>
             )}
 
-
-          </div>
-
-
-
-          {/* Assigned Driver Details */}
-          <div className="space-y-4">
-             <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-6 bg-[#212c40] rounded-full"></div>
-                <h3 className="text-lg font-semibold text-[#212c40]">Assigned Driver (Optional)</h3>
-             </div>
-             
-             <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-4">
-                {/* Driver Image Upload */}
-                <div className="flex items-center gap-4">
-                   <div className="relative group shrink-0">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-white">
-                         {driverImagePreview ? (
-                           <img src={driverImagePreview} alt="Driver" className="w-full h-full object-cover" />
-                         ) : (
-                           <User className="w-8 h-8 text-gray-400" />
-                         )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('driverImageInput')?.click()}
-                        className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      >
-                         <Upload className="w-5 h-5 text-white" />
-                      </button>
-                      <input 
-                        id="driverImageInput"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                             setAssignedDriverImage(file);
-                             const reader = new FileReader();
-                             reader.onload = () => setDriverImagePreview(reader.result as string);
-                             reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                   </div>
-                   <div>
-                      <Label htmlFor="driverName" className="font-semibold text-[#29354c]">Driver Photo</Label>
-                      <p className="text-xs text-gray-500 mt-1">Upload a clear photo of the driver for identification.</p>
-                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div>
-                      <Label htmlFor="driverName">Driver Name</Label>
-                      <Input 
-                        id="driverName"
-                        placeholder="e.g. Rahul Kumar"
-                        value={formData.assignedDriver?.name || ''}
-                        onChange={(e) => setFormData(prev => ({ 
-                           ...prev, 
-                           assignedDriver: { ...prev.assignedDriver!, name: e.target.value } 
-                        }))}
-                      />
-                   </div>
-                   <div>
-                      <Label htmlFor="driverPhone">Mobile Number</Label>
-                      <Input 
-                        id="driverPhone"
-                        placeholder="e.g. 9876543210"
-                        value={formData.assignedDriver?.phoneNumber || ''}
-                         onChange={(e) => setFormData(prev => ({ 
-                           ...prev, 
-                           assignedDriver: { ...prev.assignedDriver!, phoneNumber: e.target.value } 
-                        }))}
-                      />
-                   </div>
-                </div>
-
-                {/* Driver Documents */}
-                <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-semibold text-[#212c40]">Driver Documents</h3>
-                  <div className="flex flex-col gap-4">
-                    {/* Driving License */}
-                    <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
-                      <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                           <FileText className="w-5 h-5 text-[#212c40]" />
-                         </div>
-                         <div>
-                           <p className="font-semibold text-[#212c40]">
-                             {drivingLicense ? "License Uploaded" : "Driving License Not Uploaded"}
-                           </p>
-                           <p className="text-xs text-gray-500">
-                             {drivingLicense ? drivingLicense.name : "Driving License"}
-                           </p>
-                         </div>
-                      </div>
-                      <div>
-                         <input
-                           id="licenseDocInput"
-                           type="file"
-                           accept="image/*,.pdf"
-                           className="hidden"
-                           onChange={(e) => {
-                             if (e.target.files?.[0]) setDrivingLicense(e.target.files[0]);
-                           }}
-                         />
-                         <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="border-green-600 text-green-600 hover:bg-green-50"
-                          onClick={() => document.getElementById('licenseDocInput')?.click()}
-                         >
-                           <Upload className="w-4 h-4 mr-2" /> Upload
-                         </Button>
-                      </div>
-                    </div>
-
-                    {/* Aadhar Card */}
-                     <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
-                      <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                           <Shield className="w-5 h-5 text-[#212c40]" />
-                         </div>
-                          <div>
-                           <p className="font-semibold text-[#212c40]">
-                             {aadharCard ? "Aadhar Card Uploaded" : "Aadhar Card Not Uploaded"}
-                           </p>
-                           <p className="text-xs text-gray-500">
-                             {aadharCard ? aadharCard.name : "Aadhar Card"}
-                           </p>
-                         </div>
-                      </div>
-                      <div>
-                         <input
-                           id="aadharDocInput"
-                           type="file"
-                           accept="image/*,.pdf"
-                           className="hidden"
-                           onChange={(e) => {
-                             if (e.target.files?.[0]) setAadharCard(e.target.files[0]);
-                           }}
-                         />
-                         <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="border-green-600 text-green-600 hover:bg-green-50"
-                          onClick={() => document.getElementById('aadharDocInput')?.click()}
-                         >
-                           <Upload className="w-4 h-4 mr-2" /> Upload
-                         </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-             </div>
-          </div>
-
-          {/* Vehicle Images Upload */}
-          <div className="space-y-4">
-            <Label>Vehicle Images ({previewUrls.length}/10)</Label>
+            {/* Registration Information */}
             <div className="space-y-4">
-              {mode === 'edit' && existing.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Existing Images</Label>
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                    {existing.map((img, idx) => (
-                      <div key={img._id} className={`relative group ${img.markDelete ? 'opacity-50' : ''}`}>
-                        <img src={img.url} className="w-full h-24 object-cover rounded-lg border-2 border-gray-200" />
-                        <button
-                          type="button"
-                          onClick={() => setExisting(prev => prev.map((e,i)=> i===idx ? { ...e, markDelete: !e.markDelete } : e))}
-                          className="absolute top-1 right-1 bg-white text-gray-800 rounded px-1 text-xs border"
-                        >{img.markDelete ? 'Undo' : 'Delete'}</button>
-                        {img.isPrimary && !img.markDelete && (
-                          <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">Main</div>
-                        )}
-                      </div>
-                    ))}
+              <h3 className="text-lg font-semibold">Registration Information</h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="registrationNumber">Registration Number *</Label>
+                  <Input
+                    id="registrationNumber"
+                    placeholder="e.g., DL-01-AB-1234"
+                    value={formData.registrationNumber}
+                    onChange={(e) => handleFormChange('registrationNumber', e.target.value.toUpperCase())}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Vehicle Location */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="vehicleLocation">Vehicle Base Location *</Label>
+                <LocationAutocomplete
+                  value={vehicleLocationInput}
+                  onChange={setVehicleLocationInput}
+                  onLocationSelect={handleVehicleLocationSelect}
+                  placeholder="Enter your vehicle's base location (e.g., Indore, Madhya Pradesh)"
+                  icon={<MapPin className="w-4 h-4 text-[#f48432]" />}
+                  className="w-full"
+                  showGetLocation={false}
+                />
+              </div>
+
+              {/* Display selected location details */}
+              {formData.vehicleLocation?.address && (
+                <div className="p-3 bg-[#212c40]/5 border border-[#212c40]/20 rounded-lg">
+                  <div className="text-sm font-medium text-[#212c40] mb-2">Selected Location:</div>
+                  <div className="space-y-1 text-sm text-[#212c40]">
+                    <div><strong>Address:</strong> {formData.vehicleLocation.address}</div>
+                    {formData.vehicleLocation.city && <div><strong>City:</strong> {formData.vehicleLocation.city}</div>}
+                    {formData.vehicleLocation.state && <div><strong>State:</strong> {formData.vehicleLocation.state}</div>}
+                    <div><strong>Coordinates:</strong> {formData.vehicleLocation.latitude}, {formData.vehicleLocation.longitude}</div>
                   </div>
                 </div>
               )}
-              {/* Image Grid */}
-              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                {previewUrls.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img 
-                      src={url} 
-                      alt={`Vehicle preview ${index + 1}`} 
-                      className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                    {index === 0 && (
-                      <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">
-                        Main
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Upload Button */}
-              <div className="flex items-center space-x-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => document.getElementById('addImageInput')?.click()}
-                  className="flex items-center space-x-2"
-                  disabled={previewUrls.length >= 10}
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Add Images</span>
-                </Button>
-                {previewUrls.length > 0 && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setSelectedImages([]);
-                      setPreviewUrls([]);
-                    }}
-                    className="text-red-600 border-red-600 hover:bg-red-50"
-                  >
-                    Reset All
-                  </Button>
-                )}
-              </div>
-              <input
-                id="addImageInput"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <p className="text-sm text-gray-500">
-                Supported formats: JPG, PNG, WebP. Max size: 5MB per image. Up to 10 images.
-              </p>
+
+
             </div>
+
+
+
+
+
+            {/* Vehicle Images Upload */}
+            <div className="space-y-4">
+              <Label>Vehicle Images ({previewUrls.length}/10)</Label>
+              <div className="space-y-4">
+                {mode === 'edit' && existing.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Existing Images</Label>
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                      {existing.map((img, idx) => (
+                        <div key={img._id} className={`relative group ${img.markDelete ? 'opacity-50' : ''}`}>
+                          <img src={img.url} className="w-full h-24 object-cover rounded-lg border-2 border-gray-200" />
+                          <button
+                            type="button"
+                            onClick={() => setExisting(prev => prev.map((e, i) => i === idx ? { ...e, markDelete: !e.markDelete } : e))}
+                            className="absolute top-1 right-1 bg-white text-gray-800 rounded px-1 text-xs border"
+                          >{img.markDelete ? 'Undo' : 'Delete'}</button>
+                          {img.isPrimary && !img.markDelete && (
+                            <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">Main</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Image Grid */}
+                <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  {previewUrls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Vehicle preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute top-1 left-1 bg-[#212c40] text-white text-xs px-2 py-1 rounded">
+                          Main
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('addImageInput')?.click()}
+                    className="flex items-center space-x-2"
+                    disabled={previewUrls.length >= 10}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Add Images</span>
+                  </Button>
+                  {previewUrls.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedImages([]);
+                        setPreviewUrls([]);
+                      }}
+                      className="text-red-600 border-red-600 hover:bg-red-50"
+                    >
+                      Reset All
+                    </Button>
+                  )}
+                </div>
+                <input
+                  id="addImageInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <p className="text-sm text-gray-500">
+                  Supported formats: JPG, PNG, WebP. Max size: 5MB per image. Up to 10 images.
+                </p>
+              </div>
+            </div>
+
           </div>
-          
-          </div>
-          
+
           {/* Form Actions */}
-      <div className="shrink-0 flex justify-end gap-3 p-4 border-t bg-white">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </Button>
-        <Button 
-          type="submit" 
-          className="bg-[#f48432] hover:bg-[#e07528] text-white min-w-[120px]"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {mode === 'create' ? 'Adding...' : 'Updating...'}
-            </>
-          ) : (
-            mode === 'create' ? 'Add Vehicle' : 'Update Vehicle'
-          )}
-        </Button>
-      </div>
+          <div className="shrink-0 flex justify-end gap-3 p-4 border-t bg-white">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#f48432] hover:bg-[#e07528] text-white min-w-[120px]"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === 'create' ? 'Adding...' : 'Updating...'}
+                </>
+              ) : (
+                mode === 'create' ? 'Add Vehicle' : 'Update Vehicle'
+              )}
+            </Button>
+          </div>
         </>
       )}
     </form>

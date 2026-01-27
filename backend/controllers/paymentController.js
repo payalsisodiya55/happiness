@@ -58,15 +58,20 @@ const initiatePhonePePayment = asyncHandler(async (req, res) => {
   console.log(`[PaymentInitiate] Initiated by User/Driver ID: ${userId}, Email: ${currentUser.email}`);
 
   try {
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid payment amount' });
+    }
+
     const merchantOrderId = `ORDER_${uuidv4().substring(0, 8)}_${Date.now()}`;
-    console.log(`[PaymentInitiate] Generated MerchantOrderId: ${merchantOrderId}`);
+    console.log(`[PaymentInitiate] Using numeric amount: ${numericAmount} and ID: ${merchantOrderId}`);
 
     // Create a pending payment record
     const payment = await Payment.create({
       user: userId,
-      amount: amount,
+      amount: numericAmount,
       currency: 'INR',
-      method: 'upi', // Default, will be updated by callback
+      method: 'phonepe',
       status: 'pending',
       type: paymentType,
       paymentGateway: 'phonepe',
@@ -76,27 +81,27 @@ const initiatePhonePePayment = asyncHandler(async (req, res) => {
       booking: (bookingId && !bookingId.toString().startsWith('temp_')) ? bookingId : undefined,
       temporaryBookingId: (bookingId && bookingId.toString().startsWith('temp_')) ? bookingId : undefined,
       metadata: {
+        userModel: req.driver ? 'Driver' : 'User',
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         deviceType: 'web'
       }
     });
 
-    console.log(`[PaymentInitiate] Payment record created in DB. ID: ${payment._id}`);
+    console.log(`[PaymentInitiate] Payment record created: ${payment._id}, Type: ${payment.type}`);
 
     const callbackUrl = `${process.env.BACKEND_URL || 'https://your-api.com'}/api/payments/phonepe-callback`;
 
     const paymentData = {
-      amount,
+      amount: numericAmount,
       merchantOrderId,
       redirectUrl: redirectUrl || `${process.env.FRONTEND_URL}/payment-status?merchantOrderId=${merchantOrderId}`,
       callbackUrl,
       mobileNumber: currentUser.phone || '9999999999'
     };
 
-    console.log('[PaymentInitiate] Sending request to PhonePeService...');
+    console.log('[PaymentInitiate] Initiating with PhonePeService...');
     const response = await PhonePeService.initiatePayment(paymentData);
-    console.log('[PaymentInitiate] PhonePeService Response Received');
 
     res.json({
       success: true,
@@ -173,6 +178,15 @@ const handlePhonePeCallback = asyncHandler(async (req, res) => {
           booking.payment.completedAt = new Date();
           booking.payment.method = 'phonepe';
           booking.payment.amount = amount;
+
+          // If it's a partial payment booking, update the online portion status
+          if (booking.payment.isPartialPayment && booking.payment.partialPaymentDetails) {
+            booking.payment.partialPaymentDetails.onlinePaymentStatus = 'completed';
+            booking.payment.partialPaymentDetails.onlinePaymentAt = new Date();
+            booking.payment.partialPaymentDetails.onlineTransactionId = transactionId;
+            console.log('[Callback] 🧩 Booking partialPaymentDetails.onlinePaymentStatus updated to completed');
+          }
+
           await booking.save();
           console.log('[Callback] Booking payment status updated');
         }
@@ -181,64 +195,38 @@ const handlePhonePeCallback = asyncHandler(async (req, res) => {
       // Update Wallet if applicable
       if (payment.type === 'wallet_recharge') {
         const userId = String(payment.user);
-        console.log(`[Callback] 💰 Wallet Recharge for UserID: ${userId}`);
+        const userModel = payment.metadata?.userModel;
+        console.log(`[Callback] 💰 Wallet Recharge for UserID: ${userId}, Model: ${userModel || 'Auto-detect'}`);
 
-        // Try Driver First
-        let driver = await Driver.findById(userId);
-        if (driver) {
-          console.log(`[Callback] Found Driver for wallet credit: ${driver.firstName} (${driver._id})`);
-          try {
-            // Ensure wallet structure exists
-            if (!driver.earnings) driver.earnings = {};
-            if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+        let credited = false;
 
-            const desc = `Wallet Recharge via PhonePe (Txn: ${transactionId})`;
-
-            // Use addEarnings if safe, else manual
-            if (typeof driver.addEarnings === 'function') {
-              console.log('[Callback] Using driver.addEarnings() method...');
-              await driver.addEarnings(amount, desc);
-            } else {
-              console.log('[Callback] driver.addEarnings not valid, using manual fallback...');
-              driver.earnings.wallet.balance += amount;
-              if (driver.totalEarnings === undefined) driver.totalEarnings = 0;
-              driver.totalEarnings += amount;
-
-              driver.earnings.wallet.transactions.push({
-                type: 'credit',
-                amount: amount,
-                description: desc,
-                date: new Date(),
-                transactionId: transactionId
-              });
-              await driver.save();
-            }
-            console.log(`[Callback] ✅ Driver wallet successfully credited.`);
-          } catch (driverUpdateErr) {
-            console.error(`[Callback] ❌ Driver Wallet Update Failed: ${driverUpdateErr.message}`, driverUpdateErr);
+        // 1. Try specified model from metadata if available
+        if (userModel === 'Driver') {
+          const driver = await Driver.findById(userId);
+          if (driver) {
+            await creditDriverWallet(driver, amount, transactionId, `Wallet Recharge via PhonePe (Callback)`);
+            credited = true;
           }
-        } else {
-          // Try User
+        } else if (userModel === 'User') {
           const user = await User.findById(userId);
           if (user) {
-            console.log(`[Callback] Found User for wallet credit: ${user.firstName}`);
-            try {
-              if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
-              user.wallet.balance += amount;
-              user.wallet.transactions.push({
-                type: 'credit',
-                amount,
-                description: 'Wallet recharge via PhonePe',
-                timestamp: new Date(),
-                transactionId: transactionId
-              });
-              await user.save();
-              console.log(`[Callback] ✅ User wallet credited successfully.`);
-            } catch (userErr) {
-              console.error(`[Callback] ❌ User Wallet Update Failed: ${userErr.message}`);
-            }
+            await creditUserWallet(user, amount, transactionId, `Wallet Recharge via PhonePe (Callback)`);
+            credited = true;
+          }
+        }
+
+        // 2. Fallback to auto-detect if not credited yet
+        if (!credited) {
+          const driver = await Driver.findById(userId);
+          if (driver) {
+            await creditDriverWallet(driver, amount, transactionId, `Wallet Recharge via PhonePe (Callback)`);
           } else {
-            console.error(`[Callback] ❌ No User or Driver found for ID: ${userId}`);
+            const user = await User.findById(userId);
+            if (user) {
+              await creditUserWallet(user, amount, transactionId, `Wallet Recharge via PhonePe (Callback)`);
+            } else {
+              console.error(`[Callback] ❌ No User or Driver found for ID: ${userId}`);
+            }
           }
         }
       }
@@ -295,7 +283,21 @@ const getPhonePePaymentStatus = asyncHandler(async (req, res) => {
 
   console.log(`[PaymentStatus] Found payment: ${payment._id}, Status: ${payment.status}, Amount: ${payment.amount}`);
 
-  // 3. Status API Check (Always check if pending)
+  // 2.5 Ownership Check (Security & Bug prevention for shared sessions)
+  const currentUser = req.user || req.driver;
+  if (currentUser) {
+    const requesterId = String(currentUser._id || currentUser.id);
+    const ownerId = String(payment.user);
+
+    if (requesterId !== ownerId) {
+      console.warn(`[PaymentStatus] ⚠️ Unauthorized status check attempt. Payer: ${ownerId}, Requester: ${requesterId}`);
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to check this payment status'
+      });
+    }
+  }
+  // 3. Status API Check (Only poll if not already completed)
   if (payment.status !== 'completed') {
     try {
       console.log(`[PaymentStatus] 🔄 Polling PhonePe API...`);
@@ -331,72 +333,43 @@ const getPhonePePaymentStatus = asyncHandler(async (req, res) => {
         // 6. Update Wallet (Unified Logic)
         if (payment.type === 'wallet_recharge') {
           const userId = String(payment.user);
-          console.log(`[PaymentStatus] 💰 Crediting Wallet for UserID: ${userId}`);
+          const userModel = payment.metadata?.userModel;
+          console.log(`[PaymentStatus] 💰 Crediting Wallet. UserID: ${userId}, Model: ${userModel || 'Auto'}`);
 
-          // Driver Wallet
-          let driver = await Driver.findById(userId);
-          if (driver) {
-            try {
-              if (!driver.earnings) driver.earnings = {};
-              if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
-
-              const desc = `Wallet Recharge via PhonePe (Txn: ${finalTxnId})`;
-
-              // Idempotency: Check if txn exists
-              const alreadyExists = driver.earnings.wallet.transactions.some(t => t.transactionId === finalTxnId || (t.description && t.description.includes(finalTxnId)));
-
-              if (!alreadyExists) {
-                if (typeof driver.addEarnings === 'function') {
-                  await driver.addEarnings(amount, desc);
-                } else {
-                  driver.earnings.wallet.balance += amount;
-                  if (driver.totalEarnings === undefined) driver.totalEarnings = 0;
-                  driver.totalEarnings += amount;
-                  driver.earnings.wallet.transactions.push({
-                    type: 'credit',
-                    amount: amount,
-                    description: desc,
-                    date: new Date(),
-                    transactionId: finalTxnId
-                  });
-                  await driver.save();
-                }
-                console.log(`[PaymentStatus] ✅ Driver Wallet Credited by ₹${amount}`);
-              } else {
-                console.log(`[PaymentStatus] Transaction ${finalTxnId} already in wallet. Skipping.`);
-              }
-            } catch (driverUpdateErr) {
-              console.error(`[PaymentStatus] ❌ Driver Wallet Update Failed:`, driverUpdateErr);
+          let credited = false;
+          if (userModel === 'Driver') {
+            const driver = await Driver.findById(userId);
+            if (driver) {
+              await creditDriverWallet(driver, amount, finalTxnId, `Wallet Recharge via PhonePe (Status)`);
+              credited = true;
             }
-          } else {
-            // User Wallet (Fallback)
+          } else if (userModel === 'User') {
             const user = await User.findById(userId);
             if (user) {
-              try {
-                if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
-                const userDesc = `Wallet Recharge via PhonePe (Txn: ${finalTxnId})`;
+              await creditUserWallet(user, amount, finalTxnId, `Wallet Recharge via PhonePe (Status)`);
+              credited = true;
+            }
+          }
 
-                user.wallet.balance += amount;
-                user.wallet.transactions.push({
-                  type: 'credit',
-                  amount,
-                  description: userDesc,
-                  timestamp: new Date(),
-                  transactionId: finalTxnId
-                });
-                await user.save();
-                console.log(`[PaymentStatus] ✅ User Wallet Credited by ₹${amount}`);
-              } catch (userErr) {
-                console.error(`[PaymentStatus] ❌ User Wallet Update Failed:`, userErr);
-              }
+          if (!credited) {
+            const driver = await Driver.findById(userId);
+            if (driver) {
+              await creditDriverWallet(driver, amount, finalTxnId, `Wallet Recharge via PhonePe (Status)`);
+            } else {
+              const user = await User.findById(userId);
+              if (user) await creditUserWallet(user, amount, finalTxnId, `Wallet Recharge via PhonePe (Status)`);
             }
           }
         }
       } else if (code === 'PAYMENT_ERROR' || code === 'PAYMENT_DECLINED') {
-        console.log(`[PaymentStatus] Payment Failed: ${code}`);
-        payment.status = 'failed';
-        payment.error = { message: rawResponse?.message || 'Payment failed' };
-        await payment.save();
+        console.log(`[PaymentStatus] Payment Gateway reported: ${code}`);
+        if (process.env.NODE_ENV === 'production') {
+          payment.status = 'failed';
+          payment.error = { message: rawResponse?.message || 'Payment failed' };
+          await payment.save();
+        } else {
+          console.log(`[PaymentStatus] ⚠️ Gateway error ignored in DEV mode to allow force-success override.`);
+        }
       }
     } catch (err) {
       console.error('[PaymentStatus] ❌ Error polling PhonePe status:', err);
@@ -407,56 +380,44 @@ const getPhonePePaymentStatus = asyncHandler(async (req, res) => {
   // DEVELOPMENT / SANDBOX OVERRIDE (FORCE SUCCESS)
   // =============================
   if (process.env.NODE_ENV !== 'production' && payment && payment.status === 'pending') {
-    console.log('[DEV MODE] ⚠️ Force completing payment (Sandbox fix):', payment._id);
+    const devTxnId = payment.paymentDetails.phonePeTransactionId || `TXN_DEV_${Date.now()}`;
+    console.log(`[DEV MODE] ⚠️ Force completing payment for ${payment._id} with Txn: ${devTxnId}`);
 
     payment.status = 'completed';
     payment.timestamps.completed = new Date();
-    // Use existing transaction ID or fallback
-    const devTxnId = payment.paymentDetails.phonePeTransactionId || `TXN_DEV_${Date.now()}`;
     payment.transactionId = devTxnId;
     await payment.save();
 
-    // Force Wallet Credit (Inline Logic to match existing structure)
+    // After saving payment, ensure we credit the wallet if it's a recharge
     if (payment.type === 'wallet_recharge') {
       const userId = String(payment.user);
-      const amount = payment.amount;
-      console.log(`[DEV MODE] 💰 Forcing Wallet Credit for UserID: ${userId}`);
+      const amount = parseFloat(payment.amount);
+      const userModel = payment.metadata?.userModel;
 
-      let driver = await Driver.findById(userId);
-      if (driver) {
-        if (!driver.earnings) driver.earnings = {};
-        if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+      console.log(`[DEV MODE] 💰 Wallet Credit. UserID: ${userId}, Model: ${userModel || 'Auto'}`);
 
-        // Check duplications
-        const exists = driver.earnings.wallet.transactions.some(t => t.transactionId === devTxnId);
-        if (!exists) {
-          driver.earnings.wallet.balance += amount;
-          if (driver.totalEarnings === undefined) driver.totalEarnings = 0;
-          driver.totalEarnings += amount;
-          driver.earnings.wallet.transactions.push({
-            type: 'credit',
-            amount: amount,
-            description: `Wallet Recharge (Dev Force) - ${devTxnId}`,
-            date: new Date(),
-            transactionId: devTxnId
-          });
-          await driver.save();
-          console.log('[DEV MODE] ✅ Driver Wallet Credited');
+      let credited = false;
+      if (userModel === 'Driver') {
+        const driver = await Driver.findById(userId);
+        if (driver) {
+          await creditDriverWallet(driver, amount, devTxnId, `Wallet Recharge (Dev Force Success)`);
+          credited = true;
         }
-      } else {
+      } else if (userModel === 'User') {
         const user = await User.findById(userId);
         if (user) {
-          if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
-          user.wallet.balance += amount;
-          user.wallet.transactions.push({
-            type: 'credit',
-            amount,
-            description: `Wallet Recharge (Dev Force) - ${devTxnId}`,
-            timestamp: new Date(),
-            transactionId: devTxnId
-          });
-          await user.save();
-          console.log('[DEV MODE] ✅ User Wallet Credited');
+          await creditUserWallet(user, amount, devTxnId, `Wallet Recharge (Dev Force Success)`);
+          credited = true;
+        }
+      }
+
+      if (!credited) {
+        const driver = await Driver.findById(userId);
+        if (driver) {
+          await creditDriverWallet(driver, amount, devTxnId, `Wallet Recharge (Dev Force Success)`);
+        } else {
+          const user = await User.findById(userId);
+          if (user) await creditUserWallet(user, amount, devTxnId, `Wallet Recharge (Dev Force Success)`);
         }
       }
     }
@@ -718,67 +679,31 @@ const handlePhonePeWebhook = asyncHandler(async (req, res) => {
     // Wallet Recharge Logic
     if (payment.type === 'wallet_recharge') {
       const userId = String(payment.user);
-      console.log(`[Webhook] 💰 Processing Wallet Recharge for User: ${userId}`);
+      const userModel = payment.metadata?.userModel;
+      console.log(`[Webhook] 💰 Wallet Credit. UserID: ${userId}, Model: ${userModel || 'Auto'}`);
 
-      // Try Driver Wallet first
-      let driver = await Driver.findById(userId);
-      if (driver) {
-        try {
-          if (!driver.earnings) driver.earnings = {};
-          if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
-
-          const desc = `Wallet Recharge via PhonePe Webhook (Txn: ${transactionId})`;
-
-          // Check if transaction already exists
-          const alreadyExists = driver.earnings.wallet.transactions.some(t => t.transactionId === transactionId || (t.description && t.description.includes(transactionId)));
-
-          if (!alreadyExists) {
-            // Use addEarnings if available, else manual
-            if (typeof driver.addEarnings === 'function') {
-              await driver.addEarnings(amount, desc);
-            } else {
-              driver.earnings.wallet.balance += amount;
-              if (driver.totalEarnings === undefined) driver.totalEarnings = 0;
-              driver.totalEarnings += amount;
-
-              driver.earnings.wallet.transactions.push({
-                type: 'credit',
-                amount: amount,
-                description: desc,
-                date: new Date(),
-                transactionId: transactionId
-              });
-              await driver.save();
-            }
-            console.log(`[Webhook] ✅ Driver Wallet Credited by ₹${amount}`);
-          } else {
-            console.log('[Webhook] Wallet transaction already exists. Skipping credit.');
-          }
-        } catch (e) {
-          console.error('[Webhook] ❌ Driver Wallet Update Failed:', e);
+      let credited = false;
+      if (userModel === 'Driver') {
+        const driver = await Driver.findById(userId);
+        if (driver) {
+          await creditDriverWallet(driver, amount, transactionId, `Wallet Recharge via PhonePe Webhook`);
+          credited = true;
         }
-      } else {
-        // Try User Wallet
+      } else if (userModel === 'User') {
         const user = await User.findById(userId);
         if (user) {
-          try {
-            if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
+          await creditUserWallet(user, amount, transactionId, `Wallet Recharge via PhonePe Webhook`);
+          credited = true;
+        }
+      }
 
-            user.wallet.balance += amount;
-            user.wallet.transactions.push({
-              type: 'credit',
-              amount,
-              description: 'Wallet recharge via PhonePe Webhook',
-              timestamp: new Date(),
-              transactionId: transactionId
-            });
-            await user.save();
-            console.log(`[Webhook] ✅ User Wallet Credited by ₹${amount}`);
-          } catch (e) {
-            console.error('[Webhook] ❌ User Wallet Update Failed:', e);
-          }
+      if (!credited) {
+        const driver = await Driver.findById(userId);
+        if (driver) {
+          await creditDriverWallet(driver, amount, transactionId, `Wallet Recharge via PhonePe Webhook`);
         } else {
-          console.error('[Webhook] ❌ No Driver or User found for ID:', userId);
+          const user = await User.findById(userId);
+          if (user) await creditUserWallet(user, amount, transactionId, `Wallet Recharge via PhonePe Webhook`);
         }
       }
     }
@@ -802,5 +727,83 @@ module.exports = {
   getPaymentHistory,
   getPaymentById,
   getWalletBalance,
-  getWalletTransactions
+  getWalletTransactions,
+  creditDriverWallet,
+  creditUserWallet
 };
+
+// Helper functions for unified wallet crediting
+async function creditDriverWallet(driver, amount, transactionId, baseDesc) {
+  try {
+    const desc = `${baseDesc} - ${transactionId}`;
+
+    // Robust Idempotency check
+    const alreadyExists = driver.earnings?.wallet?.transactions?.some(
+      t => t.transactionId === transactionId || (t.description && t.description.includes(transactionId))
+    );
+
+    if (alreadyExists) {
+      console.log(`[Wallet] Driver ${driver._id} already credited for ${transactionId}. Skipping.`);
+      return false;
+    }
+
+    if (typeof driver.addEarnings === 'function') {
+      await driver.addEarnings(amount, desc);
+    } else {
+      if (!driver.earnings) driver.earnings = {};
+      if (!driver.earnings.wallet) driver.earnings.wallet = { balance: 0, transactions: [] };
+
+      driver.earnings.wallet.balance += amount;
+      driver.totalEarnings = (driver.totalEarnings || 0) + amount;
+      driver.earnings.wallet.transactions.push({
+        type: 'credit',
+        amount: amount,
+        description: desc,
+        date: new Date(),
+        transactionId: transactionId
+      });
+      await driver.save();
+    }
+    console.log(`[Wallet] ✅ Driver ${driver._id} wallet credited with ₹${amount}`);
+    return true;
+  } catch (err) {
+    console.error(`[Wallet] ❌ Failed to credit Driver ${driver._id}:`, err);
+    return false;
+  }
+}
+
+async function creditUserWallet(user, amount, transactionId, baseDesc) {
+  try {
+    const desc = `${baseDesc} - ${transactionId}`;
+
+    if (!user.wallet) user.wallet = { balance: 0, transactions: [] };
+
+    const alreadyExists = user.wallet.transactions?.some(
+      t => t.transactionId === transactionId || (t.description && t.description.includes(transactionId))
+    );
+
+    if (alreadyExists) {
+      console.log(`[Wallet] User ${user._id} already credited for ${transactionId}. Skipping.`);
+      return false;
+    }
+
+    if (typeof user.addToWallet === 'function') {
+      await user.addToWallet(amount, desc);
+    } else {
+      user.wallet.balance += amount;
+      user.wallet.transactions.push({
+        type: 'credit',
+        amount,
+        description: desc,
+        date: new Date(),
+        transactionId: transactionId
+      });
+      await user.save();
+    }
+    console.log(`[Wallet] ✅ User ${user._id} wallet credited with ₹${amount}`);
+    return true;
+  } catch (err) {
+    console.error(`[Wallet] ❌ Failed to credit User ${user._id}:`, err);
+    return false;
+  }
+}

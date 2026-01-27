@@ -8,7 +8,7 @@ class AdminPaymentApiService {
 
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('adminToken');
-    
+
     // Debug: Log token information
     console.log('AdminPaymentApi - Token exists:', !!token);
     console.log('AdminPaymentApi - Token length:', token ? token.length : 0);
@@ -39,7 +39,7 @@ class AdminPaymentApiService {
   } = {}) {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
       if (params.status) queryParams.append('status', params.status);
@@ -62,7 +62,7 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch payments');
       }
@@ -92,7 +92,7 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch payment stats');
       }
@@ -122,7 +122,7 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch payment');
       }
@@ -153,7 +153,7 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to process refund');
       }
@@ -166,11 +166,11 @@ class AdminPaymentApiService {
   }
 
   /**
-   * Get Razorpay payment details
+   * Get PhonePe payment details
    */
-  async getRazorpayDetails(paymentId: string) {
+  async getPhonePeDetails(paymentId: string) {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/admin/payments/${paymentId}/razorpay-details`, {
+      const response = await fetch(`${this.apiBaseUrl}/admin/payments/${paymentId}/phonepe-details`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
       });
@@ -183,14 +183,14 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch Razorpay details');
+        throw new Error(errorData.message || 'Failed to fetch PhonePe details');
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Failed to fetch Razorpay details:', error);
+      console.error('Failed to fetch PhonePe details:', error);
       throw error;
     }
   }
@@ -206,7 +206,7 @@ class AdminPaymentApiService {
   } = {}) {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params.startDate) queryParams.append('startDate', params.startDate);
       if (params.endDate) queryParams.append('endDate', params.endDate);
       if (params.status) queryParams.append('status', params.status);
@@ -225,7 +225,7 @@ class AdminPaymentApiService {
           window.location.href = '/admin-auth';
           throw new Error('Authentication failed. Please login again.');
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to export payments');
       }

@@ -5,11 +5,12 @@ require('dotenv').config();
 // Import models and services
 const User = require('../models/User');
 const Payment = require('../models/Payment');
-const RazorpayService = require('../services/razorpayService');
+const PhonePeService = require('../services/phonePeService');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI_PROD);
+    const uri = process.env.MONGODB_URI_PROD || process.env.MONGODB_URI;
+    await mongoose.connect(uri);
     console.log('✅ MongoDB connected');
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
@@ -20,9 +21,9 @@ const connectDB = async () => {
 const getTestToken = async () => {
   try {
     // Find test user
-    const testUser = await User.findOne({ phone: '9589579906' });
+    const testUser = await User.findOne({ phone: '9589579906' }) || await User.findOne({});
     if (!testUser) {
-      console.error('❌ Test user not found. Run setup-test-user.js first');
+      console.error('❌ No users found in database.');
       return null;
     }
 
@@ -39,70 +40,45 @@ const getTestToken = async () => {
   }
 };
 
-const testPaymentOrderCreation = async (token) => {
-  console.log('\n=== TESTING PAYMENT ORDER CREATION ===');
+const testPhonePeInitiation = async (token) => {
+  console.log('\n=== TESTING PHONEPE INITIATION ===');
 
   try {
-    const orderData = {
-      amount: 10000, // ₹100 in paise
-      currency: 'INR',
-      receipt: `test_order_${Date.now()}`
+    const paymentData = {
+      amount: 100, // ₹100
+      bookingId: `test_booking_${Date.now()}`,
+      paymentType: 'booking',
+      redirectUrl: 'http://localhost:8080/payment-status'
     };
 
-    const response = await fetch('http://localhost:5000/api/payments/create-order', {
+    const response = await fetch('http://localhost:5000/api/payments/initiate-phonepe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify(paymentData)
     });
 
+    const result = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('❌ Order creation failed:', error);
+      console.error('❌ Initiation failed:', result);
       return null;
     }
 
-    const result = await response.json();
-    console.log('✅ Order created successfully:', result.data);
+    console.log('✅ PhonePe initiation successful');
+    console.log('Redirect URL:', result.data.redirectUrl);
+    console.log('Merchant Order ID:', result.data.merchantOrderId);
     return result.data;
   } catch (error) {
-    console.error('❌ Order creation error:', error.message);
-    return null;
-  }
-};
-
-const testPaymentVerification = async (token, orderData) => {
-  console.log('\n=== TESTING PAYMENT VERIFICATION (SIMULATED) ===');
-
-  // For testing purposes, we'll simulate a payment verification
-  // In real scenario, this would come from Razorpay's success callback
-
-  try {
-    // Simulate payment verification data that would come from Razorpay
-    const verificationData = {
-      razorpayOrderId: orderData.id,
-      razorpayPaymentId: `pay_test_${Date.now()}`, // Simulated payment ID
-      razorpaySignature: 'test_signature', // In real scenario, this would be calculated
-      bookingId: `temp_${Date.now()}`,
-      amount: orderData.amount,
-      paymentMethod: 'razorpay',
-      currency: 'INR'
-    };
-
-    console.log('Simulated verification data:', verificationData);
-    console.log('✅ Payment verification data prepared (would work with real Razorpay callback)');
-
-    return verificationData;
-  } catch (error) {
-    console.error('❌ Payment verification simulation failed:', error.message);
+    console.error('❌ Initiation error:', error.message);
     return null;
   }
 };
 
 const runPaymentFlowTest = async () => {
-  console.log('🚀 Testing Complete Payment Flow...\n');
+  console.log('🚀 Testing Complete PhonePe Payment Flow...\n');
 
   // Connect to database
   await connectDB();
@@ -116,31 +92,19 @@ const runPaymentFlowTest = async () => {
 
   const { token, user } = authData;
 
-  // Test order creation
-  const orderData = await testPaymentOrderCreation(token);
-  if (!orderData) {
-    console.error('❌ Order creation failed, stopping test');
-    process.exit(1);
+  // Test PhonePe initiation
+  const initiationData = await testPhonePeInitiation(token);
+  if (!initiationData) {
+    console.error('❌ Initiation failed, stopping test');
+  } else {
+    console.log('\n=== PAYMENT FLOW TEST SUMMARY ===');
+    console.log('✅ Database Connection: Working');
+    console.log('✅ Authentication: Working');
+    console.log('✅ PhonePe Initiation: Working');
+    console.log('✅ User:', user.firstName, user.lastName, `(${user.phone})`);
+    console.log('✅ Merchant Order ID:', initiationData.merchantOrderId);
+    console.log('✅ Provider:', initiationData.provider);
   }
-
-  // Test payment verification (simulated)
-  const verificationData = await testPaymentVerification(token, orderData);
-  if (!verificationData) {
-    console.error('❌ Payment verification simulation failed');
-    process.exit(1);
-  }
-
-  console.log('\n=== PAYMENT FLOW TEST SUMMARY ===');
-  console.log('✅ Database Connection: Working');
-  console.log('✅ Authentication: Working');
-  console.log('✅ Order Creation: Working');
-  console.log('✅ Payment Verification: Ready (would work with real payment)');
-  console.log('✅ User:', user.firstName, user.lastName, `(${user.phone})`);
-  console.log('✅ Order ID:', orderData.id);
-  console.log('✅ Order Amount:', `₹${orderData.amount / 100}`);
-
-  console.log('\n🎉 Payment system is fully functional!');
-  console.log('💡 Users can now make payments through the frontend.');
 
   // Close database connection
   await mongoose.connection.close();

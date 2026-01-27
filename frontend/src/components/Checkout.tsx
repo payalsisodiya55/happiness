@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import BookingApiService from '@/services/bookingApi';
-import RazorpayService from '@/services/razorpayService';
+import phonePeService from '@/services/phonePeService';
 import { calculateDistance, calculateVehicleFare, formatPrice, LocationData } from '@/lib/distanceUtils';
 import { validateDateFormat, validateTimeFormat, getDefaultDate } from "@/lib/utils";
 import { toast } from '@/hooks/use-toast';
@@ -108,7 +108,7 @@ interface CheckoutProps {
 }
 
 const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingData, tripDistance }) => {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'razorpay'>('cash');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'phonepe'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -286,8 +286,8 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
         // For auto vehicles, proceed with normal cash booking
         await processCashBooking();
       }
-    } else if (selectedPaymentMethod === 'razorpay') {
-      // For Razorpay payments, show payment dialog
+    } else if (selectedPaymentMethod === 'phonepe') {
+      // For PhonePe payments, show payment dialog
       setPaymentAmount(totalPrice);
       setShowPaymentDialog(true);
     }
@@ -397,7 +397,7 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
     }
   };
 
-  const processRazorpayPayment = async () => {
+  const processPhonePePayment = async () => {
     setIsProcessing(true);
 
     try {
@@ -424,172 +424,17 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
         return;
       }
 
-      // Initialize Razorpay service
-      const razorpayService = new RazorpayService();
-
-      // Process payment
-      await razorpayService.processBookingPayment(
-        {
-          amount: paymentAmount, // Use paymentAmount which could be partial or full
-          bookingId: `temp_${Date.now()}`, // Temporary ID, will be updated after payment
-          description: `Booking for ${vehicle.brand} ${vehicle.model} from ${bookingData.from} to ${bookingData.to}${supportsPartialPayment && selectedPaymentMethod === 'cash' ? ` (Partial Payment: ₹${onlineAmount} online + ₹${cashAmount} cash)` : ''}`
-        },
-        {
-          name: `${user.firstName} ${user.lastName || ''}`,
-          email: user.email,
-          phone: user.phone
-        },
-        async (paymentResponse, order) => { // Add order parameter
-          // Payment successful, now create the actual booking
-          try {
-            console.log('=== PAYMENT SUCCESS - CREATING BOOKING ===');
-            console.log('Payment response:', paymentResponse);
-            console.log('Order data:', order);
-            console.log('Total price used for payment:', totalPrice);
-            console.log('Payment amount from response:', paymentResponse.amount);
-            console.log('Payment ID for linking:', paymentResponse.paymentId);
-            console.log('Order amount in paise:', order.amount);
-            console.log('Order amount in rupees:', order.amount / 100);
-
-            const bookingApi = new BookingApiService(
-              import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-            );
-
-            const pickupDate = bookingData.pickupDate || getDefaultDate(1);
-            const pickupTime = bookingData.pickupTime || '09:00';
-            const tripType = bookingData.serviceType === 'roundTrip' ? 'return' : 'one-way';
-
-            const fromLat = parseFloat(bookingData.fromData?.lat?.toString() || '0');
-            const fromLng = parseFloat(bookingData.fromData?.lng?.toString() || '0');
-            const toLat = parseFloat(bookingData.toData?.lat?.toString() || '0');
-            const toLng = parseFloat(bookingData.toData?.lng?.toString() || '0');
-
-            const bookingPayload = {
-              vehicleId: vehicle._id,
-              pickup: {
-                latitude: fromLat,
-                longitude: fromLng,
-                address: bookingData.from || 'Not specified',
-              },
-              destination: {
-                latitude: toLat,
-                longitude: toLng,
-                address: bookingData.to || 'Not specified',
-              },
-              date: pickupDate,
-              time: pickupTime,
-              tripType: tripType,
-              returnDate: bookingData.returnDate || null,
-              passengers: 1,
-              specialRequests: '',
-              // For partial payments, use 'cash' as method but backend will handle the split
-              paymentMethod: selectedPaymentMethod
-            };
-
-            console.log('Creating booking with payload:', bookingPayload);
-
-            // Create booking with payment confirmation
-            const bookingResult = await bookingApi.createBooking(bookingPayload);
-            console.log('Booking created successfully:', bookingResult);
-
-            // For partial payments, process the partial payment
-            if (supportsPartialPayment && selectedPaymentMethod === 'cash') {
-              try {
-                const token = localStorage.getItem('token') ||
-                  localStorage.getItem('userToken') ||
-                  localStorage.getItem('authToken');
-
-                if (token) {
-                  const partialPaymentResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/payments/process-partial-payment`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                      bookingId: bookingResult.data.bookingId,
-                      onlineAmount: onlineAmount,
-                      totalAmount: totalPrice
-                    })
-                  });
-
-                  if (partialPaymentResponse.ok) {
-                    console.log('Partial payment processed successfully');
-                  } else {
-                    console.error('Failed to process partial payment:', await partialPaymentResponse.json());
-                  }
-                }
-              } catch (partialPaymentError) {
-                console.error('Error processing partial payment:', partialPaymentError);
-                // Don't fail the booking if partial payment processing fails
-              }
-            }
-
-            // Link the payment to the booking
-            try {
-              const token = localStorage.getItem('token') ||
-                localStorage.getItem('userToken') ||
-                localStorage.getItem('authToken');
-
-              if (token && paymentResponse.paymentId) {
-                const linkResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/payments/link-booking`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify({
-                    paymentId: paymentResponse.paymentId,
-                    bookingId: bookingResult.data.bookingId
-                  })
-                });
-
-                if (linkResponse.ok) {
-                  console.log('Payment linked to booking successfully');
-                } else {
-                  console.error('Failed to link payment to booking:', await linkResponse.json());
-                }
-              }
-            } catch (linkError) {
-              console.error('Error linking payment to booking:', linkError);
-              // Don't fail the booking if linking fails
-            }
-
-            toast({
-              title: "Payment & Booking Successful!",
-              description: supportsPartialPayment && selectedPaymentMethod === 'cash'
-                ? `Online payment of ₹${onlineAmount} processed. Pay remaining ₹${cashAmount} in cash to driver.`
-                : "Your payment has been processed and booking confirmed.",
-            });
-
-            setShowPaymentDialog(false);
-            onClose();
-          } catch (bookingError) {
-            console.error('Booking creation failed after payment:', bookingError);
-            toast({
-              title: "Payment Successful but Booking Failed",
-              description: "Please contact support to resolve this issue.",
-              variant: "destructive",
-            });
-          }
-        },
-        (paymentError) => {
-          console.error('Payment failed:', paymentError);
-          toast({
-            title: "Payment Failed",
-            description: paymentError instanceof Error ? paymentError.message : "Please try again.",
-            variant: "destructive",
-          });
-        },
-        () => {
-          // Payment modal closed
-          setShowPaymentDialog(false);
-        }
-      );
+      // Process PhonePe payment
+      await phonePeService.handlePaymentRedirect({
+        amount: paymentAmount,
+        bookingId: `temp_${Date.now()}`, // Temporary ID
+        paymentType: 'booking',
+        redirectUrl: `${window.location.origin}/payment-status`
+      });
     } catch (error) {
-      console.error('Payment processing failed:', error);
+      console.error('PhonePe processing failed:', error);
       toast({
-        title: "Payment Processing Failed",
+        title: "Payment Initialization Failed",
         description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
@@ -728,8 +573,8 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
               <button
                 onClick={() => setSelectedPaymentMethod('cash')}
                 className={`p-2 border-2 rounded-lg text-center transition-all ${selectedPaymentMethod === 'cash'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300'
                   }`}
               >
                 <div className="flex flex-col items-center space-y-1">
@@ -739,10 +584,10 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
               </button>
 
               <button
-                onClick={() => setSelectedPaymentMethod('razorpay')}
-                className={`p-2 border-2 rounded-lg text-center transition-all ${selectedPaymentMethod === 'razorpay'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                onClick={() => setSelectedPaymentMethod('phonepe')}
+                className={`p-2 border-2 rounded-lg text-center transition-all ${selectedPaymentMethod === 'phonepe'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300'
                   }`}
               >
                 <div className="flex flex-col items-center space-y-1">
@@ -808,13 +653,13 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, vehicle, bookingDa
                 <span className="text-xs font-medium text-gray-900">Secure Payment Gateway</span>
               </div>
               <p className="text-xs text-gray-600">
-                Secured by Razorpay payment gateway.
+                Secured by PhonePe payment gateway.
               </p>
             </div>
 
             <div className="space-y-2">
               <Button
-                onClick={processRazorpayPayment}
+                onClick={processPhonePePayment}
                 className="w-full bg-blue-600 hover:bg-blue-700 h-10"
                 disabled={isProcessing}
               >

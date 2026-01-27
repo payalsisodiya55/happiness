@@ -228,7 +228,7 @@ class DriverApiService {
     try {
       const vehicles = await this.getVehicles();
       // Return vehicles that are active and approved, but be less restrictive about availability
-      return vehicles.filter(vehicle => 
+      return vehicles.filter(vehicle =>
         vehicle.isActive !== false && // Allow undefined/true values
         vehicle.approvalStatus === 'approved' &&
         vehicle.isVerified !== false // Allow undefined/true values
@@ -375,6 +375,32 @@ class DriverApiService {
     return apiService.request('/driver/referral-rewards', {}, 'driver');
   }
 
+  // Wallet Management
+  async getWalletBalance() {
+    try {
+      const response = await apiService.request('/payments/wallet/balance', {}, 'driver');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      return { balance: 0, currency: 'INR' };
+    }
+  }
+
+  async getWalletTransactions(page: number = 1, limit: number = 20, type?: string) {
+    try {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      if (type) params.append('type', type);
+
+      const response = await apiService.request(`/payments/wallet/transactions?${params.toString()}`, {}, 'driver');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching wallet transactions:', error);
+      return { transactions: [], pagination: { page, limit, total: 0, pages: 0 } };
+    }
+  }
+
   // Dashboard Summary - Improved with better error handling and data fetching
   async getDashboardSummary() {
     try {
@@ -410,14 +436,14 @@ class DriverApiService {
       };
     } catch (error) {
       console.error('Error fetching dashboard summary:', error);
-      
+
       // Fallback to basic data if some methods fail
       try {
         const [activeVehicles, totalVehicles] = await Promise.all([
           this.getTotalVehicleCount(), // Use total vehicle count
           this.getVehicles().then(vehicles => vehicles.length)
         ]);
-        
+
         return {
           activeVehicles,
           todayEarnings: 0,

@@ -277,7 +277,7 @@ router.put('/bookings/:id/status', [
 
 router.post('/bookings/:id/refund', [
   param('id').isMongoId().withMessage('Invalid booking ID'),
-  body('refundMethod').isIn(['razorpay', 'manual']).withMessage('Refund method must be razorpay or manual'),
+  body('refundMethod').isIn(['phonepe', 'manual']).withMessage('Refund method must be phonepe or manual'),
   body('refundReason').optional().isString().withMessage('Refund reason must be a string'),
   body('adminNotes').optional().isString().withMessage('Admin notes must be a string')
 ], validate, processRefund);
@@ -308,7 +308,7 @@ router.put('/bookings/:id/reject-cancellation', [
 // Initiate refund for cancelled booking
 router.post('/bookings/:id/initiate-refund', [
   param('id').isMongoId().withMessage('Invalid booking ID'),
-  body('refundMethod').optional().isIn(['razorpay', 'manual']).withMessage('Invalid refund method'),
+  body('refundMethod').optional().isIn(['phonepe', 'manual']).withMessage('Invalid refund method'),
   body('notes').optional().isString().withMessage('Notes must be a string')
 ], validate, initiateRefund);
 

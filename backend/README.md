@@ -6,7 +6,7 @@ A comprehensive backend API for the Chalo Sawari multi-modal transportation book
 
 - **Multi-User Authentication**: User, Driver, and Admin roles with JWT tokens
 - **Real-time Communication**: SMS and Email notifications via Twilio and Nodemailer
-- **Secure Payment Processing**: Integration with Stripe and Razorpay
+- **Secure Payment Processing**: Integration with Stripe and PhonePe
 - **File Management**: Cloudinary integration for document and image uploads
 - **Role-based Access Control**: Granular permissions for different user types
 - **Comprehensive API**: Complete CRUD operations for all entities
@@ -23,7 +23,7 @@ A comprehensive backend API for the Chalo Sawari multi-modal transportation book
 - **File Uploads**: Multer + Cloudinary
 - **SMS**: Twilio
 - **Email**: Nodemailer
-- **Payments**: Stripe + Razorpay
+- **Payments**: Stripe + PhonePe
 - **Real-time**: Socket.io
 - **Security**: Helmet, CORS, Rate Limiting
 
@@ -35,7 +35,7 @@ A comprehensive backend API for the Chalo Sawari multi-modal transportation book
 - Gmail or other SMTP provider (for emails)
 - Cloudinary account (for file uploads)
 - Stripe account (for payments)
-- Razorpay account (for payments)
+- PhonePe account (for payments)
 
 ## 🚀 Quick Start
 
@@ -86,8 +86,9 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 # Payment Gateway Configuration
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+PHONEPE_MERCHANT_ID=your_merchant_id
+PHONEPE_CLIENT_ID=your_client_id
+PHONEPE_CLIENT_SECRET=your_client_secret
 
 # Frontend URL
 FRONTEND_URL=http://localhost:5173
@@ -275,7 +276,7 @@ backend/
 
 ### Supported Gateways
 - **Stripe**: Credit/Debit cards, UPI
-- **Razorpay**: UPI, Net Banking, Wallets
+- **PhonePe**: UPI, Net Banking, Wallets (v2.0.3 SDK)
 - **Wallet**: In-app wallet system
 
 ### Payment Flow

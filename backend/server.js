@@ -31,40 +31,47 @@ const connectDB = require('./config/db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
+// Database connection will be handled in the initialization phase at the end of the file
 
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://merchants.phonepe.com", "https://maps.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https:", "https://*.phonepe.com", "https://*.googleapis.com", "https://*.gstatic.com"],
+      connectSrc: ["'self'", "https://api.phonepe.com", "https://*.phonepe.com", "https://*.googleapis.com", "http://localhost:5001"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      frameSrc: ["'self'", "https://merchants.phonepe.com"],
     },
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL || 'http://localhost:8080',
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'],
-//   optionsSuccessStatus: 200
-// }));
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:8080',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ].filter(Boolean);
 
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+    // Check if the origin is in the allowed origins list
+    // If no origin (like mobile apps or curl requests), allow it
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked for origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -138,33 +145,48 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Chalo Sawari Backend Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
-  console.log(`🌐 Network Access: http://10.26.183.12:${PORT}/health`);
-  console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    mongoose.connection.close(false);
-    console.log('MongoDB connection closed');
-    process.exit(0);
+const startApp = async () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Chalo Sawari Backend Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
+    console.log(`🌐 Network Access: http://10.26.183.12:${PORT}/health`);
+    console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    mongoose.connection.close(false);
-    console.log('MongoDB connection closed');
-    process.exit(0);
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      mongoose.connection.close(false);
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      mongoose.connection.close(false);
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+};
+
+// Initialize and start
+const initialize = async () => {
+  try {
+    await connectDB();
+    await startApp();
+  } catch (err) {
+    console.error('CRITICAL: Failed to initialize application:', err);
+    process.exit(1);
+  }
+};
+
+initialize();
 
 module.exports = app;

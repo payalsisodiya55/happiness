@@ -13,7 +13,7 @@ const connectDB = async () => {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
-        bufferCommands: false,
+        bufferCommands: true,
       }
     );
 
@@ -29,19 +29,19 @@ const connectDB = async () => {
 const setupTestDriver = async () => {
   try {
     console.log('🚀 Starting test driver setup...');
-    
+
     // Connect to database
     await connectDB();
-    
+
     const testPhone = '9876543210';
     const defaultOTP = '123456';
-    
+
     // Check if test driver already exists
     const existingDriver = await Driver.findOne({ phone: testPhone });
-    
+
     if (existingDriver) {
       console.log('🚗 Test driver already exists, updating...');
-      
+
       // Update existing driver to be test driver
       existingDriver.isTestUser = true;
       existingDriver.defaultOTP = defaultOTP;
@@ -51,12 +51,12 @@ const setupTestDriver = async () => {
       existingDriver.firstName = 'Test';
       existingDriver.lastName = 'Driver';
       existingDriver.email = 'driver@test.com';
-      
+
       await existingDriver.save();
       console.log('✅ Test driver updated successfully!');
     } else {
       console.log('👤 Creating new test driver...');
-      
+
       // Create new test driver
       const testDriver = new Driver({
         firstName: 'Test',
@@ -79,13 +79,13 @@ const setupTestDriver = async () => {
           country: 'India'
         },
         documents: {
-          drivingLicense: { 
-            number: 'TEST123456', 
+          drivingLicense: {
+            number: 'TEST123456',
             expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             isVerified: true
           },
-          vehicleRC: { 
-            number: 'TEST789012', 
+          vehicleRC: {
+            number: 'TEST789012',
             expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             isVerified: true
           }
@@ -114,11 +114,11 @@ const setupTestDriver = async () => {
           commission: 10
         }
       });
-      
+
       await testDriver.save();
       console.log('✅ Test driver created successfully!');
     }
-    
+
     // Verify the setup
     const verifyDriver = await Driver.findOne({ phone: testPhone });
     console.log('\n📋 Test Driver Details:');
@@ -130,12 +130,12 @@ const setupTestDriver = async () => {
     console.log(`   Is Verified: ${verifyDriver.isVerified}`);
     console.log(`   Is Approved: ${verifyDriver.isApproved}`);
     console.log(`   Is Active: ${verifyDriver.isActive}`);
-    
+
     console.log('\n🎉 Test driver setup completed successfully!');
     console.log('📝 You can now login with:');
     console.log(`   Phone: ${testPhone}`);
     console.log(`   OTP: ${defaultOTP}`);
-    
+
   } catch (error) {
     console.error('❌ Error setting up test driver:', error);
   } finally {

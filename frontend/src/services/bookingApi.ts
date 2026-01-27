@@ -19,7 +19,7 @@ interface BookingData {
   time: string;
   tripType?: string;
   passengers: number;
-  paymentMethod: 'cash' | 'razorpay';
+  paymentMethod: 'cash' | 'phonepe';
   specialRequests?: string;
   totalAmount?: number; // Pre-calculated total amount from frontend
   advanceAmount?: number; // Advance payment amount for online payments
@@ -34,23 +34,23 @@ class BookingApiService {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     // Get auth token from localStorage - check multiple possible keys
-    let token = localStorage.getItem('token') || 
-                localStorage.getItem('userToken') || 
-                localStorage.getItem('authToken');
-    
+    let token = localStorage.getItem('token') ||
+      localStorage.getItem('userToken') ||
+      localStorage.getItem('authToken');
+
     console.log('Debug - API Request Details:');
     console.log('Debug - URL:', url);
     console.log('Debug - Token exists:', !!token);
     console.log('Debug - Token preview:', token ? `${token.substring(0, 20)}...` : 'No token');
     console.log('Debug - All localStorage keys:', Object.keys(localStorage));
-    
+
     if (!token) {
       console.error('Debug - No authentication token found! User must be logged in.');
       throw new Error('Authentication required. Please log in to book a vehicle.');
     }
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -66,14 +66,14 @@ class BookingApiService {
       const response = await fetch(url, config);
       console.log('Debug - Response status:', response.status);
       console.log('Debug - Response headers:', Object.fromEntries(response.headers.entries()));
-      
+
       const data = await response.json();
       console.log('Debug - Response data:', data);
 
       if (!response.ok) {
         console.error('Debug - Request failed with status:', response.status);
         console.error('Debug - Error data:', data);
-        
+
         // Provide more specific error messages
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
@@ -121,7 +121,7 @@ class BookingApiService {
       page: page.toString(),
       limit: limit.toString(),
     });
-    
+
     if (status) {
       params.append('status', status);
     }
@@ -135,7 +135,7 @@ class BookingApiService {
 
   async cancelBooking(bookingId: string, reason?: string) {
     const body = reason ? { reason } : {};
-    
+
     return this.request(`/bookings/${bookingId}/cancel`, {
       method: 'PUT',
       body: JSON.stringify(body),

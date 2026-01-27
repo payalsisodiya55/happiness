@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Calendar, 
-  MapPin, 
-  User, 
-  Car, 
+import {
+  Calendar,
+  MapPin,
+  User,
+  Car,
   Bus,
   Clock,
   CheckCircle,
@@ -96,7 +96,7 @@ interface Booking {
   };
   status: 'pending' | 'accepted' | 'started' | 'completed' | 'cancelled' | 'cancellation_requested';
   payment: {
-    method: 'cash' | 'upi' | 'netbanking' | 'card' | 'razorpay';
+    method: 'cash' | 'upi' | 'netbanking' | 'card' | 'phonepe';
     status: 'pending' | 'completed' | 'failed';
     transactionId?: string;
     completedAt?: string;
@@ -142,9 +142,8 @@ interface PaymentDetails {
     status: string;
     transactionId?: string;
     paymentDetails: {
-      razorpayOrderId?: string;
-      razorpayPaymentId?: string;
-      razorpaySignature?: string;
+      phonePeMerchantOrderId?: string;
+      phonePeTransactionId?: string;
     };
     refund?: {
       amount: number;
@@ -175,7 +174,7 @@ const AdminBookingManagement = () => {
         tripType: booking.tripDetails?.tripType || 'one-way'
       };
     }
-    
+
     // Fallback: return safe default if no pricing data
     return {
       totalAmount: 0,
@@ -202,7 +201,7 @@ const AdminBookingManagement = () => {
   const [itemsPerPage] = useState(10);
 
   // Refund form state
-  const [refundMethod, setRefundMethod] = useState<'razorpay' | 'manual'>('razorpay');
+  const [refundMethod, setRefundMethod] = useState<'phonepe' | 'manual'>('phonepe');
   const [refundReason, setRefundReason] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [isProcessingRefund, setIsProcessingRefund] = useState(false);
@@ -395,7 +394,7 @@ const AdminBookingManagement = () => {
     if (dateFilter !== 'all') {
       const today = new Date();
       const startDate = getStartDate(dateFilter);
-      
+
       filtered = filtered.filter(booking => {
         const bookingDate = new Date(booking.tripDetails.date);
         return bookingDate >= new Date(startDate);
@@ -528,25 +527,23 @@ const AdminBookingManagement = () => {
 
   const getPaymentStatusDisplay = (booking: Booking) => {
     if (!booking.payment) return null;
-    
+
     if (booking.payment.isPartialPayment) {
       const { onlinePaymentStatus, cashPaymentStatus, onlineAmount, cashAmount } = booking.payment.partialPaymentDetails || {};
-      
+
       return (
         <div className="space-y-1">
           <div className="text-xs font-medium text-gray-700">Partial Payment:</div>
           <div className="flex items-center space-x-2">
-            <div className={`w-2 h-2 rounded-full ${
-              onlinePaymentStatus === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
-            }`}></div>
+            <div className={`w-2 h-2 rounded-full ${onlinePaymentStatus === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
             <span className="text-xs text-gray-600">
               Online: ₹{onlineAmount} ({onlinePaymentStatus === 'completed' ? 'Paid' : 'Pending'})
             </span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className={`w-2 h-2 rounded-full ${
-              cashPaymentStatus === 'collected' ? 'bg-green-500' : 'bg-yellow-500'
-            }`}></div>
+            <div className={`w-2 h-2 rounded-full ${cashPaymentStatus === 'collected' ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
             <span className="text-xs text-gray-600">
               Cash: ₹{cashAmount} ({cashPaymentStatus === 'collected' ? 'Collected' : 'Pending'})
             </span>
@@ -554,7 +551,7 @@ const AdminBookingManagement = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="text-xs text-gray-600">
         {booking.payment.method.toUpperCase()}: {booking.payment.status === 'completed' ? 'Completed' : 'Pending'}
@@ -600,7 +597,7 @@ const AdminBookingManagement = () => {
   const handleMarkCashCollected = async (booking: Booking) => {
     try {
       const response = await adminBookings.markCashCollected(booking._id);
-      
+
       if (response.success) {
         toast({
           title: "Success",
@@ -627,7 +624,7 @@ const AdminBookingManagement = () => {
   const handleApproveCancellation = async (booking: Booking) => {
     try {
       const response = await adminBookings.approveCancellationRequest(booking._id);
-      
+
       if (response.success) {
         toast({
           title: "Success",
@@ -654,7 +651,7 @@ const AdminBookingManagement = () => {
   const handleRejectCancellation = async (booking: Booking) => {
     try {
       const response = await adminBookings.rejectCancellationRequest(booking._id);
-      
+
       if (response.success) {
         toast({
           title: "Success",
@@ -682,12 +679,12 @@ const AdminBookingManagement = () => {
     try {
       // Use processRefund instead of initiateRefund for actual refund processing
       const response = await adminBookings.processRefund(
-        booking._id, 
-        'razorpay', 
-        'Driver cancelled trip', 
+        booking._id,
+        'phonepe',
+        'Driver cancelled trip',
         'Refund processed for driver cancellation'
       );
-      
+
       if (response.success) {
         toast({
           title: "Success",
@@ -703,16 +700,16 @@ const AdminBookingManagement = () => {
       }
     } catch (error: any) {
       console.error('Error processing refund:', error);
-      
+
       // Show more specific error messages
       let errorMessage = "Failed to process refund. Please try again.";
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -724,7 +721,7 @@ const AdminBookingManagement = () => {
   const handleCompleteRefund = async (booking: Booking) => {
     try {
       const response = await adminBookings.completeRefund(booking._id);
-      
+
       if (response.success) {
         toast({
           title: "Success",
@@ -958,14 +955,14 @@ const AdminBookingManagement = () => {
       // Generate filename with current date and filters
       const currentDate = new Date().toISOString().split('T')[0];
       let filename = `chalo-sawari-bookings-${currentDate}`;
-      
+
       if (statusFilter !== 'all') {
         filename += `-${statusFilter}`;
       }
       if (dateFilter !== 'all') {
         filename += `-${dateFilter}`;
       }
-      
+
       filename += '.xlsx';
 
       // Save file
@@ -1227,7 +1224,7 @@ const AdminBookingManagement = () => {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {/* Search Input */}
                 <div className="space-y-2">
@@ -1299,8 +1296,8 @@ const AdminBookingManagement = () => {
               </div>
 
               <div className="mt-6 flex justify-center">
-                <Button 
-                  onClick={handleSearch} 
+                <Button
+                  onClick={handleSearch}
                   className="bg-[#29354C] hover:bg-[#29354C]/90 text-white px-6 sm:px-8 py-2 sm:py-3 h-10 sm:h-12 text-sm sm:text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
                 >
                   <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -1418,7 +1415,7 @@ const AdminBookingManagement = () => {
                             </p>
                           )}
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-green-600" />
@@ -1460,7 +1457,7 @@ const AdminBookingManagement = () => {
                             <p className="text-xs sm:text-sm text-gray-600">{booking.tripDetails.pickup.address}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-start gap-2">
                           <Navigation className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
@@ -1468,7 +1465,7 @@ const AdminBookingManagement = () => {
                             <p className="text-xs sm:text-sm text-gray-600">{booking.tripDetails.destination.address}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
                           <span>👥 {booking.tripDetails.passengers} passengers</span>
                           <span>📏 {booking.tripDetails.distance} km</span>
@@ -1490,14 +1487,13 @@ const AdminBookingManagement = () => {
                           </div>
                           {getPaymentStatusBadge(booking.payment.status)}
                         </div>
-                        
+
                         {/* Partial Payment Details */}
                         {booking.payment.isPartialPayment && (
-                          <div className={`border rounded-lg p-3 ${
-                            booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected' 
-                              ? 'bg-green-50 border-green-200' 
-                              : 'bg-orange-50 border-orange-200'
-                          }`}>
+                          <div className={`border rounded-lg p-3 ${booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected'
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-orange-50 border-orange-200'
+                            }`}>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                               <div className="text-xs font-medium text-blue-800">Partial Payment Details</div>
                               {booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending' && (
@@ -1510,9 +1506,8 @@ const AdminBookingManagement = () => {
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <span className="text-xs text-blue-700">Online Payment:</span>
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${
-                                    booking.payment.partialPaymentDetails?.onlinePaymentStatus === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
-                                  }`}></div>
+                                  <div className={`w-2 h-2 rounded-full ${booking.payment.partialPaymentDetails?.onlinePaymentStatus === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+                                    }`}></div>
                                   <span className="text-xs font-medium text-blue-800">
                                     ₹{booking.payment.partialPaymentDetails?.onlineAmount || 0}
                                   </span>
@@ -1521,13 +1516,12 @@ const AdminBookingManagement = () => {
                                   </Badge>
                                 </div>
                               </div>
-                              
+
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <span className="text-xs text-blue-700">Cash Payment:</span>
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${
-                                    booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected' ? 'bg-green-500' : 'bg-yellow-500'
-                                  }`}></div>
+                                  <div className={`w-2 h-2 rounded-full ${booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected' ? 'bg-green-500' : 'bg-yellow-500'
+                                    }`}></div>
                                   <span className="text-xs font-medium text-blue-800">
                                     ₹{booking.payment.partialPaymentDetails?.cashAmount || 0}
                                   </span>
@@ -1536,7 +1530,7 @@ const AdminBookingManagement = () => {
                                   </Badge>
                                 </div>
                               </div>
-                              
+
                               {booking.payment.partialPaymentDetails?.cashCollectedAt && (
                                 <div className="text-xs text-green-600 pt-1 border-t border-green-200">
                                   Cash collected on: {new Date(booking.payment.partialPaymentDetails.cashCollectedAt).toLocaleDateString()}
@@ -1588,306 +1582,305 @@ const AdminBookingManagement = () => {
                         </Button>
                       </div>
 
-                                             {/* Cancellation Request Actions */}
-                       {booking.status === 'cancellation_requested' && (
-                         <div className="mt-4 pt-4 border-t border-orange-200 space-y-2">
-                           <p className="text-sm font-medium text-orange-800 text-center mb-3">Cancellation Request</p>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleApproveCancellation(booking)}
-                             className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
-                           >
-                             <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                             Approve Cancellation
-                           </Button>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleRejectCancellation(booking)}
-                             className="w-full h-10 hover:bg-red-50 hover:border-red-300 text-sm font-medium transition-all duration-200"
-                           >
-                             <XCircle className="w-4 h-4 mr-2 text-red-600" />
-                             Reject Cancellation
-                           </Button>
-                         </div>
-                       )}
+                      {/* Cancellation Request Actions */}
+                      {booking.status === 'cancellation_requested' && (
+                        <div className="mt-4 pt-4 border-t border-orange-200 space-y-2">
+                          <p className="text-sm font-medium text-orange-800 text-center mb-3">Cancellation Request</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApproveCancellation(booking)}
+                            className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                            Approve Cancellation
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRejectCancellation(booking)}
+                            className="w-full h-10 hover:bg-red-50 hover:border-red-300 text-sm font-medium transition-all duration-200"
+                          >
+                            <XCircle className="w-4 h-4 mr-2 text-red-600" />
+                            Reject Cancellation
+                          </Button>
+                        </div>
+                      )}
 
-                       {/* Refund Button for Cancelled Bookings */}
-                       {booking.status === 'cancelled' && 
+                      {/* Refund Button for Cancelled Bookings */}
+                      {booking.status === 'cancelled' &&
                         booking.cancellation?.refundStatus === 'pending' && (
-                         <div className="mt-4 pt-4 border-t border-red-200">
-                           <p className="text-sm font-medium text-red-800 text-center mb-3">Refund Required</p>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleInitiateRefund(booking)}
-                             className="w-full h-10 hover:bg-orange-50 hover:border-orange-300 text-sm font-medium transition-all duration-200"
-                           >
-                             <RotateCcw className="w-4 h-4 mr-2 text-orange-600" />
-                             Initiate Refund
-                           </Button>
-                         </div>
-                       )}
+                          <div className="mt-4 pt-4 border-t border-red-200">
+                            <p className="text-sm font-medium text-red-800 text-center mb-3">Refund Required</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleInitiateRefund(booking)}
+                              className="w-full h-10 hover:bg-orange-50 hover:border-orange-300 text-sm font-medium transition-all duration-200"
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2 text-orange-600" />
+                              Initiate Refund
+                            </Button>
+                          </div>
+                        )}
 
-                       {/* Mark Refund Completed Button */}
-                       {booking.status === 'cancelled' && 
+                      {/* Mark Refund Completed Button */}
+                      {booking.status === 'cancelled' &&
                         booking.cancellation?.refundStatus === 'initiated' && (
-                         <div className="mt-4 pt-4 border-t border-yellow-200">
-                           <p className="text-sm font-medium text-yellow-800 text-center mb-3">Refund Initiated</p>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleCompleteRefund(booking)}
-                             className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
-                           >
-                             <CheckSquare className="w-4 h-4 mr-2 text-green-600" />
-                             Mark Refund Completed
-                           </Button>
-                         </div>
-                       )}
+                          <div className="mt-4 pt-4 border-t border-yellow-200">
+                            <p className="text-sm font-medium text-yellow-800 text-center mb-3">Refund Initiated</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCompleteRefund(booking)}
+                              className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
+                            >
+                              <CheckSquare className="w-4 h-4 mr-2 text-green-600" />
+                              Mark Refund Completed
+                            </Button>
+                          </div>
+                        )}
 
-                       {/* Cash Collection Button for Partial Payment Bookings */}
-                       {booking.payment.isPartialPayment && 
+                      {/* Cash Collection Button for Partial Payment Bookings */}
+                      {booking.payment.isPartialPayment &&
                         booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending' && (
-                         <div className="mt-4 pt-4 border-t border-blue-200">
-                           <p className="text-sm font-medium text-blue-800 text-center mb-3">Cash Collection Required</p>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleMarkCashCollected(booking)}
-                             className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
-                           >
-                             <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                             Mark Cash Collected
-                           </Button>
-                         </div>
-                       )}
-                                         </div>
-                   ))}
-                 </div>
-               ) : (
-                 <div className="overflow-x-auto -mx-4 sm:mx-0">
-                   <div className="min-w-[1200px] sm:min-w-0">
-                     <Table>
-                       <TableHeader>
-                         <TableRow className="bg-gray-50 hover:bg-gray-50">
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Booking #</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Customer</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Driver</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Vehicle</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Trip Details</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Amount</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Status</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Payment</TableHead>
-                           <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Actions</TableHead>
-                         </TableRow>
-                       </TableHeader>
-                       <TableBody>
-                         {filteredBookings.map((booking, index) => (
-                           <TableRow 
-                             key={booking._id} 
-                             className={`hover:bg-blue-50/50 transition-colors duration-150 ${
-                               index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                             }`}
-                           >
-                             <TableCell className="py-4">
-                               <div className="font-mono font-semibold text-blue-600 text-xs sm:text-sm">
-                                 {booking.bookingNumber}
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="space-y-1">
-                                 <p className="font-semibold text-gray-900 text-xs sm:text-sm">
-                                   {booking.user.firstName} {booking.user.lastName}
-                                 </p>
-                                 <p className="text-xs text-gray-600 flex items-center gap-1">
-                                   <Phone className="w-3 h-3" />
-                                   {booking.user.phone}
-                                 </p>
-                                 {booking.user.email && (
-                                   <p className="text-xs text-gray-500 flex items-center gap-1">
-                                     <Mail className="w-3 h-3" />
-                                     {booking.user.email}
-                                   </p>
-                                 )}
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="space-y-1">
-                                 <p className="font-semibold text-gray-900 text-xs sm:text-sm">
-                                   {booking.driver.firstName} {booking.driver.lastName}
-                                 </p>
-                                 <p className="text-xs text-gray-600 flex items-center gap-1">
-                                   <Phone className="w-3 h-3" />
-                                   {booking.driver.phone}
-                                 </p>
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="flex items-center gap-3">
-                                 <div className="p-2 bg-gray-100 rounded-lg">
-                                   {getVehicleIcon(booking.vehicle.type)}
-                                 </div>
-                                 <div className="space-y-1">
-                                   <p className="font-semibold text-gray-900 text-xs sm:text-sm">
-                                     {booking.vehicle.brand} {booking.vehicle.model}
-                                   </p>
-                                   <p className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                     {booking.vehicle.registrationNumber}
-                                   </p>
-                                 </div>
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="space-y-2 max-w-xs">
-                                 <div className="flex items-start gap-2">
-                                   <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                   <p className="text-xs sm:text-sm text-gray-900 font-medium">Pickup</p>
-                                 </div>
-                                 <p className="text-xs sm:text-sm text-gray-600 ml-6">
-                                   {booking.tripDetails.pickup.address}
-                                 </p>
-                                 
-                                 <div className="flex items-start gap-2">
-                                   <Navigation className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                                   <p className="text-xs sm:text-sm text-gray-900 font-medium">Destination</p>
-                                 </div>
-                                 <p className="text-xs sm:text-sm text-gray-600 ml-6">
-                                   {booking.tripDetails.destination.address}
-                                 </p>
-                                 
-                                 <div className="text-xs text-gray-500 ml-6 mt-2">
-                                   📅 {formatDate(booking.tripDetails.date)} at {formatTime(booking.tripDetails.time)}
-                                 </div>
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="text-right">
-                                 <p className="font-bold text-base sm:text-lg text-gray-900">
-                                   {formatCurrency(getBookingPricing(booking).totalAmount)}
-                                 </p>
-                                 <p className="text-xs text-gray-500">
-                                   {formatCurrency(getBookingPricing(booking).ratePerKm)}/km
-                                 </p>
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               {getStatusBadge(booking.status)}
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="space-y-2">
-                                 {getPaymentStatusBadge(booking.payment.status)}
-                                 {getPaymentStatusDisplay(booking)}
-                               </div>
-                             </TableCell>
-                             <TableCell className="py-4">
-                               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleViewDetails(booking)}
-                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
-                                    title="View Details"
-                                  >
-                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleViewPayment(booking)}
-                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
-                                    title="Payment Details"
-                                  >
-                                    <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleStatusUpdate(booking)}
-                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
-                                    title="Update Status"
-                                  >
-                                    <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                 
-                                 {/* Cancellation Request Actions */}
-                                 {booking.status === 'cancellation_requested' && (
-                                   <>
-                                     <Button
-                                       size="sm"
-                                       variant="outline"
-                                       onClick={() => handleApproveCancellation(booking)}
-                                       className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
-                                       title="Approve Cancellation"
-                                     >
-                                       <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                                     </Button>
-                                     <Button
-                                       size="sm"
-                                       variant="outline"
-                                       onClick={() => handleRejectCancellation(booking)}
-                                       className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-50 hover:border-red-300"
-                                       title="Reject Cancellation"
-                                     >
-                                       <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
-                                     </Button>
-                                   </>
-                                 )}
+                          <div className="mt-4 pt-4 border-t border-blue-200">
+                            <p className="text-sm font-medium text-blue-800 text-center mb-3">Cash Collection Required</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkCashCollected(booking)}
+                              className="w-full h-10 hover:bg-green-50 hover:border-green-300 text-sm font-medium transition-all duration-200"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                              Mark Cash Collected
+                            </Button>
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="min-w-[1200px] sm:min-w-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50 hover:bg-gray-50">
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Booking #</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Customer</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Driver</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Vehicle</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Trip Details</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Amount</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Status</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Payment</TableHead>
+                          <TableHead className="font-semibold text-gray-900 py-4 text-xs sm:text-sm">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredBookings.map((booking, index) => (
+                          <TableRow
+                            key={booking._id}
+                            className={`hover:bg-blue-50/50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                              }`}
+                          >
+                            <TableCell className="py-4">
+                              <div className="font-mono font-semibold text-blue-600 text-xs sm:text-sm">
+                                {booking.bookingNumber}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-gray-900 text-xs sm:text-sm">
+                                  {booking.user.firstName} {booking.user.lastName}
+                                </p>
+                                <p className="text-xs text-gray-600 flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {booking.user.phone}
+                                </p>
+                                {booking.user.email && (
+                                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {booking.user.email}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-gray-900 text-xs sm:text-sm">
+                                  {booking.driver.firstName} {booking.driver.lastName}
+                                </p>
+                                <p className="text-xs text-gray-600 flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {booking.driver.phone}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gray-100 rounded-lg">
+                                  {getVehicleIcon(booking.vehicle.type)}
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="font-semibold text-gray-900 text-xs sm:text-sm">
+                                    {booking.vehicle.brand} {booking.vehicle.model}
+                                  </p>
+                                  <p className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                    {booking.vehicle.registrationNumber}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="space-y-2 max-w-xs">
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                  <p className="text-xs sm:text-sm text-gray-900 font-medium">Pickup</p>
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-600 ml-6">
+                                  {booking.tripDetails.pickup.address}
+                                </p>
 
-                                 {/* Refund Button for Cancelled Bookings */}
-                                 {booking.status === 'cancelled' && 
+                                <div className="flex items-start gap-2">
+                                  <Navigation className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                  <p className="text-xs sm:text-sm text-gray-900 font-medium">Destination</p>
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-600 ml-6">
+                                  {booking.tripDetails.destination.address}
+                                </p>
+
+                                <div className="text-xs text-gray-500 ml-6 mt-2">
+                                  📅 {formatDate(booking.tripDetails.date)} at {formatTime(booking.tripDetails.time)}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="text-right">
+                                <p className="font-bold text-base sm:text-lg text-gray-900">
+                                  {formatCurrency(getBookingPricing(booking).totalAmount)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {formatCurrency(getBookingPricing(booking).ratePerKm)}/km
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              {getStatusBadge(booking.status)}
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="space-y-2">
+                                {getPaymentStatusBadge(booking.payment.status)}
+                                {getPaymentStatusDisplay(booking)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewDetails(booking)}
+                                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewPayment(booking)}
+                                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                  title="Payment Details"
+                                >
+                                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleStatusUpdate(booking)}
+                                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                                  title="Update Status"
+                                >
+                                  <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </Button>
+
+                                {/* Cancellation Request Actions */}
+                                {booking.status === 'cancellation_requested' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleApproveCancellation(booking)}
+                                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
+                                      title="Approve Cancellation"
+                                    >
+                                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRejectCancellation(booking)}
+                                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-50 hover:border-red-300"
+                                      title="Reject Cancellation"
+                                    >
+                                      <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
+                                    </Button>
+                                  </>
+                                )}
+
+                                {/* Refund Button for Cancelled Bookings */}
+                                {booking.status === 'cancelled' &&
                                   booking.cancellation?.refundStatus === 'pending' && (
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => handleInitiateRefund(booking)}
-                                     className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-orange-50 hover:border-orange-300"
-                                     title="Initiate Refund"
-                                   >
-                                     <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-                                   </Button>
-                                 )}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleInitiateRefund(booking)}
+                                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-orange-50 hover:border-orange-300"
+                                      title="Initiate Refund"
+                                    >
+                                      <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
+                                    </Button>
+                                  )}
 
-                                 {/* Mark Refund Completed Button */}
-                                 {booking.status === 'cancelled' && 
+                                {/* Mark Refund Completed Button */}
+                                {booking.status === 'cancelled' &&
                                   booking.cancellation?.refundStatus === 'initiated' && (
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => handleCompleteRefund(booking)}
-                                     className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
-                                     title="Mark Refund Completed"
-                                   >
-                                     <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                                   </Button>
-                                 )}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCompleteRefund(booking)}
+                                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
+                                      title="Mark Refund Completed"
+                                    >
+                                      <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                                    </Button>
+                                  )}
 
-                                 {/* Cash Collection Button for Partial Payment Bookings */}
-                                 {booking.payment.isPartialPayment && 
+                                {/* Cash Collection Button for Partial Payment Bookings */}
+                                {booking.payment.isPartialPayment &&
                                   booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending' && (
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => handleMarkCashCollected(booking)}
-                                     className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
-                                     title="Mark Cash Collected"
-                                   >
-                                     <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                                   </Button>
-                                 )}
-                               </div>
-                             </TableCell>
-                           </TableRow>
-                         ))}
-                       </TableBody>
-                     </Table>
-                   </div>
-                 </div>
-               )}
-             </div>
-           </div>
-         </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleMarkCashCollected(booking)}
+                                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-green-50 hover:border-green-300"
+                                      title="Mark Cash Collected"
+                                    >
+                                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                                    </Button>
+                                  )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Enhanced Pagination */}
         {totalPages > 1 && (
@@ -1918,11 +1911,10 @@ const AdminBookingManagement = () => {
                               key={pageNum}
                               variant={currentPage === pageNum ? "default" : "outline"}
                               onClick={() => setCurrentPage(pageNum)}
-                              className={`h-9 w-9 sm:h-10 sm:w-10 p-0 text-sm ${
-                                currentPage === pageNum 
-                                  ? 'bg-[#29354C] text-white border-[#29354C]' 
-                                  : 'border-gray-300 hover:border-[#29354C] hover:bg-[#29354C]/5 text-gray-700'
-                              }`}
+                              className={`h-9 w-9 sm:h-10 sm:w-10 p-0 text-sm ${currentPage === pageNum
+                                ? 'bg-[#29354C] text-white border-[#29354C]'
+                                : 'border-gray-300 hover:border-[#29354C] hover:bg-[#29354C]/5 text-gray-700'
+                                }`}
                             >
                               {pageNum}
                             </Button>
@@ -2142,8 +2134,8 @@ const AdminBookingManagement = () => {
                       <Label className="text-sm font-medium text-gray-600">Refund Status</Label>
                       <div className="mt-1">
                         <Badge className={
-                          selectedBooking.cancellation.refundStatus === 'completed' 
-                            ? 'bg-green-100 text-green-800' 
+                          selectedBooking.cancellation.refundStatus === 'completed'
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }>
                           {selectedBooking.cancellation.refundStatus === 'completed' ? 'Completed' : 'Pending'}
@@ -2304,7 +2296,7 @@ const AdminBookingManagement = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
-               <Button
+              <Button
                 onClick={processRefund}
                 disabled={isProcessingRefund || !refundReason}
                 className="flex-1 bg-[#29354C] hover:bg-[#29354C]/90 text-white"

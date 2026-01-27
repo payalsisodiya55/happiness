@@ -5,7 +5,7 @@ const {
   getPaymentStats,
   getPaymentById,
   processRefund,
-  getRazorpayDetails,
+  getPhonePeDetails,
   exportPayments
 } = require('../controllers/adminPaymentController');
 const { protectAdmin } = require('../middleware/auth');
@@ -22,7 +22,7 @@ router.get('/', [
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('status').optional().isIn(['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled']).withMessage('Invalid status'),
   query('paymentMethod').optional().isIn(['card', 'upi', 'netbanking', 'wallet', 'emi', 'cash']).withMessage('Invalid payment method'),
-  query('paymentGateway').optional().isIn(['razorpay', 'stripe', 'paytm', 'internal']).withMessage('Invalid payment gateway'),
+  query('paymentGateway').optional().isIn(['stripe', 'paytm', 'internal', 'phonepe']).withMessage('Invalid payment gateway'),
   query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO date'),
   query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO date'),
   query('search').optional().isString().withMessage('Search must be a string')
@@ -45,10 +45,10 @@ router.post('/:id/refund', [
   body('reason').isString().withMessage('Refund reason is required')
 ], validate, processRefund);
 
-// Get Razorpay payment details
-router.get('/:id/razorpay-details', [
+// Get PhonePe payment details
+router.get('/:id/phonepe-details', [
   param('id').isMongoId().withMessage('Invalid payment ID')
-], validate, getRazorpayDetails);
+], validate, getPhonePeDetails);
 
 // Export payments data
 router.get('/export/data', [

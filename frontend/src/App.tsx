@@ -28,6 +28,7 @@ import PrivacySecurity from "./pages/profile/PrivacySecurity";
 import Settings from "./pages/profile/Settings";
 
 import FavoritesPage from "./pages/FavoritesPage";
+import PaymentStatus from "./pages/PaymentStatus";
 import NotFound from "./pages/NotFound";
 import DriverAuth from "./driver/pages/DriverAuth";
 import DriverHome from "./driver/pages/DriverHome";
@@ -155,7 +156,8 @@ const App = () => (
                 <Route path="/vihicle-search" element={<MobileAuthWrapper><VihicleSearch /></MobileAuthWrapper>} />
                 <Route path="/car-details/:id" element={<MobileAuthWrapper><CarDetails /></MobileAuthWrapper>} />
                 <Route path="/booking-summary" element={<MobileAuthWrapper><BookingSummary /></MobileAuthWrapper>} />
-                
+                <Route path="/payment-status" element={<PaymentStatus />} />
+
                 {/* Profile Sub-pages */}
                 <Route path="/profile/personal-info" element={<ProtectedUserRoute><PersonalInfo /></ProtectedUserRoute>} />
                 <Route path="/profile/notifications" element={<ProtectedUserRoute><Notifications /></ProtectedUserRoute>} />

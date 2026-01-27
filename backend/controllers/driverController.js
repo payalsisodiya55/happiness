@@ -119,14 +119,14 @@ const toggleStatus = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const getEarnings = asyncHandler(async (req, res) => {
   const { period = 'month', startDate, endDate } = req.query;
-  
+
   console.log('=== DRIVER EARNINGS API CALLED ===');
   console.log('Driver ID:', req.driver.id);
   console.log('Period:', period);
   console.log('Date filters:', { startDate, endDate });
-  
+
   let dateFilter = {};
-  
+
   if (startDate && endDate) {
     dateFilter = {
       createdAt: {
@@ -154,7 +154,7 @@ const getEarnings = asyncHandler(async (req, res) => {
     // First, let's check if there are any bookings for this driver at all
     const allDriverBookings = await Booking.find({ driver: req.driver.id }).select('_id createdAt status payment.status pricing.totalAmount');
     console.log('All driver bookings found:', allDriverBookings.length);
-    
+
     if (allDriverBookings.length > 0) {
       console.log('Sample driver booking:', {
         id: allDriverBookings[0]._id,
@@ -171,7 +171,7 @@ const getEarnings = asyncHandler(async (req, res) => {
       'payment.status': 'completed', // Payment is completed
       ...dateFilter
     }).select('pricing.totalAmount createdAt payment status');
-    
+
     console.log('Earnings - Paid bookings found:', bookings.length);
     if (bookings.length > 0) {
       console.log('Sample paid booking for earnings:', {
@@ -220,18 +220,18 @@ const getTodayEarnings = asyncHandler(async (req, res) => {
   console.log('=== DRIVER TODAY EARNINGS API CALLED ===');
   console.log('Driver ID:', req.driver.id);
   console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
-  
+
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-  
+
   console.log('Date range:', { startOfDay, endOfDay });
 
   try {
     // First, let's check if there are any bookings for this driver at all
     const allDriverBookings = await Booking.find({ driver: req.driver.id }).select('_id createdAt status payment.status pricing.totalAmount');
     console.log('All driver bookings found:', allDriverBookings.length);
-    
+
     if (allDriverBookings.length > 0) {
       console.log('Sample driver booking:', {
         id: allDriverBookings[0]._id,
@@ -251,7 +251,7 @@ const getTodayEarnings = asyncHandler(async (req, res) => {
         $lte: endOfDay
       }
     }).select('pricing.totalAmount createdAt payment status');
-    
+
     console.log('Paid bookings found for today:', paidBookings.length);
     if (paidBookings.length > 0) {
       console.log('Sample paid booking data:', {
@@ -264,7 +264,7 @@ const getTodayEarnings = asyncHandler(async (req, res) => {
 
     // Calculate earnings from paid bookings (pricing.totalAmount is the driver's earnings)
     const totalEarnings = paidBookings.reduce((sum, booking) => sum + (booking.pricing?.totalAmount || 0), 0);
-    
+
     console.log('Earnings calculation:', { totalEarnings });
     console.log('=== DRIVER TODAY EARNINGS API COMPLETED ===');
 
@@ -301,12 +301,12 @@ const getTodayEarnings = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const getDriverBookings = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 10 } = req.query;
-  
+
   const query = { driver: req.driver.id };
   if (status) query.status = status;
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
-  
+
   const [bookings, total] = await Promise.all([
     Booking.find(query)
       .populate([
@@ -327,7 +327,7 @@ const getDriverBookings = asyncHandler(async (req, res) => {
     const paymentMethod = bookingObj.payment?.method;
 
     // Calculate driver's earnings: deduct 20% for online payments (admin commission)
-    const driverEarnings = paymentMethod === 'razorpay'
+    const driverEarnings = paymentMethod === 'phonepe'
       ? Math.round(totalAmount * 0.8)  // 80% for online payments
       : totalAmount;                    // 100% for cash payments
 
@@ -336,8 +336,8 @@ const getDriverBookings = asyncHandler(async (req, res) => {
       driverEarnings: {
         amount: driverEarnings,
         originalAmount: totalAmount,
-        commissionDeducted: paymentMethod === 'razorpay' ? Math.round(totalAmount * 0.2) : 0,
-        commissionPercentage: paymentMethod === 'razorpay' ? 20 : 0
+        commissionDeducted: paymentMethod === 'phonepe' ? Math.round(totalAmount * 0.2) : 0,
+        commissionPercentage: paymentMethod === 'phonepe' ? 20 : 0
       }
     };
   });
@@ -427,7 +427,7 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 
   // Update booking status
   booking.status = status;
-  
+
   // Handle trip-specific data
   if (status === 'started') {
     // Initialize trip object if it doesn't exist
@@ -444,7 +444,7 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 
     // Update payment status when trip is completed
     let paymentJustCompleted = false;
-    if (booking.payment.method === 'razorpay') {
+    if (booking.payment.method === 'phonepe') {
       // Online payments are already completed
       if (booking.payment.status !== 'completed') {
         booking.payment.status = 'completed';
@@ -456,8 +456,8 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
       if (booking.payment.isPartialPayment) {
         // For partial payments, payment is completed only when both online and cash are collected
         if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
-            booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
-            booking.payment.status !== 'completed') {
+          booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
+          booking.payment.status !== 'completed') {
           booking.payment.status = 'completed';
           booking.payment.completedAt = new Date();
           paymentJustCompleted = true;
@@ -481,16 +481,16 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
         if (driver) {
           // Calculate driver's earnings after commission
           const totalAmount = booking.pricing?.totalAmount || 0;
-          
-          if (booking.payment.method === 'razorpay') {
+
+          if (booking.payment.method === 'phonepe') {
             const driverEarnings = Math.round(totalAmount * 0.8);
             await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
             console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
           } else {
-             // Cash payment: Deduct 20% commission
-             const adminCommission = Math.round(totalAmount * 0.2);
-             await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
-             console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
+            // Cash payment: Deduct 20% commission
+            const adminCommission = Math.round(totalAmount * 0.2);
+            await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
+            console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
           }
         }
       } catch (error) {
@@ -503,7 +503,7 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
   await booking.save();
 
   // Vehicle status will be automatically updated by the pre-save middleware
-  
+
   // Update vehicle statistics if trip is completed
   if (status === 'completed') {
     try {
@@ -591,7 +591,7 @@ const completeTrip = asyncHandler(async (req, res) => {
 
   // Update payment status when trip is completed
   let paymentJustCompleted = false;
-  if (booking.payment.method === 'razorpay') {
+  if (booking.payment.method === 'phonepe') {
     // Online payments are already completed
     if (booking.payment.status !== 'completed') {
       booking.payment.status = 'completed';
@@ -603,8 +603,8 @@ const completeTrip = asyncHandler(async (req, res) => {
     if (booking.payment.isPartialPayment) {
       // For partial payments, payment is completed only when both online and cash are collected
       if (booking.payment.partialPaymentDetails.onlinePaymentStatus === 'completed' &&
-          booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
-          booking.payment.status !== 'completed') {
+        booking.payment.partialPaymentDetails.cashPaymentStatus === 'collected' &&
+        booking.payment.status !== 'completed') {
         booking.payment.status = 'completed';
         booking.payment.completedAt = new Date();
         paymentJustCompleted = true;
@@ -628,16 +628,16 @@ const completeTrip = asyncHandler(async (req, res) => {
       if (driver) {
         // Calculate driver's earnings after commission
         const totalAmount = booking.pricing?.totalAmount || 0;
-        
-        if (booking.payment.method === 'razorpay') {
+
+        if (booking.payment.method === 'phonepe') {
           const driverEarnings = Math.round(totalAmount * 0.8);
           await driver.addEarnings(driverEarnings, `Trip completed (Online) - ${booking.bookingNumber}`);
           console.log(`💰 Added ₹${driverEarnings} to driver ${driver._id} wallet for booking ${booking._id}`);
         } else {
-           // Cash payment: Deduct 20% commission
-           const adminCommission = Math.round(totalAmount * 0.2);
-           await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
-           console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
+          // Cash payment: Deduct 20% commission
+          const adminCommission = Math.round(totalAmount * 0.2);
+          await driver.deductFromWallet(adminCommission, `Commission (Cash Trip) - ${booking.bookingNumber}`);
+          console.log(`💰 Deducted ₹${adminCommission} commission from driver ${driver._id} wallet for booking ${booking._id}`);
         }
       }
     } catch (error) {
@@ -649,7 +649,7 @@ const completeTrip = asyncHandler(async (req, res) => {
   await booking.save();
 
   // Vehicle status will be automatically updated by the pre-save middleware
-  
+
   // Update vehicle statistics
   try {
     const Vehicle = require('../models/Vehicle');
@@ -707,29 +707,29 @@ const cancelTrip = asyncHandler(async (req, res) => {
 
   // Update booking status to cancelled
   booking.status = 'cancelled';
-  
+
   // Calculate and apply penalty
   try {
-      const penalty = Driver.calculateCancellationPenalty(booking, new Date());
-      console.log('Calculating cancellation penalty:', penalty);
-      
-      const driver = await Driver.findById(req.driver.id);
-      if (driver && penalty.amount > 0) {
-          // If cancelled mid-way ('started'), maybe increase penalty? 
-          // For now, use the standard calculation which uses time diff. 
-          // If 'started', departure time is in past, so it will fall into "after acceptance" logic potentially.
-          
-          await driver.deductFromWallet(penalty.amount, `Penalty: ${penalty.type} - ${booking.bookingNumber}`);
-          
-          // Also record in driver.penalties array
-          await driver.applyPenalty(penalty.type, penalty.amount, reason || 'Cancelled by driver', booking._id, 'system'); 
-          
-          console.log(`💰 Deducted ₹${penalty.amount} penalty from driver wallet`);
-      }
+    const penalty = Driver.calculateCancellationPenalty(booking, new Date());
+    console.log('Calculating cancellation penalty:', penalty);
+
+    const driver = await Driver.findById(req.driver.id);
+    if (driver && penalty.amount > 0) {
+      // If cancelled mid-way ('started'), maybe increase penalty? 
+      // For now, use the standard calculation which uses time diff. 
+      // If 'started', departure time is in past, so it will fall into "after acceptance" logic potentially.
+
+      await driver.deductFromWallet(penalty.amount, `Penalty: ${penalty.type} - ${booking.bookingNumber}`);
+
+      // Also record in driver.penalties array
+      await driver.applyPenalty(penalty.type, penalty.amount, reason || 'Cancelled by driver', booking._id, 'system');
+
+      console.log(`💰 Deducted ₹${penalty.amount} penalty from driver wallet`);
+    }
   } catch (err) {
-      console.error('Error applying cancellation penalty:', err);
+    console.error('Error applying cancellation penalty:', err);
   }
-  
+
   // Add cancellation details with proper refund information
   booking.cancellation = {
     cancelledBy: req.driver.id,
@@ -748,7 +748,7 @@ const cancelTrip = asyncHandler(async (req, res) => {
   if (!booking.statusHistory) {
     booking.statusHistory = [];
   }
-  
+
   booking.statusHistory.push({
     status: 'cancelled',
     timestamp: new Date(),
@@ -799,7 +799,7 @@ const getTripHistory = asyncHandler(async (req, res) => {
   if (status) query.status = status;
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
-  
+
   const [trips, total] = await Promise.all([
     Booking.find(query)
       .populate([
@@ -831,7 +831,7 @@ const getTripHistory = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const getDriverVehicle = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id);
-  
+
   if (!driver.vehicleDetails) {
     return res.status(404).json({
       success: false,
@@ -852,7 +852,7 @@ const getDriverVehicles = asyncHandler(async (req, res) => {
   console.log('=== DRIVER VEHICLES API CALLED ===');
   console.log('Driver ID:', req.driver.id);
   console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
-  
+
   const { page = 1, limit = 10, status, type } = req.query;
   console.log('Query parameters:', { page, limit, status, type });
 
@@ -864,7 +864,7 @@ const getDriverVehicles = asyncHandler(async (req, res) => {
   if (type && type !== 'all') {
     query.type = type;
   }
-  
+
   console.log('Final query:', query);
 
   const options = {
@@ -882,7 +882,7 @@ const getDriverVehicles = asyncHandler(async (req, res) => {
   const vehicles = await Vehicle.paginate(query, options);
   console.log('Vehicles found:', vehicles.docs?.length || 0);
   console.log('Total vehicles:', vehicles.totalDocs || 0);
-  
+
   if (vehicles.docs && vehicles.docs.length > 0) {
     console.log('Sample vehicle data:', {
       id: vehicles.docs[0]._id,
@@ -895,7 +895,7 @@ const getDriverVehicles = asyncHandler(async (req, res) => {
       isVerified: vehicles.docs[0].isVerified
     });
   }
-  
+
   console.log('=== DRIVER VEHICLES API COMPLETED ===');
 
   res.json({
@@ -997,7 +997,7 @@ const createVehicle = asyncHandler(async (req, res) => {
 
   // Verify that the pricing exists in VehiclePricing model for both trip types
   const VehiclePricing = require('../models/VehiclePricing');
-  
+
   // Fetch one-way pricing
   const oneWayPricing = await VehiclePricing.getPricing(
     pricingReference.category,
@@ -1169,7 +1169,7 @@ const createVehicle = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const updateVehicle = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id);
-  
+
   if (!driver.vehicleDetails) {
     return res.status(404).json({
       success: false,
@@ -1214,7 +1214,7 @@ const updateVehicleById = asyncHandler(async (req, res) => {
   // If pricingReference is being updated, validate it
   if (req.body.pricingReference) {
     const { pricingReference } = req.body;
-    
+
     if (!pricingReference.category || !pricingReference.vehicleType || !pricingReference.vehicleModel) {
       return res.status(400).json({
         success: false,
@@ -1242,7 +1242,7 @@ const updateVehicleById = asyncHandler(async (req, res) => {
   // Handle vehicleLocation update - convert frontend format to MongoDB format
   if (req.body.vehicleLocation) {
     const { vehicleLocation } = req.body;
-    
+
     // Validate vehicleLocation data
     if (!vehicleLocation.latitude || !vehicleLocation.longitude || !vehicleLocation.address) {
       return res.status(400).json({
@@ -1361,7 +1361,7 @@ const deleteVehicle = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const getDocuments = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id).select('documents');
-  
+
   res.json({
     success: true,
     data: driver.documents
@@ -1393,25 +1393,25 @@ const getDriverStats = asyncHandler(async (req, res) => {
   console.log('=== DRIVER STATS API CALLED ===');
   console.log('Driver ID:', req.driver.id);
   console.log('Driver Name:', req.driver.firstName, req.driver.lastName);
-  
+
   const driver = await Driver.findById(req.driver.id);
   console.log('Driver found:', !!driver);
-  
+
   const totalBookings = await Booking.countDocuments({ driver: req.driver.id });
   console.log('Total bookings count:', totalBookings);
-  
-  const completedBookings = await Booking.countDocuments({ 
-    driver: req.driver.id, 
-    status: 'completed' 
+
+  const completedBookings = await Booking.countDocuments({
+    driver: req.driver.id,
+    status: 'completed'
   });
   console.log('Completed bookings count:', completedBookings);
-  
-  const cancelledBookings = await Booking.countDocuments({ 
-    driver: req.driver.id, 
-    status: 'cancelled' 
+
+  const cancelledBookings = await Booking.countDocuments({
+    driver: req.driver.id,
+    status: 'cancelled'
   });
   console.log('Cancelled bookings count:', cancelledBookings);
-  
+
   const totalEarnings = await Booking.aggregate([
     { $match: { driver: req.driver.id, status: 'completed' } },
     { $group: { _id: null, total: { $sum: '$totalAmount' } } }
@@ -1434,7 +1434,7 @@ const getDriverStats = asyncHandler(async (req, res) => {
     isOnline: driver.isOnline,
     lastOnline: driver.lastStatusChange
   };
-  
+
   console.log('Final stats object:', stats);
   console.log('=== DRIVER STATS API COMPLETED ===');
 
@@ -1451,7 +1451,7 @@ const requestWithdrawal = asyncHandler(async (req, res) => {
   const { amount, bankDetails } = req.body;
 
   const driver = await Driver.findById(req.driver.id);
-  
+
   if (amount > driver.wallet.balance) {
     return res.status(400).json({
       success: false,
@@ -1504,7 +1504,7 @@ const acceptDriverAgreement = asyncHandler(async (req, res) => {
   // Validate that all required agreements are accepted
   const requiredAgreements = [
     'rcValid',
-    'insuranceValid', 
+    'insuranceValid',
     'roadTaxValid',
     'drivingLicenseValid',
     'legalResponsibility',
@@ -1513,7 +1513,7 @@ const acceptDriverAgreement = asyncHandler(async (req, res) => {
   ];
 
   const missingAgreements = requiredAgreements.filter(agreement => !agreements[agreement]);
-  
+
   if (missingAgreements.length > 0) {
     return res.status(400).json({
       success: false,
@@ -1682,25 +1682,25 @@ const uploadProfilePhoto = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const getReferralStats = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id).select('referralCode referralStats');
-  
+
   if (!driver.referralCode) {
-     const prefix = 'HAPPY';
-     let isUnique = false;
-     let newCode = '';
-     for(let i=0; i<5; i++) {
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        newCode = `${prefix}${randomNum}`;
-        const existing = await Driver.findOne({ referralCode: newCode });
-        if(!existing) {
-            isUnique = true;
-            break;
-        }
-     }
-     
-     if (isUnique) {
-        driver.referralCode = newCode;
-        await driver.save();
-     }
+    const prefix = 'HAPPY';
+    let isUnique = false;
+    let newCode = '';
+    for (let i = 0; i < 5; i++) {
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      newCode = `${prefix}${randomNum}`;
+      const existing = await Driver.findOne({ referralCode: newCode });
+      if (!existing) {
+        isUnique = true;
+        break;
+      }
+    }
+
+    if (isUnique) {
+      driver.referralCode = newCode;
+      await driver.save();
+    }
   }
 
   res.json({
@@ -1717,23 +1717,23 @@ const getReferralStats = asyncHandler(async (req, res) => {
 // @access  Private (Driver)
 const generateReferralCode = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id);
-  
+
   const prefix = 'HAPPY';
   let isUnique = false;
   let newCode = '';
-  
+
   for (let i = 0; i < 5; i++) {
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      newCode = `${prefix}${randomNum}`;
-      const existing = await Driver.findOne({ referralCode: newCode });
-      if (!existing) {
-          isUnique = true;
-          break;
-      }
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    newCode = `${prefix}${randomNum}`;
+    const existing = await Driver.findOne({ referralCode: newCode });
+    if (!existing) {
+      isUnique = true;
+      break;
+    }
   }
-  
+
   if (!isUnique) {
-      return res.status(500).json({ success: false, message: 'Failed to generate unique code, please try again' });
+    return res.status(500).json({ success: false, message: 'Failed to generate unique code, please try again' });
   }
 
   driver.referralCode = newCode;
@@ -1767,7 +1767,7 @@ const getReferredUsers = asyncHandler(async (req, res) => {
 const getReferralRewards = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.driver.id)
     .select('referralRewards');
-    
+
   res.json({
     success: true,
     data: driver.referralRewards

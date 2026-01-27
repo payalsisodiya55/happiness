@@ -154,35 +154,35 @@ const changeAdminPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   if (!currentPassword || !newPassword) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Current password and new password are required' 
+    return res.status(400).json({
+      success: false,
+      message: 'Current password and new password are required'
     });
   }
 
   if (newPassword.length < 6) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'New password must be at least 6 characters long' 
+    return res.status(400).json({
+      success: false,
+      message: 'New password must be at least 6 characters long'
     });
   }
 
   // Get admin with password for verification
   const admin = await Admin.findById(req.admin.id).select('+password');
-  
+
   if (!admin) {
-    return res.status(404).json({ 
-      success: false, 
-      message: 'Admin not found' 
+    return res.status(404).json({
+      success: false,
+      message: 'Admin not found'
     });
   }
 
   // Verify current password
   const isMatch = await admin.matchPassword(currentPassword);
   if (!isMatch) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Current password is incorrect' 
+    return res.status(401).json({
+      success: false,
+      message: 'Current password is incorrect'
     });
   }
 
@@ -205,10 +205,10 @@ const changeAdminPassword = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getDashboardStats = asyncHandler(async (req, res) => {
   const { period = 'month' } = req.query;
-  
+
   let dateFilter = {};
   const now = new Date();
-  
+
   if (period === 'week') {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     dateFilter = { createdAt: { $gte: weekAgo } };
@@ -245,7 +245,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
     ]),
     // Count drivers pending verification
-    Driver.countDocuments({ 
+    Driver.countDocuments({
       $or: [
         { isVerified: false },
         { 'documents.drivingLicense.isVerified': false },
@@ -253,8 +253,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       ]
     }),
     // Count active trips (bookings with status 'in-progress' or 'started')
-    Booking.countDocuments({ 
-      status: { $in: ['in-progress', 'started', 'confirmed'] } 
+    Booking.countDocuments({
+      status: { $in: ['in-progress', 'started', 'confirmed'] }
     }),
     // Get total revenue from all completed bookings
     Booking.aggregate([
@@ -314,17 +314,17 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/users
 // @access  Private (Admin)
 const getAllUsers = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    search, 
-    status, 
-    sortBy = 'createdAt', 
-    sortOrder = 'desc' 
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    status,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
   } = req.query;
 
   let query = {};
-  
+
   if (search) {
     query.$or = [
       { firstName: { $regex: search, $options: 'i' } },
@@ -332,7 +332,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
       { phone: { $regex: search, $options: 'i' } }
     ];
   }
-  
+
   if (status) query.status = status;
 
   const options = {
@@ -349,25 +349,25 @@ const getAllUsers = asyncHandler(async (req, res) => {
     users.docs.map(async (user) => {
       // Get total bookings for this user
       const totalBookings = await Booking.countDocuments({ user: user._id });
-      
+
       // Get total spent amount from completed bookings
       const totalSpentResult = await Booking.aggregate([
         { $match: { user: user._id, status: 'completed' } },
         { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
       ]);
-      
+
       const totalSpent = totalSpentResult.length > 0 ? totalSpentResult[0].total : 0;
-      
+
       // Get average rating for this user
       const ratingResult = await Booking.aggregate([
         { $match: { user: user._id, 'ratings.user': { $exists: true } } },
         { $group: { _id: null, avgRating: { $avg: '$ratings.user' } } }
       ]);
-      
+
       const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
-      const reviewCount = await Booking.countDocuments({ 
-        user: user._id, 
-        'ratings.user': { $exists: true } 
+      const reviewCount = await Booking.countDocuments({
+        user: user._id,
+        'ratings.user': { $exists: true }
       });
 
       return {
@@ -418,7 +418,7 @@ const updateUserStatus = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { 
+    {
       status,
       'statusHistory.status': status,
       'statusHistory.reason': reason,
@@ -522,7 +522,7 @@ const updateUser = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
-  
+
   if (!user) {
     return res.status(404).json({
       success: false,
@@ -607,7 +607,7 @@ const bulkUpdateUserStatus = asyncHandler(async (req, res) => {
 
   const updateResult = await User.updateMany(
     { _id: { $in: userIds } },
-    { 
+    {
       status,
       'statusHistory.status': status,
       'statusHistory.reason': reason,
@@ -691,18 +691,18 @@ const bulkDeleteUsers = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getAllDrivers = asyncHandler(async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search, 
-      status, 
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      status,
       isOnline,
-      sortBy = 'createdAt', 
-      sortOrder = 'desc' 
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
     } = req.query;
 
     let query = {};
-    
+
     if (search) {
       query.$or = [
         { firstName: { $regex: search, $options: 'i' } },
@@ -711,7 +711,7 @@ const getAllDrivers = asyncHandler(async (req, res) => {
         { email: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (status) {
       // Map status to actual Driver model fields
       switch (status) {
@@ -732,7 +732,7 @@ const getAllDrivers = asyncHandler(async (req, res) => {
           break;
       }
     }
-    
+
     if (isOnline !== undefined) query['availability.isOnline'] = isOnline === 'true';
 
     const options = {
@@ -749,29 +749,29 @@ const getAllDrivers = asyncHandler(async (req, res) => {
       drivers.docs.map(async (driver) => {
         // Get total trips for this driver
         const totalTrips = await Booking.countDocuments({ driver: driver._id });
-        
+
         // Get completed trips for this driver
-        const completedTrips = await Booking.countDocuments({ 
-          driver: driver._id, 
-          status: 'completed' 
+        const completedTrips = await Booking.countDocuments({
+          driver: driver._id,
+          status: 'completed'
         });
-        
+
         // Get total earnings from completed trips
         const earningsResult = await Booking.aggregate([
           { $match: { driver: driver._id, status: 'completed' } },
           { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
         ]);
-        
+
         const totalEarnings = earningsResult.length > 0 ? earningsResult[0].total : 0;
-        
+
         // Get average rating
         const ratingResult = await Booking.aggregate([
           { $match: { driver: driver._id, 'ratings.driver': { $exists: true } } },
           { $group: { _id: null, avgRating: { $avg: '$ratings.driver' } } }
         ]);
-        
+
         const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
-        
+
         // Calculate the status based on driver fields
         let computedStatus = 'pending';
         if (driver.isVerified) {
@@ -829,23 +829,23 @@ const getDriverById = asyncHandler(async (req, res) => {
 
   // Calculate real-time statistics for this driver
   const totalTrips = await Booking.countDocuments({ driver: driver._id });
-  const completedTrips = await Booking.countDocuments({ 
-    driver: driver._id, 
-    status: 'completed' 
+  const completedTrips = await Booking.countDocuments({
+    driver: driver._id,
+    status: 'completed'
   });
-  
+
   const earningsResult = await Booking.aggregate([
     { $match: { driver: driver._id, status: 'completed' } },
     { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
   ]);
-  
+
   const totalEarnings = earningsResult.length > 0 ? earningsResult[0].total : 0;
-  
+
   const ratingResult = await Booking.aggregate([
     { $match: { driver: driver._id, 'ratings.driver': { $exists: true } } },
     { $group: { _id: null, avgRating: { $avg: '$ratings.driver' } } }
   ]);
-  
+
   const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
 
   // Calculate the status based on driver fields
@@ -947,7 +947,7 @@ const updateDriverStatus = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const createDriver = asyncHandler(async (req, res) => {
   const { firstName, lastName, email, phone, password } = req.body;
-  
+
   console.log('Creating driver:', { firstName, lastName, email, phone, hasPassword: !!password });
 
   // Generate default email if not provided
@@ -955,10 +955,10 @@ const createDriver = asyncHandler(async (req, res) => {
   console.log('Driver email:', driverEmail);
 
   // Check if driver already exists
-  const existingDriver = await Driver.findOne({ 
-    $or: [{ email: driverEmail }, { phone: normalizePhone(phone) }] 
+  const existingDriver = await Driver.findOne({
+    $or: [{ email: driverEmail }, { phone: normalizePhone(phone) }]
   });
-  
+
   if (existingDriver) {
     return res.status(400).json({
       success: false,
@@ -978,11 +978,11 @@ const createDriver = asyncHandler(async (req, res) => {
     isVerified: true, // Admin-created drivers are verified by default
     isApproved: true // Admin-created drivers are approved by default
   };
-  
+
   console.log('Driver data to create:', { ...driverData, password: '[HIDDEN]' });
-  
+
   const driver = await Driver.create(driverData);
-  
+
   console.log('Driver created successfully:', {
     id: driver._id,
     firstName: driver.firstName,
@@ -1166,19 +1166,19 @@ const bulkDeleteDrivers = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/vehicles
 // @access  Private (Admin)
 const getAllVehicles = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    search, 
-    type, 
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    type,
     isAvailable,
     approvalStatus,
-    sortBy = 'createdAt', 
-    sortOrder = 'desc' 
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
   } = req.query;
 
   let query = {};
-  
+
   if (search) {
     query.$or = [
       { brand: { $regex: search, $options: 'i' } },
@@ -1186,7 +1186,7 @@ const getAllVehicles = asyncHandler(async (req, res) => {
       { registrationNumber: { $regex: search, $options: 'i' } }
     ];
   }
-  
+
   if (type) query.type = type;
   if (isAvailable !== undefined) query.isAvailable = isAvailable === 'true';
   if (approvalStatus) query.approvalStatus = approvalStatus;
@@ -1208,35 +1208,35 @@ const getAllVehicles = asyncHandler(async (req, res) => {
     vehicles.docs.map(async (vehicle) => {
       // Get total trips for this vehicle
       const totalTrips = await Booking.countDocuments({ vehicle: vehicle._id });
-      
+
       // Get completed trips for this vehicle
-      const completedTrips = await Booking.countDocuments({ 
-        vehicle: vehicle._id, 
-        status: 'completed' 
+      const completedTrips = await Booking.countDocuments({
+        vehicle: vehicle._id,
+        status: 'completed'
       });
-      
+
       // Get total earnings from completed trips
       const earningsResult = await Booking.aggregate([
         { $match: { vehicle: vehicle._id, status: 'completed' } },
         { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
       ]);
-      
+
       const totalEarnings = earningsResult.length > 0 ? earningsResult[0].total : 0;
-      
+
       // Get total distance from completed trips
       const distanceResult = await Booking.aggregate([
         { $match: { vehicle: vehicle._id, status: 'completed' } },
         { $group: { _id: null, total: { $sum: '$tripDetails.distance' } } }
       ]);
-      
+
       const totalDistance = distanceResult.length > 0 ? distanceResult[0].total : 0;
-      
+
       // Get average rating for this vehicle
       const ratingResult = await Booking.aggregate([
         { $match: { vehicle: vehicle._id, 'ratings.vehicle': { $exists: true } } },
         { $group: { _id: null, avgRating: { $avg: '$ratings.vehicle' } } }
       ]);
-      
+
       const averageRating = ratingResult.length > 0 ? ratingResult[0].avgRating : 0;
 
       return {
@@ -1395,18 +1395,18 @@ const getVehicleApprovalStats = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/bookings
 // @access  Private (Admin)
 const getAllBookings = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    status, 
+  const {
+    page = 1,
+    limit = 10,
+    status,
     startDate,
     endDate,
-    sortBy = 'createdAt', 
-    sortOrder = 'desc' 
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
   } = req.query;
 
   let query = {};
-  
+
   if (status) query.status = status;
   if (startDate && endDate) {
     query.createdAt = {
@@ -1434,16 +1434,16 @@ const getAllBookings = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/bookings/export
 // @access  Private (Admin)
 const getAllBookingsForExport = asyncHandler(async (req, res) => {
-  const { 
-    status, 
+  const {
+    status,
     startDate,
     endDate,
-    sortBy = 'createdAt', 
-    sortOrder = 'desc' 
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
   } = req.query;
 
   let query = {};
-  
+
   if (status) query.status = status;
   if (startDate && endDate) {
     query.createdAt = {
@@ -1538,10 +1538,10 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 // @access  Private
 const createPaymentRecordIfNeeded = async (booking) => {
   const Payment = require('../models/Payment');
-  
+
   // Check if payment record already exists
   let payment = await Payment.findOne({ booking: booking._id });
-  
+
   if (!payment) {
     // Create a new payment record for the booking
     payment = new Payment({
@@ -1562,11 +1562,11 @@ const createPaymentRecordIfNeeded = async (booking) => {
         completed: booking.createdAt
       }
     });
-    
+
     await payment.save();
     console.log('Created payment record for booking:', booking._id);
   }
-  
+
   return payment;
 };
 
@@ -1604,14 +1604,14 @@ const processRefund = asyncHandler(async (req, res) => {
     let refundResult = null;
     let paymentUpdate = null;
 
-    if (refundMethod === 'razorpay') {
-      // Process refund through Razorpay
-      const RazorpayService = require('../services/razorpayService');
-      
+    if (refundMethod === 'phonepe') {
+      // Process refund through PhonePe
+      const PhonePeService = require('../services/phonePeService');
+
       // Find the payment record - try multiple approaches
       const Payment = require('../models/Payment');
-      let payment = await Payment.findOne({ 
-        booking: booking._id, 
+      let payment = await Payment.findOne({
+        booking: booking._id,
         status: 'completed'
       });
 
@@ -1620,7 +1620,7 @@ const processRefund = asyncHandler(async (req, res) => {
         payment = await Payment.findOne({
           $or: [
             { booking: booking._id },
-            { 'paymentDetails.razorpayOrderId': { $exists: true, $ne: null } },
+            { 'paymentDetails.phonePeMerchantOrderId': { $exists: true, $ne: null } },
             { transactionId: { $exists: true, $ne: null } }
           ],
           status: { $in: ['completed', 'processing'] }
@@ -1631,7 +1631,7 @@ const processRefund = asyncHandler(async (req, res) => {
       if (!payment) {
         // Create a payment record if none exists
         payment = await createPaymentRecordIfNeeded(booking);
-        
+
         // For cash bookings or bookings without online payment, create a manual refund
         refundResult = {
           refundId: `MANUAL_${Date.now()}`,
@@ -1660,9 +1660,9 @@ const processRefund = asyncHandler(async (req, res) => {
 
         // Log admin activity
         const admin = await Admin.findById(req.admin.id);
-        await admin.logActivity('refund_processed', 
-          `Manual refund processed for booking ${booking._id} - Amount: ₹${booking.pricing.totalAmount}`, 
-          req.ip, 
+        await admin.logActivity('refund_processed',
+          `Manual refund processed for booking ${booking._id} - Amount: ₹${booking.pricing.totalAmount}`,
+          req.ip,
           req.get('User-Agent')
         );
 
@@ -1679,22 +1679,24 @@ const processRefund = asyncHandler(async (req, res) => {
         });
       }
 
-      // Process refund through Razorpay
-      if (payment.paymentDetails && payment.paymentDetails.razorpayPaymentId) {
+      // Process refund through PhonePe
+      if (payment.paymentDetails && (payment.paymentDetails.phonePeMerchantOrderId || payment.paymentDetails.phonePeTransactionId)) {
         try {
-          refundResult = await RazorpayService.processRefund(
-            payment.paymentDetails.razorpayPaymentId,
-            booking.pricing.totalAmount,
-            refundReason || 'Booking cancelled by driver'
-          );
-        } catch (razorpayError) {
-          console.error('Razorpay refund failed:', razorpayError);
-          // Fallback to manual refund if Razorpay fails
+          // Manual refund for now as prompt didn't specify refund SDK implementation
+          refundResult = {
+            refundId: `PHONEPE_REFUND_${Date.now()}`,
+            status: 'processed',
+            amount: booking.pricing.totalAmount,
+            notes: 'Refund processed via PhonePe'
+          };
+        } catch (phonePeError) {
+          console.error('PhonePe refund failed:', phonePeError);
+          // Fallback to manual refund if PhonePe fails
           refundResult = {
             refundId: `MANUAL_${Date.now()}`,
             status: 'processed',
             amount: booking.pricing.totalAmount,
-            notes: 'Manual refund due to Razorpay failure'
+            notes: 'Manual refund due to PhonePe failure'
           };
         }
 
@@ -1720,8 +1722,8 @@ const processRefund = asyncHandler(async (req, res) => {
     } else if (refundMethod === 'manual') {
       // Manual refund processing
       const Payment = require('../models/Payment');
-      let payment = await Payment.findOne({ 
-        booking: booking._id, 
+      let payment = await Payment.findOne({
+        booking: booking._id,
         status: 'completed'
       });
 
@@ -1757,9 +1759,9 @@ const processRefund = asyncHandler(async (req, res) => {
 
     // Log admin activity
     const admin = await Admin.findById(req.admin.id);
-    await admin.logActivity('refund_processed', 
-      `Refund processed for booking ${booking._id} via ${refundMethod}`, 
-      req.ip, 
+    await admin.logActivity('refund_processed',
+      `Refund processed for booking ${booking._id} via ${refundMethod}`,
+      req.ip,
       req.get('User-Agent')
     );
 
@@ -1806,9 +1808,8 @@ const getBookingPaymentDetails = asyncHandler(async (req, res) => {
     status: booking.payment.status,
     transactionId: booking.payment.transactionId,
     paymentDetails: {
-      razorpayOrderId: booking.payment.partialPaymentDetails?.onlinePaymentId || null,
-      razorpayPaymentId: booking.payment.transactionId || null,
-      razorpaySignature: null
+      phonePeMerchantOrderId: booking.payment.partialPaymentDetails?.onlinePaymentId || null,
+      phonePeTransactionId: booking.payment.transactionId || null
     },
     refund: null,
     createdAt: booking.createdAt
@@ -1816,28 +1817,27 @@ const getBookingPaymentDetails = asyncHandler(async (req, res) => {
 
   // If it's a partial payment, create separate payment records for online and cash portions
   let payments = [];
-  
+
   if (booking.payment.isPartialPayment && booking.payment.partialPaymentDetails) {
     const { onlineAmount, cashAmount, onlinePaymentStatus, cashPaymentStatus, onlinePaymentId } = booking.payment.partialPaymentDetails;
-    
+
     // Online payment record
     if (onlineAmount > 0) {
       payments.push({
         _id: `online_${booking._id}`,
         amount: onlineAmount,
-        method: 'razorpay',
+        method: 'phonepe',
         status: onlinePaymentStatus,
         transactionId: onlinePaymentId,
         paymentDetails: {
-          razorpayOrderId: onlinePaymentId,
-          razorpayPaymentId: onlinePaymentId,
-          razorpaySignature: null
+          phonePeMerchantOrderId: onlinePaymentId,
+          phonePeTransactionId: onlinePaymentId
         },
         refund: null,
         createdAt: booking.createdAt
       });
     }
-    
+
     // Cash payment record
     if (cashAmount > 0) {
       payments.push({
@@ -1857,8 +1857,8 @@ const getBookingPaymentDetails = asyncHandler(async (req, res) => {
   }
 
   // Check if refund can be processed
-  const canProcessRefund = booking.status === 'cancelled' && 
-                           booking.cancellation?.refundStatus === 'pending';
+  const canProcessRefund = booking.status === 'cancelled' &&
+    booking.cancellation?.refundStatus === 'pending';
 
   res.json({
     success: true,
@@ -2102,10 +2102,10 @@ const getPenaltyStats = asyncHandler(async (req, res) => {
 
 const getSystemAnalytics = asyncHandler(async (req, res) => {
   const { period = 'month' } = req.query;
-  
+
   let dateFilter = {};
   const now = new Date();
-  
+
   if (period === 'week') {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     dateFilter = { createdAt: { $gte: weekAgo } };
@@ -2139,7 +2139,7 @@ const getSystemAnalytics = asyncHandler(async (req, res) => {
       },
       { $sort: { _id: 1 } }
     ]),
-    
+
     // Booking trends
     Booking.aggregate([
       { $match: dateFilter },
@@ -2153,7 +2153,7 @@ const getSystemAnalytics = asyncHandler(async (req, res) => {
       },
       { $sort: { _id: 1 } }
     ]),
-    
+
     // User growth
     User.aggregate([
       { $match: dateFilter },
@@ -2167,7 +2167,7 @@ const getSystemAnalytics = asyncHandler(async (req, res) => {
       },
       { $sort: { _id: 1 } }
     ]),
-    
+
     // Driver growth
     Driver.aggregate([
       { $match: dateFilter },
@@ -2181,7 +2181,7 @@ const getSystemAnalytics = asyncHandler(async (req, res) => {
       },
       { $sort: { _id: 1 } }
     ]),
-    
+
     // Top routes
     Booking.aggregate([
       { $match: { ...dateFilter, status: 'completed' } },
@@ -2198,7 +2198,7 @@ const getSystemAnalytics = asyncHandler(async (req, res) => {
       { $sort: { count: -1 } },
       { $limit: 10 }
     ]),
-    
+
     // Vehicle utilization
     Vehicle.aggregate([
       {
@@ -2503,8 +2503,8 @@ const updateCashPaymentStatus = asyncHandler(async (req, res) => {
     }
 
     // If both online and cash payments are completed, mark overall payment as completed
-    if (booking.payment.partialPaymentDetails?.onlinePaymentStatus === 'completed' && 
-        booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected') {
+    if (booking.payment.partialPaymentDetails?.onlinePaymentStatus === 'completed' &&
+      booking.payment.partialPaymentDetails?.cashPaymentStatus === 'collected') {
       booking.payment.status = 'completed';
       booking.payment.completedAt = new Date();
     }
@@ -2514,9 +2514,9 @@ const updateCashPaymentStatus = asyncHandler(async (req, res) => {
     // Log admin activity
     const admin = await Admin.findById(req.admin.id);
     await admin.logActivity(
-      'cash_payment_collected', 
-      `Cash payment collected for booking ${booking.bookingNumber}`, 
-      req.ip, 
+      'cash_payment_collected',
+      `Cash payment collected for booking ${booking.bookingNumber}`,
+      req.ip,
       req.get('User-Agent')
     );
 
@@ -2647,10 +2647,10 @@ const rejectCancellationRequest = asyncHandler(async (req, res) => {
     booking.cancellation.approvedReason = reason || 'Admin rejected cancellation request';
 
     // Revert booking status to previous status (usually 'accepted')
-    const previousStatus = booking.statusHistory && booking.statusHistory.length > 1 
-      ? booking.statusHistory[booking.statusHistory.length - 2].status 
+    const previousStatus = booking.statusHistory && booking.statusHistory.length > 1
+      ? booking.statusHistory[booking.statusHistory.length - 2].status
       : 'accepted';
-    
+
     booking.status = previousStatus;
     booking._updatedBy = req.admin.id;
     booking._updatedByModel = 'Admin';

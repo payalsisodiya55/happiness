@@ -4,7 +4,7 @@ import { ArrowLeft, MapPin, Calendar, Clock, ShieldCheck, CreditCard, Wallet, Al
 import { useIsMobile } from '../hooks/use-mobile';
 import TopNavigation from '../components/TopNavigation';
 import BookingApiService from '../services/bookingApi';
-import RazorpayService from '../services/razorpayService';
+import phonePeService from '../services/phonePeService';
 import { toast } from '../hooks/use-toast';
 import { useUserAuth } from '../contexts/UserAuthContext';
 import { getConsistentVehiclePrice } from '../utils/pricingUtils';
@@ -31,8 +31,8 @@ const BookingSummary = () => {
 
   const { car, searchParams = {} } = state;
   // Use the first image from the car's gallery if available, otherwise fallback to the main car image
-  const displayImage = car.images && car.images.length > 0 
-    ? car.images[0].url 
+  const displayImage = car.images && car.images.length > 0
+    ? car.images[0].url
     : car.image;
 
   const [calculatedPrice, setCalculatedPrice] = useState<number>(car.calculatedPrice || car.price || 0);
@@ -134,87 +134,13 @@ const BookingSummary = () => {
 
     try {
       if (paymentMethod === 'online') {
-        // Online payment with Razorpay
-        const razorpayService = new RazorpayService();
-
-        await razorpayService.processBookingPayment(
-          {
-            amount: currentAdvanceAmount, // Amount in rupees (backend converts to paise)
-            bookingId: `temp_${Date.now()}`,
-            description: `Advance payment for ${car.brand} ${car.model} booking`
-          },
-          {
-            name: `${user.firstName} ${user.lastName || ''}`.trim(),
-            email: user.email,
-            phone: user.phone
-          },
-          async (paymentResponse, order) => {
-            // Payment successful, now create the booking
-            try {
-              const bookingApi = new BookingApiService(
-                import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-              );
-
-              const bookingPayload = {
-                vehicleId: car._id,
-                pickup: {
-                  latitude: searchParams.fromData?.lat || 0,
-                  longitude: searchParams.fromData?.lng || 0,
-                  address: from || 'Not specified',
-                },
-                destination: {
-                  latitude: searchParams.toData?.lat || 0,
-                  longitude: searchParams.toData?.lng || 0,
-                  address: to || 'Not specified',
-                },
-                date: pickupDate || new Date().toISOString().split('T')[0],
-                time: pickupTime || '09:00',
-                tripType: searchParams.serviceType === 'roundTrip' ? 'return' : 'one-way',
-                returnDate: searchParams.returnDate || null,
-                passengers: 1,
-                specialRequests: '',
-                paymentMethod: 'razorpay' as 'razorpay' | 'cash',
-                totalAmount: finalAmountWithGST, // Send the final amount including GST
-                advanceAmount: currentAdvanceAmount // Pass advance amount for online payments
-              };
-
-              const bookingResult = await bookingApi.createBooking(bookingPayload);
-
-              toast({
-                title: "Booking Confirmed! 🎉",
-                description: "Your booking has been confirmed and payment processed successfully.",
-              });
-
-              // Navigate to booking details or success page
-              navigate('/bookings', {
-                state: {
-                  booking: bookingResult.data,
-                  payment: paymentResponse
-                }
-              });
-
-            } catch (bookingError) {
-              console.error('Booking creation failed:', bookingError);
-              toast({
-                title: "Booking Failed",
-                description: "Payment was successful but booking creation failed. Please contact support.",
-                variant: "destructive",
-              });
-            }
-          },
-          (paymentError) => {
-            console.error('Payment failed:', paymentError);
-            toast({
-              title: "Payment Failed",
-              description: paymentError instanceof Error ? paymentError.message : "Please try again.",
-              variant: "destructive",
-            });
-          },
-          () => {
-            // Payment modal closed
-            console.log('Payment modal closed');
-          }
-        );
+        // Online payment with PhonePe
+        await phonePeService.handlePaymentRedirect({
+          amount: currentAdvanceAmount,
+          bookingId: `temp_${Date.now()}`,
+          paymentType: 'booking',
+          redirectUrl: `${window.location.origin}/payment-status`
+        });
       } else {
         // Cash payment - create booking directly
         try {
@@ -240,7 +166,7 @@ const BookingSummary = () => {
             returnDate: searchParams.returnDate || null,
             passengers: 1,
             specialRequests: '',
-            paymentMethod: 'cash' as 'cash' | 'razorpay',
+            paymentMethod: 'phonepe' as 'phonepe' | 'cash',
             totalAmount: finalAmountWithGST // Send the final amount including GST
           };
 

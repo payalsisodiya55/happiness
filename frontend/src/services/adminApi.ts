@@ -58,17 +58,17 @@ export const adminAuth = {
     const response = await adminApi.post('/login', { phone, password });
     return response.data;
   },
-  
+
   signup: async (firstName: string, lastName: string, phone: string, password: string, confirmPassword: string) => {
     const response = await adminApi.post('/signup', { firstName, lastName, phone, password, confirmPassword });
     return response.data;
   },
-  
+
   getProfile: async () => {
     const response = await adminApi.get('/profile');
     return response.data;
   },
-  
+
   updateProfile: async (data: { firstName?: string; lastName?: string; phone?: string }) => {
     const response = await adminApi.put('/profile', data);
     return response.data;
@@ -86,12 +86,12 @@ export const adminDashboard = {
     const response = await adminApi.get(`/dashboard?period=${period}`);
     return response.data;
   },
-  
+
   getAnalytics: async (period: 'week' | 'month' | 'year' = 'month') => {
     const response = await adminApi.get(`/analytics?period=${period}`);
     return response.data;
   },
-  
+
   getActivityLog: async (page: number = 1, limit: number = 20) => {
     const response = await adminApi.get(`/activity-log?page=${page}&limit=${limit}`);
     return response.data;
@@ -113,16 +113,16 @@ export const adminUsers = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) queryParams.append(key, value.toString());
     });
-    
+
     const response = await adminApi.get(`/users?${queryParams.toString()}`);
     return response.data;
   },
-  
+
   getById: async (id: string) => {
     const response = await adminApi.get(`/users/${id}`);
     return response.data;
   },
-  
+
   updateStatus: async (id: string, status: string, reason?: string) => {
     const response = await adminApi.put(`/users/${id}/status`, { status, reason });
     return response.data;
@@ -181,12 +181,12 @@ export const adminDrivers = {
     const response = await adminApi.get('/drivers', { params });
     return response.data;
   },
-  
+
   getById: async (id: string) => {
     const response = await adminApi.get(`/drivers/${id}`);
     return response.data;
   },
-  
+
   create: async (driverData: {
     firstName: string;
     lastName: string;
@@ -197,17 +197,17 @@ export const adminDrivers = {
     const response = await adminApi.post('/drivers', driverData);
     return response.data;
   },
-  
+
   updateStatus: async (id: string, status: string, reason?: string) => {
     const response = await adminApi.put(`/drivers/${id}/status`, { status, reason });
     return response.data;
   },
-  
+
   deleteDriver: async (id: string) => {
     const response = await adminApi.delete(`/drivers/${id}`);
     return response.data;
   },
-  
+
   bulkDelete: async (driverIds: string[]) => {
     const response = await adminApi.delete('/drivers/bulk', { data: { driverIds } });
     return response.data;
@@ -230,26 +230,26 @@ export const adminVehicles = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) queryParams.append(key, value.toString());
     });
-    
+
     const response = await adminApi.get(`/vehicles?${queryParams.toString()}`);
     return response.data;
   },
-  
+
   getPendingApprovals: async (page: number = 1, limit: number = 10) => {
     const response = await adminApi.get(`/vehicles/pending?page=${page}&limit=${limit}`);
     return response.data;
   },
-  
+
   getApprovalStats: async () => {
     const response = await adminApi.get('/vehicles/approval-stats');
     return response.data;
   },
-  
+
   approveVehicle: async (id: string, notes?: string) => {
     const response = await adminApi.put(`/vehicles/${id}/approve`, { notes });
     return response.data;
   },
-  
+
   rejectVehicle: async (id: string, reason: string, notes?: string) => {
     const response = await adminApi.put(`/vehicles/${id}/reject`, { reason, notes });
     return response.data;
@@ -276,7 +276,7 @@ export const adminBookings = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) queryParams.append(key, value.toString());
     });
-    
+
     const response = await adminApi.get(`/bookings?${queryParams.toString()}`);
     return response.data;
   },
@@ -292,16 +292,16 @@ export const adminBookings = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) queryParams.append(key, value.toString());
     });
-    
+
     const response = await adminApi.get(`/bookings/export?${queryParams.toString()}`);
     return response.data;
   },
-  
+
   getById: async (id: string) => {
     const response = await adminApi.get(`/bookings/${id}`);
     return response.data;
   },
-  
+
   updateStatus: async (id: string, status: string, reason?: string, notes?: string) => {
     const response = await adminApi.put(`/bookings/${id}/status`, { status, reason, notes });
     return response.data;
@@ -312,11 +312,11 @@ export const adminBookings = {
     return response.data;
   },
 
-  processRefund: async (id: string, refundMethod: 'razorpay' | 'manual', refundReason?: string, adminNotes?: string) => {
-    const response = await adminApi.post(`/bookings/${id}/refund`, { 
-      refundMethod, 
-      refundReason, 
-      adminNotes 
+  processRefund: async (id: string, refundMethod: 'phonepe' | 'manual', refundReason?: string, adminNotes?: string) => {
+    const response = await adminApi.post(`/bookings/${id}/refund`, {
+      refundMethod,
+      refundReason,
+      adminNotes
     });
     return response.data;
   },
@@ -336,7 +336,7 @@ export const adminBookings = {
     return response.data;
   },
 
-  initiateRefund: async (id: string, refundMethod: 'razorpay' | 'manual', notes?: string) => {
+  initiateRefund: async (id: string, refundMethod: 'phonepe' | 'manual', notes?: string) => {
     const response = await adminApi.post(`/bookings/${id}/initiate-refund`, { refundMethod, notes });
     return response.data;
   },
@@ -410,7 +410,7 @@ export const adminDriverDocuments = {
   uploadRcCard: async (driverId: string, file: File) => {
     const formData = new FormData();
     formData.append('document', file);
-    
+
     const response = await adminApi.post(`/drivers/${driverId}/documents/rc-card`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -422,7 +422,7 @@ export const adminDriverDocuments = {
   uploadInsurance: async (driverId: string, file: File) => {
     const formData = new FormData();
     formData.append('document', file);
-    
+
     const response = await adminApi.post(`/drivers/${driverId}/documents/insurance`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

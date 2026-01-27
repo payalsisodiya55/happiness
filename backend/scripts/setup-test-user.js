@@ -13,7 +13,7 @@ const connectDB = async () => {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
-        bufferCommands: false,
+        bufferCommands: true,
       }
     );
 
@@ -29,19 +29,19 @@ const connectDB = async () => {
 const setupTestUser = async () => {
   try {
     console.log('🚀 Starting test user setup...');
-    
+
     // Connect to database
     await connectDB();
-    
+
     const testPhone = '9589579906';
     const defaultOTP = '139913';
-    
+
     // Check if test user already exists
     const existingUser = await User.findOne({ phone: testPhone });
-    
+
     if (existingUser) {
       console.log('📱 Test user already exists, updating...');
-      
+
       // Update existing user to be test user
       existingUser.isTestUser = true;
       existingUser.defaultOTP = defaultOTP;
@@ -50,12 +50,12 @@ const setupTestUser = async () => {
       existingUser.firstName = 'Test';
       existingUser.lastName = 'User';
       existingUser.email = 'test@test.com';
-      
+
       await existingUser.save();
       console.log('✅ Test user updated successfully!');
     } else {
       console.log('👤 Creating new test user...');
-      
+
       // Create new test user
       const testUser = new User({
         firstName: 'Test',
@@ -76,11 +76,11 @@ const setupTestUser = async () => {
           country: 'India'
         }
       });
-      
+
       await testUser.save();
       console.log('✅ Test user created successfully!');
     }
-    
+
     // Verify the setup
     const verifyUser = await User.findOne({ phone: testPhone });
     console.log('\n📋 Test User Details:');
@@ -91,12 +91,12 @@ const setupTestUser = async () => {
     console.log(`   Default OTP: ${verifyUser.defaultOTP}`);
     console.log(`   Is Verified: ${verifyUser.isVerified}`);
     console.log(`   Is Active: ${verifyUser.isActive}`);
-    
+
     console.log('\n🎉 Test user setup completed successfully!');
     console.log('📝 You can now login with:');
     console.log(`   Phone: ${testPhone}`);
     console.log(`   OTP: ${defaultOTP}`);
-    
+
   } catch (error) {
     console.error('❌ Error setting up test user:', error);
   } finally {

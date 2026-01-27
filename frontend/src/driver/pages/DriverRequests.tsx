@@ -87,7 +87,7 @@ const DriverRequests = () => {
     // Fallback: calculate on frontend if backend data not available
     const baseAmount = booking.pricing?.totalAmount || 0;
     const paymentMethod = booking.payment?.method;
-    const driverEarnings = paymentMethod === 'razorpay'
+    const driverEarnings = paymentMethod === 'phonepe'
       ? Math.round(baseAmount * 0.8)  // 80% for online payments
       : baseAmount;                    // 100% for cash payments
 
@@ -100,7 +100,7 @@ const DriverRequests = () => {
         distance: booking.tripDetails?.distance || 0,
         tripType: booking.tripDetails?.tripType || 'one-way',
         paymentMethod: paymentMethod,
-        isCommissionDeducted: paymentMethod === 'razorpay'
+        isCommissionDeducted: paymentMethod === 'phonepe'
       };
     }
 
@@ -112,7 +112,7 @@ const DriverRequests = () => {
       distance: booking.tripDetails?.distance || 0,
       tripType: booking.tripDetails?.tripType || 'one-way',
       paymentMethod: paymentMethod,
-      isCommissionDeducted: paymentMethod === 'razorpay'
+      isCommissionDeducted: paymentMethod === 'phonepe'
     };
   };
   const { driver, isLoggedIn, refreshDriverData } = useDriverAuth();
@@ -151,8 +151,8 @@ const DriverRequests = () => {
       await apiService.updateDriverBookingStatus(bookingId, newStatus);
 
       // Update local state
-      setBookings(prev => prev.map(booking => 
-        booking._id === bookingId 
+      setBookings(prev => prev.map(booking =>
+        booking._id === bookingId
           ? { ...booking, status: newStatus }
           : booking
       ));
@@ -184,20 +184,20 @@ const DriverRequests = () => {
       setUpdatingStatus(bookingId);
       // Use generic booking endpoint via apiService to ensure auth headers
       const resp = await apiService.request(`/bookings/${bookingId}/collect-cash-payment`, { method: 'PUT' }, 'driver');
-      
+
       // Update local state
-      setBookings(prev => prev.map(booking => 
-        booking._id === bookingId 
+      setBookings(prev => prev.map(booking =>
+        booking._id === bookingId
           ? {
-              ...booking,
-              payment: {
-                ...booking.payment,
-                partialPaymentDetails: {
-                  ...booking.payment.partialPaymentDetails,
-                  cashPaymentStatus: 'collected'
-                }
+            ...booking,
+            payment: {
+              ...booking.payment,
+              partialPaymentDetails: {
+                ...booking.payment.partialPaymentDetails,
+                cashPaymentStatus: 'collected'
               }
             }
+          }
           : booking
       ));
 
@@ -292,8 +292,8 @@ const DriverRequests = () => {
         );
       case 'completed':
         // Show payment collection button for partial payment bookings
-        if (booking.payment?.isPartialPayment && 
-            booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending') {
+        if (booking.payment?.isPartialPayment &&
+          booking.payment.partialPaymentDetails?.cashPaymentStatus === 'pending') {
           return (
             <Button
               size="sm"
@@ -333,7 +333,7 @@ const DriverRequests = () => {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      
+
       {/* Header - Fixed/Sticky */}
       <div className="bg-[#29354c] text-white pt-4 pb-8 sm:pt-8 sm:pb-14 shadow-md relative z-30 rounded-b-[2.5rem] flex-shrink-0">
         <div className="container mx-auto px-4">
@@ -350,167 +350,166 @@ const DriverRequests = () => {
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto bg-gray-50 relative z-20">
         <div className="container mx-auto px-3 sm:px-4 py-4 pb-24">
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : bookings.length === 0 ? (
-          <Card className="text-center py-12 shadow-lg rounded-2xl border-none">
-            <CardContent>
-              <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Booking Requests</h3>
-              <p className="text-gray-500">You don't have any pending booking requests at the moment.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-5">
-            {bookings.map((booking) => (
-              <Card 
-                key={booking._id} 
-                className={`border-none shadow-xl rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl bg-white ring-1 ring-gray-100 ${
-                  booking.tripDetails.tripType === 'return' 
-                    ? 'border-l-4 border-l-[#f48432]' 
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : bookings.length === 0 ? (
+            <Card className="text-center py-12 shadow-lg rounded-2xl border-none">
+              <CardContent>
+                <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Booking Requests</h3>
+                <p className="text-gray-500">You don't have any pending booking requests at the moment.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-5">
+              {bookings.map((booking) => (
+                <Card
+                  key={booking._id}
+                  className={`border-none shadow-xl rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl bg-white ring-1 ring-gray-100 ${booking.tripDetails.tripType === 'return'
+                    ? 'border-l-4 border-l-[#f48432]'
                     : ''
-                }`}
-              >
-                {/* Card Header: ID & Status */}
-                <div className="px-5 py-4 border-b border-gray-50 flex justify-between items-start bg-gray-50/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center ring-1 ring-gray-100">
-                      <Car className="w-5 h-5 text-[#29354c]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Booking ID</p>
-                      <h3 className="text-base font-bold text-[#29354c]">#{booking.bookingNumber}</h3>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    {getStatusBadge(booking.status)}
-                    <span className="text-[10px] text-gray-400 mt-1">{formatDate(booking.createdAt)}</span>
-                  </div>
-                </div>
-
-                <CardContent className="p-0">
-                  {/* Price & Trip Info */}
-                  <div className="px-5 py-4">
-                    <div className="flex justify-between items-baseline mb-6">
+                    }`}
+                >
+                  {/* Card Header: ID & Status */}
+                  <div className="px-5 py-4 border-b border-gray-50 flex justify-between items-start bg-gray-50/50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center ring-1 ring-gray-100">
+                        <Car className="w-5 h-5 text-[#29354c]" />
+                      </div>
                       <div>
-                        <p className="text-xs text-gray-500 font-medium uppercase">Trip Earning</p>
-                        <h2 className="text-3xl font-bold text-[#29354c] mt-1">
-                          ₹{getBookingPricing(booking).totalAmount.toLocaleString()}
-                        </h2>
-                         {/* Show commission deduction info for online payments */}
-                        {getBookingPricing(booking).isCommissionDeducted && (
-                          <div className="mt-1">
-                            <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 font-normal text-xs">
-                              20% admin commission deducted
-                            </Badge>
-                          </div>
-                        )}
-                         {/* Show partial payment info for bus/car with cash method */}
-                        {booking.payment?.isPartialPayment && (
-                          <div className="mt-1 flex items-center gap-2 text-xs">
-                             <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 font-normal">
-                               Online: ₹{booking.payment.partialPaymentDetails?.onlineAmount}
-                             </Badge>
-                             <Badge variant="outline" className="text-[#f48432] border-orange-200 bg-orange-50 font-normal">
-                               Cash: ₹{booking.payment.partialPaymentDetails?.cashAmount}
-                             </Badge>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                         <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100">
-                            {booking.tripDetails.tripType === 'return' ? 'Round Trip' : 'One Way'}
-                         </Badge>
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Booking ID</p>
+                        <h3 className="text-base font-bold text-[#29354c]">#{booking.bookingNumber}</h3>
                       </div>
                     </div>
+                    <div className="flex flex-col items-end">
+                      {getStatusBadge(booking.status)}
+                      <span className="text-[10px] text-gray-400 mt-1">{formatDate(booking.createdAt)}</span>
+                    </div>
+                  </div>
 
-                    {/* Timeline */}
-                    <div className="relative pl-4 space-y-8 mb-6">
-                      {/* Vertical connector line */}
-                      <div className="absolute left-[23px] top-3 bottom-8 w-0.5 bg-gray-200 border-l border-dashed border-gray-300"></div>
-
-                      {/* Pickup */}
-                      <div className="relative flex items-start group">
-                        <div className="absolute left-0 top-1 p-1 bg-white">
-                          <div className="w-4 h-4 rounded-full bg-green-100 border-2 border-green-500 box-border"></div>
-                        </div>
-                         <div className="ml-8 w-full">
-                          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 block">Pickup</label>
-                          <p className="text-sm font-medium text-gray-900 leading-snug">{booking.tripDetails.pickup.address}</p>
-                          <p className="text-xs text-gray-500 mt-1 flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {formatDate(booking.tripDetails.date)} • {formatTime(booking.tripDetails.time)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Destination */}
-                      <div className="relative flex items-start group">
-                        <div className="absolute left-0 top-1 p-1 bg-white">
-                          <div className="w-4 h-4 rounded-full bg-orange-100 border-2 border-[#f48432] box-border"></div>
-                        </div>
-                        <div className="ml-8 w-full">
-                          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 block">Destination</label>
-                          <p className="text-sm font-medium text-gray-900 leading-snug">{booking.tripDetails.destination.address}</p>
-                           {/* Return Date display */}
-                          {booking.tripDetails.tripType === 'return' && booking.tripDetails.returnDate && (
-                            <p className="text-xs text-blue-600 mt-1 flex items-center font-medium">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Return: {formatDate(booking.tripDetails.returnDate)}
-                            </p>
+                  <CardContent className="p-0">
+                    {/* Price & Trip Info */}
+                    <div className="px-5 py-4">
+                      <div className="flex justify-between items-baseline mb-6">
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium uppercase">Trip Earning</p>
+                          <h2 className="text-3xl font-bold text-[#29354c] mt-1">
+                            ₹{getBookingPricing(booking).totalAmount.toLocaleString()}
+                          </h2>
+                          {/* Show commission deduction info for online payments */}
+                          {getBookingPricing(booking).isCommissionDeducted && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 font-normal text-xs">
+                                20% admin commission deducted
+                              </Badge>
+                            </div>
+                          )}
+                          {/* Show partial payment info for bus/car with cash method */}
+                          {booking.payment?.isPartialPayment && (
+                            <div className="mt-1 flex items-center gap-2 text-xs">
+                              <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 font-normal">
+                                Online: ₹{booking.payment.partialPaymentDetails?.onlineAmount}
+                              </Badge>
+                              <Badge variant="outline" className="text-[#f48432] border-orange-200 bg-orange-50 font-normal">
+                                Cash: ₹{booking.payment.partialPaymentDetails?.cashAmount}
+                              </Badge>
+                            </div>
                           )}
                         </div>
+                        <div className="text-right">
+                          <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100">
+                            {booking.tripDetails.tripType === 'return' ? 'Round Trip' : 'One Way'}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-3 gap-2 py-4 border-t border-dashed border-gray-200">
-                      <div className="text-center p-2 rounded-lg bg-gray-50">
-                        <p className="text-xs text-gray-500 mb-1">Distance</p>
-                        <p className="font-semibold text-[#29354c]">{booking.tripDetails.distance.toFixed(1)} km</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-gray-50">
-                         <p className="text-xs text-gray-500 mb-1">Passengers</p>
-                         <p className="font-semibold text-[#29354c]">{booking.tripDetails.passengers}</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-gray-50">
-                         <p className="text-xs text-gray-500 mb-1">Vehicle</p>
-                         <p className="font-semibold text-[#29354c] truncate px-1" title={booking.vehicle?.model}>{booking.vehicle?.model || 'Car'}</p>
-                      </div>
-                    </div>
+                      {/* Timeline */}
+                      <div className="relative pl-4 space-y-8 mb-6">
+                        {/* Vertical connector line */}
+                        <div className="absolute left-[23px] top-3 bottom-8 w-0.5 bg-gray-200 border-l border-dashed border-gray-300"></div>
 
-                    {/* Passenger Row */}
-                    <div className="flex items-center space-x-3 mt-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                       <div className="w-10 h-10 rounded-full bg-[#29354c] text-white flex items-center justify-center text-sm font-bold">
+                        {/* Pickup */}
+                        <div className="relative flex items-start group">
+                          <div className="absolute left-0 top-1 p-1 bg-white">
+                            <div className="w-4 h-4 rounded-full bg-green-100 border-2 border-green-500 box-border"></div>
+                          </div>
+                          <div className="ml-8 w-full">
+                            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 block">Pickup</label>
+                            <p className="text-sm font-medium text-gray-900 leading-snug">{booking.tripDetails.pickup.address}</p>
+                            <p className="text-xs text-gray-500 mt-1 flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {formatDate(booking.tripDetails.date)} • {formatTime(booking.tripDetails.time)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Destination */}
+                        <div className="relative flex items-start group">
+                          <div className="absolute left-0 top-1 p-1 bg-white">
+                            <div className="w-4 h-4 rounded-full bg-orange-100 border-2 border-[#f48432] box-border"></div>
+                          </div>
+                          <div className="ml-8 w-full">
+                            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 block">Destination</label>
+                            <p className="text-sm font-medium text-gray-900 leading-snug">{booking.tripDetails.destination.address}</p>
+                            {/* Return Date display */}
+                            {booking.tripDetails.tripType === 'return' && booking.tripDetails.returnDate && (
+                              <p className="text-xs text-blue-600 mt-1 flex items-center font-medium">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Return: {formatDate(booking.tripDetails.returnDate)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-3 gap-2 py-4 border-t border-dashed border-gray-200">
+                        <div className="text-center p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-1">Distance</p>
+                          <p className="font-semibold text-[#29354c]">{booking.tripDetails.distance.toFixed(1)} km</p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-1">Passengers</p>
+                          <p className="font-semibold text-[#29354c]">{booking.tripDetails.passengers}</p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-1">Vehicle</p>
+                          <p className="font-semibold text-[#29354c] truncate px-1" title={booking.vehicle?.model}>{booking.vehicle?.model || 'Car'}</p>
+                        </div>
+                      </div>
+
+                      {/* Passenger Row */}
+                      <div className="flex items-center space-x-3 mt-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <div className="w-10 h-10 rounded-full bg-[#29354c] text-white flex items-center justify-center text-sm font-bold">
                           {booking.user.firstName.charAt(0)}{booking.user.lastName.charAt(0)}
-                       </div>
-                       <div>
+                        </div>
+                        <div>
                           <p className="text-xs text-gray-500 font-medium">Passenger</p>
                           <p className="text-sm font-bold text-[#29354c]">{booking.user.firstName} {booking.user.lastName}</p>
-                       </div>
-                       {booking.status === 'accepted' && (
-                         <div className="ml-auto">
+                        </div>
+                        {booking.status === 'accepted' && (
+                          <div className="ml-auto">
                             <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full">
-                               <Phone className="w-4 h-4" />
+                              <Phone className="w-4 h-4" />
                             </Button>
-                         </div>
-                       )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Actions Footer */}
-                  {getStatusActions(booking) && (
-                    <div className="p-4 bg-gray-50 border-t border-gray-100">
-                      {getStatusActions(booking)}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    {/* Actions Footer */}
+                    {getStatusActions(booking) && (
+                      <div className="p-4 bg-gray-50 border-t border-gray-100">
+                        {getStatusActions(booking)}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const RazorpayService = require('../services/razorpayService');
+const PhonePeService = require('../services/phonePeService');
 require('dotenv').config();
 
 // Connect to MongoDB
@@ -13,47 +13,46 @@ const connectDB = async () => {
   }
 };
 
-const testRazorpayService = async () => {
-  console.log('\n=== TESTING RAZORPAY SERVICE ===');
+const testPhonePeService = async () => {
+  console.log('\n=== TESTING PHONEPE SERVICE ===');
 
   // Check environment variables
-  console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID ? `✅ Configured (${process.env.RAZORPAY_KEY_ID})` : '❌ Missing');
-  console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? `✅ Configured (${process.env.RAZORPAY_KEY_SECRET.substring(0, 10)}...)` : '❌ Missing');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('Current working directory:', process.cwd());
+  console.log('PHONEPE_MERCHANT_ID:', process.env.PHONEPE_MERCHANT_ID ? '✅ Configured' : '❌ Missing');
+  console.log('PHONEPE_CLIENT_ID:', process.env.PHONEPE_CLIENT_ID ? '✅ Configured' : '❌ Missing');
+  console.log('PHONEPE_ENV:', process.env.PHONEPE_ENV || 'SANDBOX');
 
-  // Check if service is configured
-  const isConfigured = RazorpayService.isConfigured();
-  console.log('RazorpayService.isConfigured():', isConfigured ? '✅ Yes' : '❌ No');
+  // Check if service is configured (we can check credentials)
+  const isConfigured = !!(process.env.PHONEPE_MERCHANT_ID && process.env.PHONEPE_CLIENT_ID);
+  console.log('PhonePe Credentials Present:', isConfigured ? '✅ Yes' : '❌ No');
 
   if (!isConfigured) {
-    console.error('❌ Razorpay service is not configured properly');
+    console.error('❌ PhonePe service is not configured properly in .env');
     return false;
   }
 
-  // Test order creation
-  console.log('\n=== TESTING ORDER CREATION ===');
+  // Test payment initiation (mock call or real sandbox call)
+  console.log('\n=== TESTING PAYMENT INITIATION ===');
   try {
-    const orderData = {
-      amount: 10000, // ₹100 in paise
-      currency: 'INR',
-      receipt: `test_${Date.now()}`
+    const paymentData = {
+      amount: 100, // ₹100
+      merchantOrderId: `test_${Date.now()}`,
+      redirectUrl: 'http://localhost:3000/payment-status',
+      callbackUrl: 'http://localhost:5000/api/payments/phonepe-callback',
+      mobileNumber: '9999999999'
     };
 
-    const order = await RazorpayService.createOrder(orderData);
-    console.log('✅ Order created successfully');
-    console.log('Order ID:', order.id);
-    console.log('Order Amount:', order.amount);
-    console.log('Order Status:', order.status);
-
-    // Test payment verification
-    console.log('\n=== TESTING PAYMENT VERIFICATION ===');
-    // For testing purposes, we'll use the order ID to simulate verification
-    console.log('Order created successfully - payment verification would work with real payment');
+    console.log('Initiating test payment...');
+    const response = await PhonePeService.initiatePayment(paymentData);
+    console.log('✅ Payment initiated successfully');
+    console.log('Redirect URL:', response.redirectUrl);
+    console.log('Merchant Order ID:', response.merchantOrderId);
 
     return true;
   } catch (error) {
-    console.error('❌ Order creation failed:', error.message);
+    console.error('❌ Payment initiation failed:', error.message);
+    if (error.response) {
+      console.error('Error Details:', JSON.stringify(error.response, null, 2));
+    }
     return false;
   }
 };
@@ -69,11 +68,13 @@ const testPaymentModels = async () => {
       user: new mongoose.Types.ObjectId(), // Dummy user ID
       amount: 100,
       currency: 'INR',
-      method: 'razorpay',
-      status: 'completed',
+      method: 'upi',
+      status: 'pending',
       type: 'booking',
-      transactionId: `test_${Date.now()}`,
-      paymentGateway: 'razorpay'
+      paymentGateway: 'phonepe',
+      paymentDetails: {
+        phonePeMerchantOrderId: `test_merchant_${Date.now()}`
+      }
     };
 
     const payment = await Payment.create(testPayment);
@@ -92,26 +93,26 @@ const testPaymentModels = async () => {
 };
 
 const runTests = async () => {
-  console.log('🚀 Starting Payment System Tests...\n');
+  console.log('🚀 Starting PhonePe Payment System Tests...\n');
 
   // Connect to database
   await connectDB();
 
-  // Test Razorpay service
-  const razorpayTest = await testRazorpayService();
+  // Test PhonePe service
+  const phonePeTest = await testPhonePeService();
 
   // Test payment models
   const paymentModelTest = await testPaymentModels();
 
   // Summary
   console.log('\n=== TEST SUMMARY ===');
-  console.log('Razorpay Service:', razorpayTest ? '✅ PASS' : '❌ FAIL');
+  console.log('PhonePe Service:', phonePeTest ? '✅ PASS' : '❌ FAIL');
   console.log('Payment Models:', paymentModelTest ? '✅ PASS' : '❌ FAIL');
 
-  if (razorpayTest && paymentModelTest) {
-    console.log('\n🎉 All tests passed! Payment system is working.');
+  if (phonePeTest && paymentModelTest) {
+    console.log('\n🎉 All tests passed! PhonePe system is working.');
   } else {
-    console.log('\n❌ Some tests failed. Payment system needs fixes.');
+    console.log('\n❌ Some tests failed. Check the logs above.');
   }
 
   // Close database connection

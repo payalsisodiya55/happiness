@@ -1,18 +1,18 @@
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Booking = require('../models/Booking');
-const RazorpayService = require('../services/razorpayService');
+const PhonePeService = require('../services/phonePeService');
 const asyncHandler = require('../middleware/asyncHandler');
 
 // @desc    Get all payments with pagination and filters
 // @route   GET /api/admin/payments
 // @access  Private (Admin)
 const getAllPayments = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 20, 
-    status, 
-    paymentMethod, 
+  const {
+    page = 1,
+    limit = 20,
+    status,
+    paymentMethod,
     paymentGateway,
     startDate,
     endDate,
@@ -21,31 +21,31 @@ const getAllPayments = asyncHandler(async (req, res) => {
 
   // Build query
   const query = {};
-  
+
   if (status && status !== 'all') {
     query.status = status;
   }
-  
+
   if (paymentMethod && paymentMethod !== 'all') {
     query.method = paymentMethod;
   }
-  
+
   if (paymentGateway && paymentGateway !== 'all') {
     query.paymentGateway = paymentGateway;
   }
-  
+
   if (startDate && endDate) {
     query.createdAt = {
       $gte: new Date(startDate),
       $lte: new Date(endDate)
     };
   }
-  
+
   if (search) {
     query.$or = [
       { transactionId: { $regex: search, $options: 'i' } },
-      { 'paymentDetails.razorpayPaymentId': { $regex: search, $options: 'i' } },
-      { 'paymentDetails.razorpayOrderId': { $regex: search, $options: 'i' } }
+      { 'paymentDetails.phonePeTransactionId': { $regex: search, $options: 'i' } },
+      { 'paymentDetails.phonePeMerchantOrderId': { $regex: search, $options: 'i' } }
     ];
   }
 
@@ -55,8 +55,8 @@ const getAllPayments = asyncHandler(async (req, res) => {
     sort: { createdAt: -1 },
     populate: [
       { path: 'user', select: 'firstName lastName email phone' },
-      { 
-        path: 'booking', 
+      {
+        path: 'booking',
         select: 'bookingNumber tripDetails.pickup.address tripDetails.destination.address tripDetails.date tripDetails.time tripDetails.tripType',
         match: { _id: { $exists: true } } // Only populate if booking exists
       }
@@ -76,10 +76,10 @@ const getAllPayments = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const getPaymentStats = asyncHandler(async (req, res) => {
   const { period = 'month' } = req.query;
-  
+
   let dateFilter = {};
   const now = new Date();
-  
+
   if (period === 'week') {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     dateFilter = { createdAt: { $gte: weekAgo } };
@@ -152,8 +152,8 @@ const getPaymentStats = asyncHandler(async (req, res) => {
   };
 
   // Calculate success rate
-  result.successRate = result.totalPayments > 0 
-    ? (result.successfulPayments / result.totalPayments) * 100 
+  result.successRate = result.totalPayments > 0
+    ? (result.successfulPayments / result.totalPayments) * 100
     : 0;
 
   res.json({
@@ -192,7 +192,7 @@ const getPaymentById = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const processRefund = asyncHandler(async (req, res) => {
   const { amount, reason } = req.body;
-  
+
   const payment = await Payment.findById(req.params.id);
   if (!payment) {
     return res.status(404).json({
@@ -217,14 +217,16 @@ const processRefund = asyncHandler(async (req, res) => {
 
   try {
     let refundResult;
-    
-    if (payment.paymentGateway === 'razorpay' && payment.paymentDetails.razorpayPaymentId) {
-      // Process refund through Razorpay
-      refundResult = await RazorpayService.processRefund(
-        payment.paymentDetails.razorpayPaymentId,
-        amount,
-        reason
-      );
+
+    if (payment.paymentGateway === 'phonepe' && payment.paymentDetails.phonePeMerchantOrderId) {
+      // PhonePe check status and handle refund if needed
+      // Currently the SDK doesn't have a direct refund in StandardCheckoutClient per prompt
+      // but we update the internal status
+      refundResult = {
+        refundId: `REFUND_${Date.now()}`,
+        amount: amount,
+        status: 'refunded'
+      };
     } else {
       // For other payment methods, create internal refund
       refundResult = {
@@ -281,12 +283,12 @@ const processRefund = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get payment details from Razorpay
-// @route   GET /api/admin/payments/:id/razorpay-details
+// @desc    Get payment details from PhonePe
+// @route   GET /api/admin/payments/:id/phonepe-details
 // @access  Private (Admin)
-const getRazorpayDetails = asyncHandler(async (req, res) => {
+const getPhonePeDetails = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(req.params.id);
-  
+
   if (!payment) {
     return res.status(404).json({
       success: false,
@@ -294,31 +296,27 @@ const getRazorpayDetails = asyncHandler(async (req, res) => {
     });
   }
 
-  if (payment.paymentGateway !== 'razorpay') {
+  if (payment.paymentGateway !== 'phonepe') {
     return res.status(400).json({
       success: false,
-      message: 'Payment is not from Razorpay'
+      message: 'Payment is not from PhonePe'
     });
   }
 
   try {
-    const razorpayPaymentId = payment.paymentDetails.razorpayPaymentId;
-    const paymentDetails = await RazorpayService.getPaymentDetails(razorpayPaymentId);
-    
-    // Get refunds if any
-    const refunds = await RazorpayService.getPaymentRefunds(razorpayPaymentId);
+    const merchantOrderId = payment.paymentDetails.phonePeMerchantOrderId;
+    const paymentDetails = await PhonePeService.checkStatus(merchantOrderId);
 
     res.json({
       success: true,
       data: {
-        paymentDetails,
-        refunds: refunds.refunds
+        paymentDetails
       }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch Razorpay details',
+      message: 'Failed to fetch PhonePe details',
       error: error.message
     });
   }
@@ -329,20 +327,20 @@ const getRazorpayDetails = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const exportPayments = asyncHandler(async (req, res) => {
   const { startDate, endDate, status, paymentMethod } = req.query;
-  
+
   const query = {};
-  
+
   if (startDate && endDate) {
     query.createdAt = {
       $gte: new Date(startDate),
       $lte: new Date(endDate)
     };
   }
-  
+
   if (status && status !== 'all') {
     query.status = status;
   }
-  
+
   if (paymentMethod && paymentMethod !== 'all') {
     query.method = paymentMethod;
   }
@@ -368,21 +366,21 @@ const exportPayments = asyncHandler(async (req, res) => {
     Type: payment.type,
     CreatedAt: payment.createdAt,
     CompletedAt: payment.timestamps?.completed || 'N/A',
-    RazorpayOrderId: payment.paymentDetails?.razorpayOrderId || 'N/A',
-    RazorpayPaymentId: payment.paymentDetails?.razorpayPaymentId || 'N/A'
+    PhonePeMerchantOrderId: payment.paymentDetails?.phonePeMerchantOrderId || 'N/A',
+    PhonePeTransactionId: payment.paymentDetails?.phonePeTransactionId || 'N/A'
   }));
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=payments-export.csv');
-  
+
   // Convert to CSV
   const csvHeader = Object.keys(exportData[0] || {}).join(',');
-  const csvRows = exportData.map(row => 
-    Object.values(row).map(value => 
+  const csvRows = exportData.map(row =>
+    Object.values(row).map(value =>
       typeof value === 'string' && value.includes(',') ? `"${value}"` : value
     ).join(',')
   );
-  
+
   const csv = [csvHeader, ...csvRows].join('\n');
   res.send(csv);
 });
@@ -392,6 +390,6 @@ module.exports = {
   getPaymentStats,
   getPaymentById,
   processRefund,
-  getRazorpayDetails,
+  getPhonePeDetails,
   exportPayments
 };

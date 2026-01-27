@@ -14,12 +14,19 @@ const getAutocomplete = asyncHandler(async (req, res) => {
     });
   }
 
-  const predictions = await googleMapsService.getPlaceAutocomplete(input, sessionToken);
+  try {
+    const predictions = await googleMapsService.getPlaceAutocomplete(input, sessionToken);
 
-  res.status(200).json({
-    success: true,
-    data: predictions
-  });
+    res.status(200).json({
+      success: true,
+      data: predictions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error occurred during autocomplete'
+    });
+  }
 });
 
 // @desc    Get geocode (coordinates from address)

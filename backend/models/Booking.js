@@ -8,21 +8,21 @@ const BookingSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'User is required']
   },
-  
+
   // Vehicle information
   vehicle: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vehicle',
     required: [true, 'Vehicle is required']
   },
-  
+
   // Driver information (from vehicle)
   driver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Driver',
     required: [true, 'Driver is required']
   },
-  
+
   // Trip details
   tripDetails: {
     pickup: {
@@ -57,7 +57,7 @@ const BookingSchema = new mongoose.Schema({
       type: String, // Simple date string like "2025-08-06"
       required: [true, 'Pickup date is required'],
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           // Accept YYYY-MM-DD format and validate it's a real date
           if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
             return false;
@@ -72,7 +72,7 @@ const BookingSchema = new mongoose.Schema({
       type: String, // Simple time string like "09:00" or "09:00:00"
       required: [true, 'Pickup time is required'],
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           // Accept both "HH:MM" and "HH:MM:SS" formats
           return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(v);
         },
@@ -102,7 +102,7 @@ const BookingSchema = new mongoose.Schema({
       type: String, // Simple date string like "2025-08-06"
       required: false,
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           if (!v) return true; // Optional field
           // Accept YYYY-MM-DD format and validate it's a real date
           if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -115,7 +115,7 @@ const BookingSchema = new mongoose.Schema({
       }
     }
   },
-  
+
   // Pricing information
   pricing: {
     ratePerKm: {
@@ -132,12 +132,12 @@ const BookingSchema = new mongoose.Schema({
       default: 'one-way'
     }
   },
-  
+
   // Payment information
   payment: {
     method: {
       type: String,
-      enum: ['cash', 'upi', 'netbanking', 'card', 'razorpay'],
+      enum: ['cash', 'upi', 'netbanking', 'card', 'phonepe'],
       required: [true, 'Payment method is required']
     },
     status: {
@@ -201,14 +201,14 @@ const BookingSchema = new mongoose.Schema({
       }
     }
   },
-  
+
   // Booking status
   status: {
     type: String,
     enum: ['pending', 'accepted', 'started', 'completed', 'cancelled', 'cancellation_requested'],
     default: 'pending'
   },
-  
+
   // Status history for tracking changes
   statusHistory: [{
     status: {
@@ -238,7 +238,7 @@ const BookingSchema = new mongoose.Schema({
       required: false
     }
   }],
-  
+
   // Cancellation information
   cancellation: {
     cancelledBy: {
@@ -270,7 +270,7 @@ const BookingSchema = new mongoose.Schema({
     },
     refundMethod: {
       type: String,
-      enum: ['razorpay', 'manual'],
+      enum: ['manual', 'phonepe'],
       required: false
     },
     refundCompletedAt: {
@@ -295,7 +295,7 @@ const BookingSchema = new mongoose.Schema({
       required: false
     }
   },
-  
+
   // Additional fields for backward compatibility
   tripType: {
     type: String,
@@ -306,7 +306,7 @@ const BookingSchema = new mongoose.Schema({
     type: String, // Simple date string like "2025-08-06"
     required: false,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true; // Optional field
         // Accept YYYY-MM-DD format and validate it's a valid date
         if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -318,7 +318,7 @@ const BookingSchema = new mongoose.Schema({
       message: 'Return date must be in YYYY-MM-DD format and be a valid date'
     }
   },
-  
+
   // Trip details for actual trip data
   trip: {
     startTime: Date,
@@ -329,13 +329,13 @@ const BookingSchema = new mongoose.Schema({
     driverNotes: String,
     userNotes: String
   },
-  
+
   // Additional information
   specialRequests: {
     type: String,
     default: ''
   },
-  
+
   // Booking number (auto-generated)
   bookingNumber: {
     type: String,
@@ -349,7 +349,7 @@ const BookingSchema = new mongoose.Schema({
 BookingSchema.plugin(mongoosePaginate);
 
 // Pre-save middleware to generate booking number
-BookingSchema.pre('save', function(next) {
+BookingSchema.pre('save', function (next) {
   if (this.isNew && !this.bookingNumber) {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -359,36 +359,36 @@ BookingSchema.pre('save', function(next) {
 });
 
 // Pre-save middleware to track status changes and update vehicle status
-BookingSchema.pre('save', async function(next) {
+BookingSchema.pre('save', async function (next) {
   // Only proceed if status has changed
   if (this.isModified('status')) {
     try {
       console.log(`📋 Booking ${this._id} status changed to: ${this.status}`);
-      
+
       const Vehicle = require('./Vehicle');
       const vehicle = await Vehicle.findById(this.vehicle);
-      
+
       if (!vehicle) {
         return next(new Error('Vehicle not found'));
       }
-      
+
       console.log(`🚗 Vehicle ${vehicle._id} current status: ${vehicle.bookingStatus}, booked: ${vehicle.booked}`);
-      
+
       // Add status to history
       if (!this.statusHistory) {
         this.statusHistory = [];
       }
-      
+
       // Determine who updated the status
       let updatedByModel = 'User';
       let updatedBy = this.user;
-      
+
       // This will be set by the controller based on the authenticated user
       if (this._updatedByModel && this._updatedBy) {
         updatedByModel = this._updatedByModel;
         updatedBy = this._updatedBy;
       }
-      
+
       this.statusHistory.push({
         status: this.status,
         timestamp: new Date(),
@@ -397,7 +397,7 @@ BookingSchema.pre('save', async function(next) {
         reason: this._statusReason || '',
         notes: this._statusNotes || ''
       });
-      
+
       // Update vehicle status based on booking status
       switch (this.status) {
         case 'accepted':
@@ -421,15 +421,15 @@ BookingSchema.pre('save', async function(next) {
           console.log(`🚗 No vehicle status change for status: ${this.status}`);
           break;
       }
-      
+
       console.log(`🚗 Vehicle ${vehicle._id} status updated to: ${vehicle.bookingStatus}, booked: ${vehicle.booked}`);
-      
+
       // Clear temporary fields
       delete this._updatedByModel;
       delete this._updatedBy;
       delete this._statusReason;
       delete this._statusNotes;
-      
+
     } catch (error) {
       console.error(`❌ Error updating vehicle status for booking ${this._id}:`, error);
       return next(error);

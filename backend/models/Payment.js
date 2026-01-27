@@ -29,7 +29,7 @@ const paymentSchema = new mongoose.Schema({
   method: {
     type: String,
     required: true,
-    enum: ['wallet', 'card', 'upi', 'cash', 'netbanking', 'razorpay']
+    enum: ['wallet', 'card', 'upi', 'cash', 'netbanking']
   },
   status: {
     type: String,
@@ -67,8 +67,8 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentGateway: {
     type: String,
-    enum: ['stripe', 'razorpay', 'paytm', 'internal'],
-    default: 'razorpay'
+    enum: ['stripe', 'paytm', 'internal', 'phonepe'],
+    default: 'phonepe'
   },
   paymentDetails: {
     // For card payments
@@ -77,22 +77,21 @@ const paymentSchema = new mongoose.Schema({
     expiryMonth: String,
     expiryYear: String,
     cvv: String,
-    
+
     // For UPI payments
     upiId: String,
-    
+
     // For netbanking
     bankName: String,
     accountNumber: String,
-    
+
     // For wallet
     walletType: String,
-    
-    // Razorpay specific fields
-    razorpayOrderId: String,
-    razorpayPaymentId: String,
-    razorpaySignature: String,
-    
+
+    // PhonePe specific fields
+    phonePeMerchantOrderId: String,
+    phonePeTransactionId: String,
+
     // Generic fields
     referenceId: String,
     gatewayResponse: mongoose.Schema.Types.Mixed
@@ -140,19 +139,19 @@ paymentSchema.index({ status: 1, createdAt: -1 });
 paymentSchema.index({ method: 1, status: 1 });
 
 // Virtual for formatted amount
-paymentSchema.virtual('formattedAmount').get(function() {
+paymentSchema.virtual('formattedAmount').get(function () {
   return `₹${this.amount.toFixed(2)}`;
 });
 
 // Virtual for payment age
-paymentSchema.virtual('ageInHours').get(function() {
+paymentSchema.virtual('ageInHours').get(function () {
   const now = new Date();
   const created = this.createdAt;
   return Math.floor((now - created) / (1000 * 60 * 60));
 });
 
 // Methods
-paymentSchema.methods.markAsCompleted = function(transactionId, gatewayResponse = {}) {
+paymentSchema.methods.markAsCompleted = function (transactionId, gatewayResponse = {}) {
   this.status = 'completed';
   this.transactionId = transactionId;
   this.timestamps.completed = new Date();
@@ -160,7 +159,7 @@ paymentSchema.methods.markAsCompleted = function(transactionId, gatewayResponse 
   return this.save();
 };
 
-paymentSchema.methods.markAsFailed = function(errorCode, errorMessage, errorDetails = {}) {
+paymentSchema.methods.markAsFailed = function (errorCode, errorMessage, errorDetails = {}) {
   this.status = 'failed';
   this.error = {
     code: errorCode,
@@ -171,7 +170,7 @@ paymentSchema.methods.markAsFailed = function(errorCode, errorMessage, errorDeta
   return this.save();
 };
 
-paymentSchema.methods.processRefund = function(amount, reason, refundId) {
+paymentSchema.methods.processRefund = function (amount, reason, refundId) {
   this.status = 'refunded';
   this.refund = {
     amount,
@@ -184,10 +183,10 @@ paymentSchema.methods.processRefund = function(amount, reason, refundId) {
 };
 
 // Static methods
-paymentSchema.statics.getPaymentStats = async function(userId, period = 'month') {
+paymentSchema.statics.getPaymentStats = async function (userId, period = 'month') {
   let dateFilter = {};
   const now = new Date();
-  
+
   if (period === 'week') {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     dateFilter = { createdAt: { $gte: weekAgo } };
@@ -230,7 +229,7 @@ paymentSchema.statics.getPaymentStats = async function(userId, period = 'month')
   };
 };
 
-paymentSchema.statics.getPaymentMethodsStats = async function(userId) {
+paymentSchema.statics.getPaymentMethodsStats = async function (userId) {
   return await this.aggregate([
     { $match: { user: userId, status: 'completed' } },
     {
@@ -245,7 +244,7 @@ paymentSchema.statics.getPaymentMethodsStats = async function(userId) {
 };
 
 // Pre-save middleware
-paymentSchema.pre('save', function(next) {
+paymentSchema.pre('save', function (next) {
   // Update timestamps based on status changes
   if (this.isModified('status')) {
     switch (this.status) {
@@ -263,12 +262,12 @@ paymentSchema.pre('save', function(next) {
         break;
     }
   }
-  
+
   next();
 });
 
 // Pre-remove middleware
-paymentSchema.pre('remove', async function(next) {
+paymentSchema.pre('remove', async function (next) {
   // If this is a wallet payment, update user wallet
   if (this.type === 'wallet_recharge' && this.status === 'completed') {
     const User = mongoose.model('User');
@@ -276,7 +275,7 @@ paymentSchema.pre('remove', async function(next) {
       $inc: { 'wallet.balance': -this.amount }
     });
   }
-  
+
   next();
 });
 

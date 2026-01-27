@@ -58,7 +58,7 @@ The application serves **three distinct user types**:
 - **Socket.io-client** - Real-time updates
 - **Recharts** - Data visualization
 - **Date-fns** - Date handling
-- **Razorpay** - Payment gateway
+- **PhonePe** - Payment gateway (v2.0.3 SDK)
 - **Google Maps API** - Location services
 - **Cloudinary** - Image management
 
@@ -128,7 +128,7 @@ frontend/
 - **Multi-Vehicle Booking**: Cars, Buses, Auto-rickshaws
 - **Location Autocomplete**: Google Maps integration
 - **Real-time Tracking**: Live vehicle tracking
-- **Payment Integration**: Razorpay gateway
+- **Payment Integration**: PhonePe gateway (Redirect flow)
 - **Mobile Responsive**: Optimized for mobile & web
 - **Authentication**: OTP-based login
 
@@ -379,12 +379,12 @@ MobileAuthWrapper        → Handles mobile auth flow
 - Validate offers
 ```
 
-#### 9. **razorpayService.ts** (14,579 bytes)
+#### 9. **phonePeService.ts** (1.5KB)
 ```typescript
 // Payment Gateway
-- Create Razorpay order
-- Verify payment
-- Handle payment callbacks
+- Initiate PhonePe payment
+- Handle redirect
+- Check payment status
 ```
 
 #### 10. **googleMapsService.ts** (6,900 bytes)
@@ -577,11 +577,11 @@ Step 5: Checkout (Checkout.tsx)
 ├─ Choose payment method
 └─ Click "Confirm & Pay"
 
-Step 6: Payment (razorpayService.ts)
-├─ Razorpay modal opens
-├─ User completes payment
-├─ Payment verification
-└─ Booking confirmed
+Step 6: Payment (phonePeService.ts)
+├─ Redirect to PhonePe page
+├─ User completes payment on PhonePe
+├─ Redirect back to /payment-status
+└─ Booking confirmed via backend callback
 
 Step 7: Confirmation
 ├─ Booking ID generated

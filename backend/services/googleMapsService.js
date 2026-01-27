@@ -48,8 +48,14 @@ const getDistanceAndDuration = async (origin, destination) => {
     const data = response.data;
 
     if (data.status !== 'OK') {
-      console.error(`Google Maps API Error Status: ${data.status}`);
-      throw new Error(`Google Maps API returned validation error: ${data.error_message || data.status}`);
+      console.warn(`Google Maps API warning: ${data.status} - ${data.error_message || 'No message'}`);
+      // Fallback to Haversine if API is denied or failed
+      const dist = calculateHaversineDistance(origin, destination);
+      return {
+        distance: dist,
+        duration: Math.round(dist * 2),
+        source: `google_fallback_${data.status.toLowerCase()}`
+      };
     }
 
     if (!data.rows || !data.rows[0] || !data.rows[0].elements || !data.rows[0].elements[0]) {
@@ -98,20 +104,25 @@ const getDistanceAndDuration = async (origin, destination) => {
 const getAddressFromCoordinates = async (coordinates) => {
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return null;
+    if (!apiKey) throw new Error('Google Maps API key missing');
 
     const latlng = `${coordinates.latitude},${coordinates.longitude}`;
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latlng}&key=${apiKey}`;
 
     const response = await axios.get(url);
 
-    if (response.data.status === 'OK' && response.data.results.length > 0) {
+    if (response.data.status !== 'OK') {
+      console.warn(`Google Maps Reverse Geocoding Warning: ${response.data.status}`);
+      return null;
+    }
+
+    if (response.data.results && response.data.results.length > 0) {
       return response.data.results[0].formatted_address;
     }
 
     return null;
   } catch (error) {
-    console.error('Error in Reverse Geocoding:', error.message);
+    console.error('Error in getAddressFromCoordinates:', error.message);
     return null;
   }
 };
@@ -136,12 +147,14 @@ const getPlaceAutocomplete = async (input, sessionToken) => {
     const response = await axios.get(url);
 
     if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
-      throw new Error(`Google Maps Places API Error: ${response.data.status}`);
+      console.warn('Google Maps Autocomplete Warning:', response.data.status, response.data.error_message);
+      // Return empty array instead of throwing to avoid 500 errors on frontend
+      return [];
     }
 
     return response.data.predictions || [];
   } catch (error) {
-    console.error('Error in Place Autocomplete:', error.message);
+    console.error('Error in getPlaceAutocomplete:', error.message);
     return [];
   }
 };
@@ -173,7 +186,7 @@ const getGeocode = async (address) => {
     const response = await axios.get(url);
 
     if (response.data.status !== 'OK') {
-      console.error(`Google Maps API Error (${isPlaceDetails ? 'Place Details' : 'Geocoding'}): ${response.data.status}`, response.data);
+      console.warn(`Google Maps Geocoding Warning: ${response.data.status}`);
       return null;
     }
 
@@ -197,7 +210,7 @@ const getGeocode = async (address) => {
       formattedAddress
     };
   } catch (error) {
-    console.error('Error in Geocoding:', error.message);
+    console.error('Error in getGeocode:', error.message);
     return null;
   }
 };

@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  CreditCard, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Users, 
+import {
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Users,
   Calendar,
   Search,
   Filter,
@@ -64,14 +64,14 @@ interface Payment {
   };
   amount: number;
   currency: string;
-  method: 'wallet' | 'card' | 'upi' | 'cash' | 'netbanking' | 'razorpay';
+  method: 'wallet' | 'card' | 'upi' | 'cash' | 'netbanking' | 'phonepe';
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
   type: 'booking' | 'wallet_recharge' | 'refund' | 'withdrawal';
   transactionId?: string;
-  paymentGateway: 'stripe' | 'razorpay' | 'paytm' | 'internal';
+  paymentGateway: 'stripe' | 'phonepe' | 'paytm' | 'internal';
   paymentDetails: {
-    razorpayOrderId?: string;
-    razorpayPaymentId?: string;
+    phonePeMerchantOrderId?: string;
+    phonePeTransactionId?: string;
     upiId?: string;
     bankName?: string;
     walletType?: string;
@@ -170,7 +170,7 @@ const AdminPaymentManagement = () => {
       const adminToken = localStorage.getItem('adminToken');
       console.log('Admin token exists:', !!adminToken);
       console.log('Admin token length:', adminToken ? adminToken.length : 0);
-      
+
       // Load payments with filters
       const paymentsResponse = await adminPaymentApi.getAllPayments({
         page: currentPage,
@@ -208,7 +208,7 @@ const AdminPaymentManagement = () => {
 
   const getDateFilterStart = (): string | undefined => {
     if (dateFilter === 'all') return undefined;
-    
+
     const today = new Date();
     switch (dateFilter) {
       case 'today':
@@ -226,7 +226,7 @@ const AdminPaymentManagement = () => {
 
   const getDateFilterEnd = (): string | undefined => {
     if (dateFilter === 'all') return undefined;
-    
+
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
@@ -288,7 +288,7 @@ const AdminPaymentManagement = () => {
       case 'netbanking': return <Banknote className="w-4 h-4" />;
       case 'wallet': return <Wallet className="w-4 h-4" />;
       case 'cash': return <Receipt className="w-4 h-4" />;
-      case 'razorpay': return <CreditCard className="w-4 h-4" />;
+      case 'phonepe': return <CreditCard className="w-4 h-4" />;
       default: return <CreditCard className="w-4 h-4" />;
     }
   };
@@ -504,7 +504,7 @@ const AdminPaymentManagement = () => {
                   {isMobile ? "Go" : "Search"}
                 </Button>
               </div>
-              
+
               {/* Filters Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -533,7 +533,7 @@ const AdminPaymentManagement = () => {
                     <SelectItem value="netbanking">Net Banking</SelectItem>
                     <SelectItem value="wallet">Wallet</SelectItem>
                     <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="razorpay">Razorpay</SelectItem>
+                    <SelectItem value="phonepe">PhonePe</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -629,12 +629,12 @@ const AdminPaymentManagement = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handlePaymentAction('view', payment._id)}
-                                  className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
-                                >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePaymentAction('view', payment._id)}
+                                className="border-[#29354C] text-[#29354C] hover:bg-[#29354C]/10"
+                              >
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </div>
@@ -699,7 +699,7 @@ const AdminPaymentManagement = () => {
                             <p className="text-sm text-gray-600 truncate">{payment.user?.email || 'N/A'}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-600">Booking</p>
@@ -785,7 +785,7 @@ const AdminPaymentManagement = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Payment Information Grid - Mobile Optimized */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1 sm:space-y-2">
@@ -805,7 +805,7 @@ const AdminPaymentManagement = () => {
                   <p className="text-sm sm:text-base text-gray-900 break-all">{selectedPayment.user?.email || 'N/A'}</p>
                 </div>
               </div>
-              
+
               {/* Amount Information - Mobile Optimized */}
               <div className="space-y-2">
                 <label className="text-xs sm:text-sm font-medium text-gray-600">Amount Information</label>
@@ -822,7 +822,7 @@ const AdminPaymentManagement = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Payment Details - Mobile Optimized */}
               <div className="space-y-2">
                 <label className="text-xs sm:text-sm font-medium text-gray-600">Payment Details</label>

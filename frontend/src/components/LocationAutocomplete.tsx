@@ -62,9 +62,9 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
       setSelectedIndex(-1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('LocationAutocomplete: Error searching locations:', error);
-      // Don't show error to user for empty results, just hide suggestions
+      setError(error.message || 'Error searching locations');
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {

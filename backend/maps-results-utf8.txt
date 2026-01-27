@@ -1,0 +1,9 @@
+﻿--- Testing Distance Matrix ---
+Distance Matrix Status: REQUEST_DENIED
+Distance Matrix Error: You must enable Billing on the Google Cloud Project at https://console.cloud.google.com/project/_/billing/enable Learn more at https://developers.google.com/maps/gmp-get-started
+--- Testing Geocoding ---
+Geocoding Status: REQUEST_DENIED
+Geocoding Error: This API is not activated on your API project. You may need to enable this API in the Google Cloud Console: https://console.cloud.google.com/apis/library?filter=category:maps. Learn more at https://developers.google.com/maps/gmp-get-started#enable-api-sdk.
+--- Testing Autocomplete ---
+Autocomplete Status: REQUEST_DENIED
+Autocomplete Error: You must enable Billing on the Google Cloud Project at https://console.cloud.google.com/project/_/billing/enable Learn more at https://developers.google.com/maps/gmp-get-started

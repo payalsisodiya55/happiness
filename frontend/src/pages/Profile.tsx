@@ -13,7 +13,8 @@ import {
   Bell,
   Edit3,
   FileText,
-  Heart
+  Heart,
+  AlertTriangle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -26,7 +27,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading, logout: contextLogout } = useUserAuth();
   const isMobile = useIsMobile() || false;
-  
+
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
@@ -91,6 +92,13 @@ const Profile = () => {
       path: "/profile/notifications"
     },
     {
+      id: 8,
+      title: "My Reports",
+      icon: AlertTriangle,
+      description: "View history of reported issues",
+      path: "/complaints"
+    },
+    {
       id: 3,
       title: "Privacy & Security",
       icon: Shield,
@@ -153,15 +161,15 @@ const Profile = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-[#212c40] leading-tight px-2">
                 Log in to manage<br />your bookings
               </h1>
-              
+
               {/* Login Button */}
-              <Button 
+              <Button
                 className="w-full bg-[#f48432] hover:bg-[#d66e22] text-white text-base sm:text-lg font-semibold py-3 sm:py-6 rounded-lg transition-all shadow-md hover:shadow-lg"
                 onClick={handleLogin}
               >
                 Log in
               </Button>
-              
+
               {/* Sign Up Link */}
               <p className="text-sm text-gray-600 px-2">
                 Don't have an account? <span className="underline cursor-pointer text-[#212c40] font-semibold hover:text-[#f48432]" onClick={handleLogin}>Sign up</span>
@@ -215,14 +223,14 @@ const Profile = () => {
                 </div>
 
                 <div className="flex justify-center sm:justify-end pt-2">
-                    <Button 
-                      variant="outline" 
-                      className="border-2 border-[#212c40] text-[#212c40] hover:bg-[#212c40] hover:text-white font-semibold transition-all w-full sm:w-auto px-6"
-                      onClick={() => navigate('/profile/personal-info')}
-                    >
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                  <Button
+                    variant="outline"
+                    className="border-2 border-[#212c40] text-[#212c40] hover:bg-[#212c40] hover:text-white font-semibold transition-all w-full sm:w-auto px-6"
+                    onClick={() => navigate('/profile/personal-info')}
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -232,7 +240,7 @@ const Profile = () => {
               <h3 className="text-lg sm:text-xl font-bold text-[#212c40] mb-4 px-1">Account Settings</h3>
               <div className="space-y-3">
                 {profileOptions.map((option) => (
-                  <Card 
+                  <Card
                     key={option.id}
                     className="p-4 border-none shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group bg-white rounded-xl"
                     onClick={() => navigate(option.path)}
@@ -246,7 +254,7 @@ const Profile = () => {
                         <p className="text-xs sm:text-sm text-gray-500 line-clamp-1">{option.description}</p>
                       </div>
                       <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors">
-                          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#f48432] transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#f48432] transition-colors" />
                       </div>
                     </div>
                   </Card>

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Driver = require('../models/Driver');
 const Vehicle = require('../models/Vehicle');
 const Booking = require('../models/Booking');
+const Penalty = require('../models/Penalty');
 const asyncHandler = require('../middleware/asyncHandler');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');

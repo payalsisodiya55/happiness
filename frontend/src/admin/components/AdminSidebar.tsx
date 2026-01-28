@@ -94,6 +94,11 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
       href: "/admin/penalties",
       icon: AlertTriangle,
     },
+    {
+      title: "User Reports",
+      href: "/admin/complaints",
+      icon: MessageSquare,
+    },
   ];
 
   const isActive = (href: string) => {
@@ -109,8 +114,8 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
           variant={isItemActive ? "secondary" : "ghost"}
           className={cn(
             "w-full justify-start h-12 px-4",
-            isItemActive 
-              ? "bg-[#29354C] text-white hover:bg-[#29354C]/90" 
+            isItemActive
+              ? "bg-[#29354C] text-white hover:bg-[#29354C]/90"
               : "hover:bg-gray-100"
           )}
         >
@@ -159,8 +164,8 @@ const AdminSidebar = ({ isMobileOpen = false, onMobileOpenChange }: AdminSidebar
 
       {/* Mobile Sidebar */}
       <Sheet open={isMobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent 
-          side="right" 
+        <SheetContent
+          side="right"
           className="w-80 p-0 border-l [&>button]:hidden z-50"
         >
           <SidebarContent />

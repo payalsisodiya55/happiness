@@ -208,77 +208,119 @@ const AdminPenaltyManagement = () => {
     }
   ];
 
-  // Fetch penalties (Mock)
+  // Fetch penalties from backend
   const fetchPenalties = async () => {
     try {
       setLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      let filtered = [...MOCK_PENALTIES];
-      
+
+      const params: any = {
+        page: 1,
+        limit: 100
+      };
+
       if (statusFilter !== "all") {
-        filtered = filtered.filter(p => p.status === statusFilter);
+        params.status = statusFilter;
       }
-      
+
       if (typeFilter !== "all") {
-        filtered = filtered.filter(p => p.type === typeFilter);
+        params.type = typeFilter;
       }
 
-      if (searchTerm) {
-        const lowerTerm = searchTerm.toLowerCase();
-        filtered = filtered.filter(p => 
-          p.driver.firstName.toLowerCase().includes(lowerTerm) || 
-          p.driver.lastName.toLowerCase().includes(lowerTerm) ||
-          p.reason.toLowerCase().includes(lowerTerm)
-        );
-      }
+      const response = await adminApi.get('/penalties', { params });
 
-      setPenalties(filtered);
-    } catch (error) {
+      if (response.data.success) {
+        let filtered = response.data.data.docs || [];
+
+        // Apply search filter on frontend
+        if (searchTerm) {
+          const lowerTerm = searchTerm.toLowerCase();
+          filtered = filtered.filter((p: Penalty) =>
+            p.driver.firstName.toLowerCase().includes(lowerTerm) ||
+            p.driver.lastName.toLowerCase().includes(lowerTerm) ||
+            p.reason.toLowerCase().includes(lowerTerm)
+          );
+        }
+
+        setPenalties(filtered);
+      }
+    } catch (error: any) {
       console.error("Error fetching penalties:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to fetch penalties",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch penalty statistics (Mock)
+  // Fetch penalty statistics from backend
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setStats(MOCK_STATS);
-    } catch (error) {
+      const response = await adminApi.get('/penalties/stats');
+
+      if (response.data.success) {
+        setStats(response.data.data);
+      }
+    } catch (error: any) {
       console.error("Error fetching penalty stats:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to fetch statistics",
+        variant: "destructive",
+      });
     } finally {
       setStatsLoading(false);
     }
   };
 
-  // Find driver by email (Mock or keep API if needed, but safe to mock for now to avoid errors if backend empty)
+  // Find driver by email using backend API
   const findDriverByEmail = async (email: string) => {
-    // For mock purposes, just return a dummy driver if any email is provided
-    if (email) {
-      return {
-        _id: "d_mock",
-        firstName: "Mock",
-        lastName: "Driver",
-        phone: "+91 99999 88888",
-        email: email
-      };
+    try {
+      const response = await adminDrivers.getAll({ search: email, limit: 1 });
+      if (response.data.success && response.data.data.docs.length > 0) {
+        return response.data.data.docs[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error finding driver:", error);
+      return null;
     }
-    return null;
   };
 
-  // Apply penalty (Mock)
+  // Apply penalty using backend API
   const handleApplyPenalty = async () => {
     try {
-      if (!applyForm.driverEmail) return;
+      if (!applyForm.driverEmail || !applyForm.type || !applyForm.amount) return;
+
+      // Find driver by email first
+      const driver = await findDriverByEmail(applyForm.driverEmail);
+      if (!driver) {
+        toast({
+          title: "Error",
+          description: "Driver not found with this email",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const payload: any = {
+        type: applyForm.type,
+        amount: parseFloat(applyForm.amount),
+        reason: applyForm.reason || `Penalty: ${penaltyTypes[applyForm.type as keyof typeof penaltyTypes]}`
+      };
+
+      if (applyForm.bookingId) {
+        payload.bookingId = applyForm.bookingId;
+      }
+
+      await adminApi.post(`/drivers/${driver._id}/penalty`, payload);
 
       toast({
         title: "Success",
-        description: `Penalty applied successfully (Mock)`,
+        description: `Penalty applied successfully to ${driver.firstName} ${driver.lastName}`,
       });
 
       setShowApplyDialog(false);
@@ -291,37 +333,44 @@ const AdminPenaltyManagement = () => {
         reason: "",
         bookingId: ""
       });
-      
-      // Refresh list
+
+      // Refresh list and stats
       fetchPenalties();
+      fetchStats();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to apply penalty",
+        description: error.response?.data?.message || "Failed to apply penalty",
         variant: "destructive",
       });
     }
   };
 
-  // Waive penalty (Mock)
+  // Waive penalty using backend API
   const handleWaivePenalty = async () => {
-    if (!selectedPenalty) return;
+    if (!selectedPenalty || !waiveReason.trim()) return;
 
     try {
+      await adminApi.put(`/penalties/${selectedPenalty._id}/waive`, {
+        reason: waiveReason
+      });
+
       toast({
         title: "Success",
-        description: "Penalty waived successfully (Mock)",
+        description: "Penalty waived successfully",
       });
 
       setShowWaiveDialog(false);
       setSelectedPenalty(null);
       setWaiveReason("");
 
+      // Refresh list and stats
       fetchPenalties();
+      fetchStats();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to waive penalty",
+        description: error.response?.data?.message || "Failed to waive penalty",
         variant: "destructive",
       });
     }
@@ -392,13 +441,13 @@ const AdminPenaltyManagement = () => {
                     <Input
                       type="email"
                       value={applyForm.driverEmail}
-                      onChange={(e) => setApplyForm({...applyForm, driverEmail: e.target.value})}
+                      onChange={(e) => setApplyForm({ ...applyForm, driverEmail: e.target.value })}
                       placeholder="Enter driver email address"
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Penalty Type</label>
-                    <Select value={applyForm.type} onValueChange={(value) => setApplyForm({...applyForm, type: value})}>
+                    <Select value={applyForm.type} onValueChange={(value) => setApplyForm({ ...applyForm, type: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select penalty type" />
                       </SelectTrigger>
@@ -414,7 +463,7 @@ const AdminPenaltyManagement = () => {
                     <Input
                       type="number"
                       value={applyForm.amount}
-                      onChange={(e) => setApplyForm({...applyForm, amount: e.target.value})}
+                      onChange={(e) => setApplyForm({ ...applyForm, amount: e.target.value })}
                       placeholder="Enter amount"
                     />
                   </div>
@@ -422,7 +471,7 @@ const AdminPenaltyManagement = () => {
                     <label className="text-sm font-medium">Reason</label>
                     <Input
                       value={applyForm.reason}
-                      onChange={(e) => setApplyForm({...applyForm, reason: e.target.value})}
+                      onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
                       placeholder="Enter reason"
                     />
                   </div>
@@ -430,7 +479,7 @@ const AdminPenaltyManagement = () => {
                     <label className="text-sm font-medium">Booking ID (Optional)</label>
                     <Input
                       value={applyForm.bookingId}
-                      onChange={(e) => setApplyForm({...applyForm, bookingId: e.target.value})}
+                      onChange={(e) => setApplyForm({ ...applyForm, bookingId: e.target.value })}
                       placeholder="Enter booking ID"
                     />
                   </div>
@@ -574,6 +623,7 @@ const AdminPenaltyManagement = () => {
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Applied Date</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -599,6 +649,20 @@ const AdminPenaltyManagement = () => {
                         </TableCell>
                         <TableCell>
                           {formatDate(penalty.appliedAt)}
+                        </TableCell>
+                        <TableCell>
+                          {penalty.status === 'active' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPenalty(penalty);
+                                setShowWaiveDialog(true);
+                              }}
+                            >
+                              Waive
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

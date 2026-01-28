@@ -1663,12 +1663,28 @@ const getReferredUsers = asyncHandler(async (req, res) => {
 // @route   GET /api/driver/referral-rewards
 // @access  Private (Driver)
 const getReferralRewards = asyncHandler(async (req, res) => {
-  const driver = await Driver.findById(req.driver.id)
-    .select('referralRewards');
+  const driver = await Driver.findById(req.driver.id).select('referralRewards');
 
   res.json({
     success: true,
     data: driver.referralRewards
+  });
+});
+
+// @desc    Get driver penalties
+// @route   GET /api/driver/penalties
+// @access  Private (Driver)
+const getDriverPenalties = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.driver.id).select('penalties');
+
+  // Sort penalties by date (newest first)
+  const sortedPenalties = driver.penalties.sort((a, b) =>
+    new Date(b.appliedAt) - new Date(a.appliedAt)
+  );
+
+  res.json({
+    success: true,
+    data: sortedPenalties
   });
 });
 
@@ -1701,5 +1717,6 @@ module.exports = {
   getReferralStats,
   generateReferralCode,
   getReferredUsers,
-  getReferralRewards
+  getReferralRewards,
+  getDriverPenalties
 };

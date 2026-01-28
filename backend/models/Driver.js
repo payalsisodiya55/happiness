@@ -193,7 +193,7 @@ const DriverSchema = new mongoose.Schema({
     },
     accountHolderName: {
       type: String,
-      default: function() {
+      default: function () {
         return `${this.firstName} ${this.lastName}`.trim() || 'PENDING';
       }
     }
@@ -426,12 +426,12 @@ const DriverSchema = new mongoose.Schema({
 });
 
 // Virtual for full name
-DriverSchema.virtual('fullName').get(function() {
+DriverSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
 // Virtual for age
-DriverSchema.virtual('age').get(function() {
+DriverSchema.virtual('age').get(function () {
   const today = new Date();
   const birthDate = new Date(this.dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -443,7 +443,7 @@ DriverSchema.virtual('age').get(function() {
 });
 
 // Virtual for experience
-DriverSchema.virtual('experience').get(function() {
+DriverSchema.virtual('experience').get(function () {
   const today = new Date();
   const licenseDate = new Date(this.documents.drivingLicense.expiryDate);
   const years = Math.floor((today - licenseDate) / (1000 * 60 * 60 * 24 * 365));
@@ -457,7 +457,7 @@ DriverSchema.index({ 'currentLocation.coordinates': '2dsphere' });
 DriverSchema.index({ 'vehicleDetails.type': 1, 'vehicleDetails.isAvailable': 1 });
 
 // Encrypt password using bcrypt
-DriverSchema.pre('save', async function(next) {
+DriverSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     next();
   }
@@ -467,71 +467,71 @@ DriverSchema.pre('save', async function(next) {
 });
 
 // Sign JWT and return
-DriverSchema.methods.getSignedJwtToken = function() {
+DriverSchema.methods.getSignedJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '7d'
   });
 };
 
 // Match driver entered password to hashed password in database
-DriverSchema.methods.matchPassword = async function(enteredPassword) {
+DriverSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Check if account is locked
-DriverSchema.methods.isLocked = function() {
+DriverSchema.methods.isLocked = function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
 // Increment login attempts
-DriverSchema.methods.incLoginAttempts = function() {
+DriverSchema.methods.incLoginAttempts = function () {
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $unset: { lockUntil: 1 },
       $set: { loginAttempts: 1 }
     });
   }
-  
+
   const updates = { $inc: { loginAttempts: 1 } };
-  
+
   if (this.loginAttempts + 1 >= 5 && !this.isLocked()) {
     updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
   }
-  
+
   return this.updateOne(updates);
 };
 
 // Reset login attempts
-DriverSchema.methods.resetLoginAttempts = function() {
+DriverSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $unset: { loginAttempts: 1, lockUntil: 1 }
   });
 };
 
 // Generate verification code
-DriverSchema.methods.generateVerificationCode = function() {
+DriverSchema.methods.generateVerificationCode = function () {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-  
+
   this.verificationCode = { code, expiresAt };
   return this.save();
 };
 
 // Verify code
-DriverSchema.methods.verifyCode = function(code) {
+DriverSchema.methods.verifyCode = function (code) {
   if (!this.verificationCode || !this.verificationCode.code) {
     return false;
   }
-  
+
   if (this.verificationCode.expiresAt < new Date()) {
     return false;
   }
-  
+
   return this.verificationCode.code === code;
 };
 
 // Update current location
-DriverSchema.methods.updateLocation = function(latitude, longitude, address) {
+DriverSchema.methods.updateLocation = function (latitude, longitude, address) {
   this.currentLocation.coordinates = [longitude, latitude];
   this.currentLocation.address = address;
   this.currentLocation.lastUpdated = new Date();
@@ -539,7 +539,7 @@ DriverSchema.methods.updateLocation = function(latitude, longitude, address) {
 };
 
 // Add earnings
-DriverSchema.methods.addEarnings = function(amount, description) {
+DriverSchema.methods.addEarnings = function (amount, description) {
   this.totalEarnings += amount;
   this.earnings.wallet.balance += amount;
   this.earnings.wallet.transactions.push({
@@ -552,7 +552,7 @@ DriverSchema.methods.addEarnings = function(amount, description) {
 };
 
 // Deduct from wallet
-DriverSchema.methods.deductFromWallet = function(amount, description) {
+DriverSchema.methods.deductFromWallet = function (amount, description) {
   // Check removed to allow negative balance (debt)
   // if (this.earnings.wallet.balance < amount) {
   //   throw new Error('Insufficient wallet balance');
@@ -569,8 +569,19 @@ DriverSchema.methods.deductFromWallet = function(amount, description) {
 };
 
 // Apply penalty to driver (SLA violation)
-DriverSchema.methods.applyPenalty = function(penaltyType, amount, reason, bookingId, appliedBy) {
-  // Record the penalty
+// Apply penalty to driver (SLA violation)
+DriverSchema.methods.applyPenalty = function (penaltyType, amount, reason, bookingId, appliedBy) {
+  // 1. Deduct from wallet (Allowing negative balance)
+  this.earnings.wallet.balance -= amount;
+
+  this.earnings.wallet.transactions.push({
+    type: 'debit',
+    amount: amount,
+    description: `Penalty: ${reason}`,
+    date: new Date()
+  });
+
+  // 2. Record the penalty (Mark as 'paid' since it's deducted from wallet)
   this.penalties.push({
     type: penaltyType,
     amount: amount,
@@ -578,31 +589,22 @@ DriverSchema.methods.applyPenalty = function(penaltyType, amount, reason, bookin
     bookingId: bookingId || null,
     appliedBy: appliedBy,
     appliedAt: new Date(),
-    status: 'active'
+    status: 'paid'
   });
 
-  // Deduct from wallet if sufficient balance
-  try {
-    if (this.earnings.wallet.balance >= amount) {
-      this.earnings.wallet.balance -= amount;
-      this.earnings.wallet.transactions.push({
-        type: 'debit',
-        amount: amount,
-        description: `Penalty: ${reason}`,
-        date: new Date()
-      });
-      this.penalties[this.penalties.length - 1].status = 'paid';
+  // 3. Check for negative balance and force offline if necessary
+  // (Assuming threshold is 0. Adjust if there's a minimum balance requirement like -500)
+  if (this.earnings.wallet.balance < 0) {
+    if (this.availability) {
+      this.availability.isOnline = false;
     }
-  } catch (error) {
-    // If insufficient balance, penalty remains active but unpaid
-    console.log(`Penalty applied but insufficient balance for driver ${this._id}`);
   }
 
   return this.save();
 };
 
 // Calculate cancellation penalty based on SLA rules
-DriverSchema.statics.calculateCancellationPenalty = function(booking, cancelledAt) {
+DriverSchema.statics.calculateCancellationPenalty = function (booking, cancelledAt) {
   const departureTime = new Date(`${booking.tripDetails.date}T${booking.tripDetails.time}`);
   const timeDiff = departureTime - cancelledAt;
   const hoursDiff = timeDiff / (1000 * 60 * 60);
@@ -624,7 +626,7 @@ DriverSchema.statics.calculateCancellationPenalty = function(booking, cancelledA
 };
 
 // Toggle online status
-DriverSchema.methods.toggleOnlineStatus = function() {
+DriverSchema.methods.toggleOnlineStatus = function () {
   this.availability.isOnline = !this.availability.isOnline;
   return this.save();
 };

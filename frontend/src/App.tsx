@@ -22,6 +22,7 @@ import SLAPage from "./pages/SLAPage";
 import ArchiveStories from "./pages/ArchiveStories";
 import CarDetails from "./pages/CarDetails";
 import BookingSummary from "./pages/BookingSummary";
+import ComplaintHistory from "./pages/ComplaintHistory";
 import PersonalInfo from "./pages/profile/PersonalInfo";
 import Notifications from "./pages/profile/Notifications";
 import PrivacySecurity from "./pages/profile/PrivacySecurity";
@@ -52,6 +53,7 @@ import AdminVehicleManagement from "./admin/pages/AdminVehicleManagement";
 
 import AdminPaymentManagement from "./admin/pages/AdminPaymentManagement";
 
+import AdminComplaintManagement from "./admin/pages/AdminComplaintManagement";
 import AdminBookingManagement from "./admin/pages/AdminBookingManagement";
 import AdminPenaltyManagement from "./admin/pages/AdminPenaltyManagement";
 import AdminProfile from "./admin/pages/AdminProfile";
@@ -157,6 +159,7 @@ const App = () => (
                 <Route path="/car-details/:id" element={<MobileAuthWrapper><CarDetails /></MobileAuthWrapper>} />
                 <Route path="/booking-summary" element={<MobileAuthWrapper><BookingSummary /></MobileAuthWrapper>} />
                 <Route path="/payment-status" element={<PaymentStatus />} />
+                <Route path="/complaints" element={<ProtectedUserRoute><ComplaintHistory /></ProtectedUserRoute>} />
 
                 {/* Profile Sub-pages */}
                 <Route path="/profile/personal-info" element={<ProtectedUserRoute><PersonalInfo /></ProtectedUserRoute>} />
@@ -191,6 +194,7 @@ const App = () => (
 
                 <Route path="/admin/payments" element={<ProtectedAdminRoute><AdminPaymentManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/penalties" element={<ProtectedAdminRoute><AdminPenaltyManagement /></ProtectedAdminRoute>} />
+                <Route path="/admin/complaints" element={<ProtectedAdminRoute><AdminComplaintManagement /></ProtectedAdminRoute>} />
 
                 <Route path="/admin/bookings" element={<ProtectedAdminRoute><AdminBookingManagement /></ProtectedAdminRoute>} />
                 <Route path="/admin/bookings/active" element={<ProtectedAdminRoute><AdminBookingManagement /></ProtectedAdminRoute>} />

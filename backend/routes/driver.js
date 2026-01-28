@@ -29,7 +29,8 @@ const {
   getReferralStats,
   generateReferralCode,
   getReferredUsers,
-  getReferralRewards
+  getReferralRewards,
+  getDriverPenalties
 } = require('../controllers/driverController');
 const { protectDriver } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
@@ -99,6 +100,9 @@ router.get('/earnings', [
 router.get('/earnings/today', getTodayEarnings);
 
 router.get('/stats', getDriverStats);
+
+// Penalties route
+router.get('/penalties', getDriverPenalties);
 
 // Booking routes
 router.get('/bookings', [

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { List, Clock, MapPin, Calendar, User, Home, HelpCircle, X, Car, CreditCard, Phone, Mail, Loader2, Download, Receipt, RefreshCw } from "lucide-react";
+import { List, Clock, MapPin, Calendar, User, Home, HelpCircle, X, Car, CreditCard, Phone, Mail, Loader2, Download, Receipt, RefreshCw, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -73,6 +73,41 @@ const Bookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Report Modal State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState("driver_misbehavior");
+  const [reportDescription, setReportDescription] = useState("");
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const handleReportSubmit = async () => {
+    if (!selectedBooking) return;
+
+    try {
+      setIsSubmittingReport(true);
+      await apiService.post('/complaints', {
+        bookingId: selectedBooking._id,
+        category: reportCategory,
+        description: reportDescription
+      });
+
+      toast({
+        title: "Report Submitted",
+        description: "We have received your report and will investigate shortly.",
+        className: "bg-green-500 text-white border-green-600"
+      });
+      setIsReportModalOpen(false);
+      setReportDescription("");
+    } catch (error) {
+      toast({
+        title: "Submission Failed",
+        description: error.response?.data?.message || "Could not submit report",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   // Fetch user bookings
   const fetchBookings = async () => {
@@ -903,6 +938,17 @@ const Bookings = () => {
                         <Phone className="w-3.5 h-3.5" /> Call Driver
                       </Button>
                     )}
+
+                    {['completed', 'cancelled'].includes(selectedBooking.status) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsReportModalOpen(true)}
+                        className="w-full mt-2 text-red-500 hover:text-red-700 hover:bg-red-50 text-xs h-8"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Report Issue
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -994,6 +1040,60 @@ const Bookings = () => {
                 Request Cancellation
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Issue Modal */}
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent className="max-w-md w-[95vw] p-4 md:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Report an Issue</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="bg-yellow-50 p-3 rounded-lg flex gap-3 text-sm text-yellow-800 border border-yellow-100">
+              <HelpCircle className="w-5 h-5 shrink-0" />
+              <p>Your feedback helps us maintain high service standards. Please report widely.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Issue Category</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#f48432] focus:border-transparent outline-none bg-white"
+                value={reportCategory}
+                onChange={(e) => setReportCategory(e.target.value)}
+              >
+                <option value="driver_misbehavior">Driver Misbehavior</option>
+                <option value="wrong_vehicle">Wrong Vehicle provided</option>
+                <option value="car_cleanliness">Car Cleanliness</option>
+                <option value="ac_not_working">AC Not Working</option>
+                <option value="rash_driving">Rash Driving</option>
+                <option value="overcharging">Overcharging</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#f48432] focus:border-transparent outline-none min-h-[100px]"
+                placeholder="Please describe what happened..."
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+              />
+            </div>
+
+            <Button
+              className="w-full bg-[#f48432] hover:bg-[#d9732a] text-white font-semibold h-11"
+              onClick={handleReportSubmit}
+              disabled={isSubmittingReport || !reportDescription.trim()}
+            >
+              {isSubmittingReport ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                </div>
+              ) : "Submit Report"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

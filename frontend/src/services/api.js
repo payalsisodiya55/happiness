@@ -441,6 +441,48 @@ class ApiService {
     return this.request('/admin/analytics', {}, 'admin');
   }
 
+  // Generic HTTP Methods
+  async get(endpoint, params = {}, role = 'user') {
+    const queryString = new URLSearchParams(params).toString();
+    const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+    return this.request(url, { method: 'GET' }, role);
+  }
+
+  async post(endpoint, data = {}, role = 'user') {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }, role);
+  }
+
+  async put(endpoint, data = {}, role = 'user') {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }, role);
+  }
+
+  async delete(endpoint, role = 'user') {
+    return this.request(endpoint, { method: 'DELETE' }, role);
+  }
+
+  // Complaint APIs
+  async createComplaint(complaintData) {
+    return this.post('/complaints', complaintData);
+  }
+
+  async getMyComplaints() {
+    return this.get('/complaints/my');
+  }
+
+  async getAllComplaints(filters = {}, role = 'admin') {
+    return this.get('/complaints', filters, role);
+  }
+
+  async resolveComplaint(id, resolutionData, role = 'admin') {
+    return this.put(`/complaints/${id}/resolve`, resolutionData, role);
+  }
+
   // Utility methods
   isAuthenticated(role = 'user') {
     const hasToken = !!this.getAuthToken(role);

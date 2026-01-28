@@ -375,6 +375,17 @@ class DriverApiService {
     return apiService.request('/driver/referral-rewards', {}, 'driver');
   }
 
+  // Penalties
+  async getPenalties() {
+    try {
+      const response = await apiService.request('/driver/penalties', {}, 'driver');
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching penalties:', error);
+      return [];
+    }
+  }
+
   // Wallet Management
   async getWalletBalance() {
     try {
